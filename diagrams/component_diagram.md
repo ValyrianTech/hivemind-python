@@ -1,3 +1,4 @@
+```mermaid
 graph TB
     subgraph HivemindProtocol[Hivemind Protocol]
         A[HivemindState] --> B[HivemindIssue]
@@ -23,3 +24,4 @@ graph TB
     A --> G
     F --> I
     F --> J
+```
