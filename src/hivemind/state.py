@@ -9,10 +9,6 @@ from .option import HivemindOption
 from .opinion import HivemindOpinion
 from bitcoin.signmessage import VerifyMessage
 
-# temporality commenting these out for now, we will need these again later, do not remove
-
-#from inputs.inputs import get_sil
-#from linker.linker import get_lal
 
 def verify_message(message: str, address: str, signature: str) -> bool:
     """Verify a signed message using Bitcoin's message verification.

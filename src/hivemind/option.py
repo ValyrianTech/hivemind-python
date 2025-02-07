@@ -255,41 +255,9 @@ class HivemindOption(IPFSDict):
     def is_valid_address_option(self) -> bool:
         """Check if the option is a valid address option.
 
-        Validates addresses against SIL (Signed Input List) or
-        LAL (Linked Address List) if specified in constraints.
-
         :return: True if valid, False otherwise
         :rtype: bool
         """
-        if 'SIL' in self._hivemind_issue.constraints or 'LAL' in self._hivemind_issue.constraints:
-            address = self._hivemind_issue.constraints['SIL']
-            block_height = self._hivemind_issue.constraints['block_height'] if 'block_height' in self._hivemind_issue.constraints else 0
-
-            if 'SIL' in self._hivemind_issue.constraints:
-                data = get_sil(address=address, block_height=block_height)
-                if 'SIL' not in data:
-                    LOG.error('Unable to retrieve SIL of %s to verify constraints op hivemind option' % address)
-                    return False
-
-                for item in data['SIL']:
-                    if item[0] == self.value:  # assume data in SIL is valid
-                        return True
-
-                return False
-
-            elif 'LAL' in self._hivemind_issue.constraints:
-                xpub = self._hivemind_issue.constraints['xpub']
-                data = get_lal(address=address, xpub=xpub, block_height=block_height)
-                if 'LAL' not in data:
-                    LOG.error('Unable to retrieve LAL of %s to verify constraints of hivemind option' % address)
-                    return False
-
-                for item in data['LAL']:
-                    if item[1] == self.value:  # assume data in LAL is valid
-                        return True
-
-                return False
-
         return valid_address(self.value) or valid_bech32_address(self.value)
 
     def info(self) -> str:
