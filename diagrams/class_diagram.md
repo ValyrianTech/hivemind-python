@@ -1,68 +1,84 @@
-```mermaid
 classDiagram
     class IPFSDict {
-        +String cid
-        +load(cid)
-        +save()
+        +str cid
+        +load(cid: str) Dict
+        +save() str
     }
     
     class HivemindIssue {
-        +List questions
-        +String name
-        +String description
-        +List tags
-        +String answer_type
-        +Dict constraints
-        +Dict restrictions
-        +String on_selection
-        +add_question(question)
-        +set_constraints(constraints)
-        +valid()
+        +List[str] questions
+        +str name
+        +str description
+        +List[str] tags
+        +str answer_type
+        +Optional[Dict[str, Union[str, int, float, list]]] constraints
+        +Optional[Dict[str, Union[List[str], int]]] restrictions
+        +str on_selection
+        +add_question(question: str) None
+        +set_constraints(constraints: Dict) None
+        +set_restrictions(restrictions: Dict) None
+        +valid() bool
+        +info() Dict
     }
     
     class HivemindOption {
-        +value
-        +String text
-        +String hivemind_id
-        +set_hivemind_issue(hivemind_issue_hash)
-        +is_valid_string_option()
-        +is_valid_float_option()
-        +is_valid_integer_option()
-        +is_valid_address_option()
-        +is_valid_hivemind_option()
+        +Union[str, int, float] value
+        +str text
+        +str hivemind_id
+        +set_hivemind_issue(hivemind_issue_hash: str) None
+        +is_valid_string_option() bool
+        +is_valid_float_option() bool
+        +is_valid_integer_option() bool
+        +is_valid_address_option() bool
+        +is_valid_hivemind_option() bool
+        +info() Dict
+        +valid() bool
     }
     
     class HivemindOpinion {
-        +String hivemind_id
-        +Int question_index
+        +str hivemind_id
+        +int question_index
         +Ranking ranking
-        +set_question_index(question_index)
-        +get()
-        +info()
+        +set_question_index(question_index: int) None
+        +get() Dict
+        +info() Dict
+        +valid() bool
     }
     
     class Ranking {
-        +List fixed
-        +String auto
-        +String type
-        +set_fixed(ranked_choice)
-        +set_auto_high(choice)
-        +set_auto_low(choice)
-        +get(options)
+        +List[str] fixed
+        +str auto
+        +str type
+        +set_fixed(ranked_choice: List[str]) None
+        +set_auto_high(choice: str) None
+        +set_auto_low(choice: str) None
+        +get(options: List[str]) List[str]
+        +valid() bool
     }
     
     class HivemindState {
-        +String hivemind_id
-        +List options
-        +List opinions
-        +Dict signatures
-        +Dict participants
-        +List selected
-        +Boolean final
-        +add_option(timestamp, option_hash, address, signature)
-        +calculate_results(question_index)
-        +get_weight(opinionator)
-        +get_opinion(opinionator, question_index)
+        +str hivemind_id
+        +List[str] options
+        +List[str] opinions
+        +Dict[str, str] signatures
+        +Dict[str, float] participants
+        +List[str] selected
+        +bool final
+        +add_option(timestamp: int, option_hash: str, address: str, signature: str) None
+        +add_opinion(timestamp: int, opinion_hash: str, address: str, signature: str) None
+        +calculate_results(question_index: int) Dict[str, float]
+        +get_weight(opinionator: str) float
+        +get_opinion(opinionator: str, question_index: int) Optional[Dict]
+        +valid() bool
+        +info() Dict
+    }
+
+    class Validators {
+        +validate_address(address: str) bool
+        +validate_signature(message: str, signature: str, address: str) bool
+        +validate_timestamp(timestamp: int) bool
+        +validate_hivemind_id(hivemind_id: str) bool
+        +validate_option_value(value: Any, answer_type: str) bool
     }
     
     IPFSDict <|-- HivemindIssue
@@ -70,4 +86,8 @@ classDiagram
     IPFSDict <|-- HivemindOpinion
     IPFSDict <|-- HivemindState
     HivemindOpinion *-- Ranking
-```
+    HivemindOption --> HivemindIssue : references
+    HivemindState --> Validators : uses
+    HivemindOption --> Validators : uses
+    HivemindOpinion --> Validators : uses
+    HivemindIssue --> Validators : uses

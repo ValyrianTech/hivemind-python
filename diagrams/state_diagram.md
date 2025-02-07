@@ -1,39 +1,108 @@
-```mermaid
 stateDiagram-v2
-    [*] --> IssueCreated: Create Issue
-    IssueCreated --> OptionsAdding: Set Issue in State
+    [*] --> IssueValidation: Create Issue
     
-    state OptionsAdding {
-        [*] --> ValidatingOption
-        ValidatingOption --> SavingOption: Valid
-        ValidatingOption --> Error: Invalid
-        SavingOption --> OptionAdded: Save to IPFS
-        OptionAdded --> [*]
+    state IssueValidation {
+        [*] --> ValidatingIssue
+        ValidatingIssue --> IssueCreated: Valid
+        ValidatingIssue --> IssueError: Invalid
+        
+        state IssueError {
+            [*] --> CheckingErrorType
+            CheckingErrorType --> InvalidFormat: Format Error
+            CheckingErrorType --> InvalidConstraints: Constraint Error
+            CheckingErrorType --> InvalidRestrictions: Restriction Error
+            
+            InvalidFormat --> ValidatingIssue: Fix Format
+            InvalidConstraints --> ValidatingIssue: Fix Constraints
+            InvalidRestrictions --> ValidatingIssue: Fix Restrictions
+        }
     }
     
-    state OpinionsAdding {
-        [*] --> ValidatingOpinion
-        ValidatingOpinion --> SavingOpinion: Valid
-        ValidatingOpinion --> Error: Invalid
-        SavingOpinion --> OpinionAdded: Save to IPFS
-        OpinionAdded --> [*]
+    IssueCreated --> OptionsPhase: Set Issue in State
+    
+    state OptionsPhase {
+        [*] --> OptionsAdding
+        
+        state OptionsAdding {
+            [*] --> ValidatingOption
+            ValidatingOption --> SavingOption: Valid
+            ValidatingOption --> OptionError: Invalid
+            SavingOption --> OptionAdded: Save to IPFS
+            OptionAdded --> [*]
+            
+            state OptionError {
+                [*] --> CheckingOptionError
+                CheckingOptionError --> InvalidValue: Value Error
+                CheckingOptionError --> InvalidType: Type Error
+                CheckingOptionError --> InvalidReference: Reference Error
+                
+                InvalidValue --> ValidatingOption: Fix Value
+                InvalidType --> ValidatingOption: Fix Type
+                InvalidReference --> ValidatingOption: Fix Reference
+            }
+        }
+        
+        OptionsAdding --> [*]: Options Complete
     }
     
-    OptionsAdding --> OpinionsAdding: Start Voting
-    OpinionsAdding --> ResultCalculation: Calculate Results
+    OptionsPhase --> OpinionsPhase: Start Voting
+    
+    state OpinionsPhase {
+        [*] --> OpinionsAdding
+        
+        state OpinionsAdding {
+            [*] --> ValidatingOpinion
+            ValidatingOpinion --> SavingOpinion: Valid
+            ValidatingOpinion --> OpinionError: Invalid
+            SavingOpinion --> OpinionAdded: Save to IPFS
+            OpinionAdded --> [*]
+            
+            state OpinionError {
+                [*] --> CheckingOpinionError
+                CheckingOpinionError --> InvalidRanking: Ranking Error
+                CheckingOpinionError --> InvalidWeight: Weight Error
+                CheckingOpinionError --> InvalidSignature: Signature Error
+                
+                InvalidRanking --> ValidatingOpinion: Fix Ranking
+                InvalidWeight --> ValidatingOpinion: Fix Weight
+                InvalidSignature --> ValidatingOpinion: Fix Signature
+            }
+        }
+        
+        OpinionsAdding --> [*]: Opinions Complete
+    }
+    
+    OpinionsPhase --> ResultCalculation: Calculate Results
     
     state ResultCalculation {
         [*] --> WeightCalculation
         WeightCalculation --> RankingAggregation
         RankingAggregation --> WinnerDetermination
+        
+        state WinnerDetermination {
+            [*] --> CheckingWinner
+            CheckingWinner --> SingleWinner: Clear Winner
+            CheckingWinner --> TieBreak: Tie Detected
+            
+            TieBreak --> SingleWinner: Tie Resolved
+            TieBreak --> Deadlock: Tie Unresolvable
+            
+            SingleWinner --> [*]
+            Deadlock --> [*]
+        }
+        
         WinnerDetermination --> [*]
     }
     
-    ResultCalculation --> [*]: Final Result
+    ResultCalculation --> FinalState: Results Ready
     
-    state "Final" as Final {
+    state FinalState {
+        [*] --> CheckingFinalization
+        CheckingFinalization --> Finalized: on_selection = Finalize
+        CheckingFinalization --> UpdatePending: on_selection = Update
+        
+        UpdatePending --> OpinionsPhase: Allow Updates
         Finalized --> [*]
     }
     
-    ResultCalculation --> Final: on_selection = Finalize
-```
+    FinalState --> [*]: Complete
