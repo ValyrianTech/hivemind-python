@@ -199,3 +199,31 @@ class TestHivemindOpinion:
         # So: 6, 7, 5, 8, 4
         expected_order = [option_cids[2], option_cids[3], option_cids[0], option_cids[1], option_cids[4]]
         assert ranked_options == expected_order
+
+    def test_auto_low_ranking(self):
+        """Test auto low ranking with numeric values"""
+        opinion = HivemindOpinion()
+        
+        # Create options with numeric values
+        options = []
+        values = [5, 8, 6, 7, 4]  # Same values as before
+        for value in values:
+            option = HivemindOption()
+            option.value = value
+            option['value'] = value  # Set in IPFS dict too
+            options.append(option)
+            
+        # Save options to get their CIDs
+        option_cids = [opt.save() for opt in options]
+        
+        # Set auto low ranking with middle value as choice
+        choice_idx = 2  # Value 6
+        opinion.ranking.set_auto_low(choice=option_cids[choice_idx])
+        
+        # Get the ranking
+        ranked_options = opinion.ranking.get(options=options)
+        
+        # Expected order: closest to 6 with preference for lower values
+        # So: 6, 5, 7, 4, 8
+        expected_order = [option_cids[2], option_cids[0], option_cids[3], option_cids[4], option_cids[1]]
+        assert ranked_options == expected_order
