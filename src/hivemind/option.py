@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from typing import Optional, Any, Dict, Union
 import re
 import logging
 from ipfs_dict_chain.IPFSDict import IPFSDict
@@ -9,44 +10,86 @@ from .issue import HivemindIssue
 LOG = logging.getLogger(__name__)
 
 class HivemindOption(IPFSDict):
-    def __init__(self, cid=None):
-        """Initialize a new HivemindOption
+    """A class representing a voting option in the Hivemind protocol.
 
-        :param cid: The IPFS multihash of the Option (optional)
+    This class handles the creation and validation of voting options, supporting
+    various types of answers including strings, booleans, integers, floats,
+    and complex types.
+
+    :ivar value: The value of the option
+    :type value: Optional[Union[str, bool, int, float, Dict[str, Any]]]
+    :ivar text: Additional text description of the option
+    :type text: str
+    :ivar _hivemind_issue: The associated hivemind issue
+    :type _hivemind_issue: Optional[HivemindIssue]
+    :ivar _answer_type: Type of the answer ('String', 'Bool', 'Integer', etc.)
+    :type _answer_type: str
+    :ivar hivemind_id: The IPFS hash of the associated hivemind issue
+    :type hivemind_id: Optional[str]
+    """
+
+    def __init__(self, cid: Optional[str] = None) -> None:
+        """Initialize a new HivemindOption.
+
+        :param cid: The IPFS multihash of the Option
+        :type cid: Optional[str]
         """
-        self.value = None
-        self.text = ''
-        self._hivemind_issue = None
-        self._answer_type = 'String'
-        self.hivemind_id = None
+        self.value: Optional[Union[str, bool, int, float, Dict[str, Any]]] = None
+        self.text: str = ''
+        self._hivemind_issue: Optional[HivemindIssue] = None
+        self._answer_type: str = 'String'
+        self.hivemind_id: Optional[str] = None
         super().__init__(cid=cid)
         if cid is not None:
             self.set_hivemind_issue(hivemind_issue_hash=self.hivemind_id)
 
-    def cid(self):
+    def cid(self) -> Optional[str]:
+        """Get the IPFS CID of this option.
+
+        :return: The IPFS CID
+        :rtype: Optional[str]
+        """
         return self._cid
 
-    def load(self, cid):
+    def load(self, cid: str) -> None:
+        """Load the option from IPFS.
+
+        :param cid: The IPFS multihash to load
+        :type cid: str
+        """
         super().load(cid=cid)
         self.set_hivemind_issue(hivemind_issue_hash=self.hivemind_id)
 
-    def set_hivemind_issue(self, hivemind_issue_hash):
-        """Set the hivemind issue for this option
+    def set_hivemind_issue(self, hivemind_issue_hash: str) -> None:
+        """Set the hivemind issue for this option.
 
         :param hivemind_issue_hash: The IPFS hash of the hivemind issue
+        :type hivemind_issue_hash: str
         """
         self.hivemind_id = hivemind_issue_hash
         issue = HivemindIssue(cid=hivemind_issue_hash)
         self._hivemind_issue = issue
         self._answer_type = issue.answer_type
 
-    def set(self, value):
+    def set(self, value: Union[str, bool, int, float, Dict[str, Any]]) -> None:
+        """Set the value of this option.
+
+        :param value: The value to set
+        :type value: Union[str, bool, int, float, Dict[str, Any]]
+        :raises Exception: If the value is invalid for the answer type
+        """
         self.value = value
 
         if not self.valid():
             raise Exception('Invalid value for answer type %s: %s' % (self._answer_type, value))
 
-    def valid(self):
+    def valid(self) -> bool:
+        """Check if the option is valid according to its type and constraints.
+
+        :return: True if valid, False otherwise
+        :rtype: bool
+        :raises Exception: If no hivemind issue is set or if constraints are violated
+        """
         if not isinstance(self._hivemind_issue, HivemindIssue):
             raise Exception('No hivemind question set on option yet! Must set the hivemind question first before setting the value!')
 
@@ -85,7 +128,12 @@ class HivemindOption(IPFSDict):
         else:
             return False
 
-    def is_valid_string_option(self):
+    def is_valid_string_option(self) -> bool:
+        """Check if the option is a valid string option.
+
+        :return: True if valid, False otherwise
+        :rtype: bool
+        """
         if not isinstance(self.value, str):
             return False
 
@@ -99,7 +147,12 @@ class HivemindOption(IPFSDict):
 
         return True
 
-    def is_valid_float_option(self):
+    def is_valid_float_option(self) -> bool:
+        """Check if the option is a valid float option.
+
+        :return: True if valid, False otherwise
+        :rtype: bool
+        """
         if not isinstance(self.value, float):
             LOG.error('Option value %s is not a floating number value but instead is a %s' % (self.value, type(self.value)))
             return False
@@ -122,7 +175,12 @@ class HivemindOption(IPFSDict):
 
         return True
 
-    def is_valid_integer_option(self):
+    def is_valid_integer_option(self) -> bool:
+        """Check if the option is a valid integer option.
+
+        :return: True if valid, False otherwise
+        :rtype: bool
+        """
         if not isinstance(self.value, int):
             LOG.error('Option value %s is not a integer value but instead is a %s' % (self.value, type(self.value)))
             return False
@@ -137,14 +195,24 @@ class HivemindOption(IPFSDict):
 
         return True
 
-    def is_valid_bool_option(self):
+    def is_valid_bool_option(self) -> bool:
+        """Check if the option is a valid boolean option.
+
+        :return: True if valid, False otherwise
+        :rtype: bool
+        """
         if not isinstance(self.value, bool):
             LOG.error('Option value %s is not a boolean value but instead is a %s' % (self.value, type(self.value)))
             return False
 
         return True
 
-    def is_valid_hivemind_option(self):
+    def is_valid_hivemind_option(self) -> bool:
+        """Check if the option is a valid hivemind option.
+
+        :return: True if valid, False otherwise
+        :rtype: bool
+        """
         try:
             isinstance(HivemindIssue(cid=self.value), HivemindIssue)
         except Exception as ex:
@@ -153,7 +221,15 @@ class HivemindOption(IPFSDict):
 
         return True
 
-    def is_valid_complex_option(self):
+    def is_valid_complex_option(self) -> bool:
+        """Check if the option is a valid complex option.
+
+        Complex options are dictionaries that must match the specifications
+        defined in the hivemind issue constraints.
+
+        :return: True if valid, False otherwise
+        :rtype: bool
+        """
         if not isinstance(self.value, dict):
             return False
 
@@ -176,7 +252,15 @@ class HivemindOption(IPFSDict):
 
         return True
 
-    def is_valid_address_option(self):
+    def is_valid_address_option(self) -> bool:
+        """Check if the option is a valid address option.
+
+        Validates addresses against SIL (Signed Input List) or
+        LAL (Linked Address List) if specified in constraints.
+
+        :return: True if valid, False otherwise
+        :rtype: bool
+        """
         if 'SIL' in self._hivemind_issue.constraints or 'LAL' in self._hivemind_issue.constraints:
             address = self._hivemind_issue.constraints['SIL']
             block_height = self._hivemind_issue.constraints['block_height'] if 'block_height' in self._hivemind_issue.constraints else 0
@@ -208,11 +292,11 @@ class HivemindOption(IPFSDict):
 
         return valid_address(self.value) or valid_bech32_address(self.value)
 
-    def info(self):
-        """
-        Get info about the option
+    def info(self) -> str:
+        """Get information about the option.
 
-        :return: A string containing info about the option
+        :return: A string containing formatted information about the option
+        :rtype: str
         """
         info = f'Option hash: {self.cid}\n'
         info += f'Answer type: {self._answer_type}\n'

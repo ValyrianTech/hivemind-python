@@ -1,90 +1,80 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from typing import Optional, Dict, Any, List
 from ipfs_dict_chain.IPFSDict import IPFSDict
 from .ranking import Ranking
 from .option import HivemindOption
 
 
 class HivemindOpinion(IPFSDict):
-    def __init__(self, cid=None):
-        """
-        Constructor of the Opinion object
+    """A class representing a voter's opinion in the Hivemind protocol.
 
-        :param cid: The ipfs hash of the Opinion object (optional)
+    This class handles the storage and management of a voter's ranked choices
+    for a particular hivemind issue question.
+
+    :ivar hivemind_id: The IPFS hash of the associated hivemind issue
+    :type hivemind_id: Optional[str]
+    :ivar question_index: The index of the question this opinion is for
+    :type question_index: int
+    :ivar ranking: The ranking of options for this opinion
+    :type ranking: Ranking
+    """
+
+    def __init__(self, cid: Optional[str] = None) -> None:
+        """Initialize a new HivemindOpinion.
+
+        :param cid: The IPFS hash of the Opinion object
+        :type cid: Optional[str]
         """
-        self.hivemind_id = None
-        self.question_index = 0
-        self.ranking = Ranking()
+        self.hivemind_id: Optional[str] = None
+        self.question_index: int = 0
+        self.ranking: Ranking = Ranking()
 
         super(HivemindOpinion, self).__init__(cid=cid)
 
-    def get(self):
-        # override the get method because it contains a non JSON serializable object
-        return {'hivemind_id': self.hivemind_id,
-                'question_index': self.question_index,
-                'ranking': self.ranking.to_dict()}
+    def get(self) -> Dict[str, Any]:
+        """Get a JSON-serializable representation of this opinion.
 
-    def set_question_index(self, question_index):
+        Overrides the get method because it contains a non-JSON-serializable object.
+
+        :return: Dictionary containing the opinion data
+        :rtype: Dict[str, Any]
+        """
+        return {
+            'hivemind_id': self.hivemind_id,
+            'question_index': self.question_index,
+            'ranking': self.ranking.to_dict()
+        }
+
+    def set_question_index(self, question_index: int) -> None:
+        """Set the question index for this opinion.
+
+        :param question_index: The index of the question
+        :type question_index: int
+        """
         self.question_index = question_index
 
-    # def get_unranked_option_ids(self):
-    #     """
-    #     Get the list of option ids that have not been ranked yet
-    #
-    #     :return: A list of option ids that have not been ranked yet
-    #     """
-    #     unranked = []
-    #     for option_id in self._hivemind_issue.options:
-    #         if option_id not in self.ranked_choice:
-    #             unranked.append(option_id)
-    #
-    #     return sorted(unranked)
+    def info(self) -> str:
+        """Get the details of this Opinion object in string format.
 
-    def info(self):
-        """
-        Get the details of this Opinion object in string format
-
-        :return: the details of this Opinion object in string format
+        :return: Formatted string containing the opinion details
+        :rtype: str
         """
         ret = ''
         for i, option_hash in enumerate(self.ranking.get()):
             option = HivemindOption(cid=option_hash)
             ret += '\n%s: %s' % (i+1, option.value)
-
         return ret
 
-    # def is_complete(self, ranked_choice=None):
-    #     """
-    #     Is this Opinion complete? Meaning are all option hashes present in the ranked_choice?
-    #
-    #     :param ranked_choice: An optional list of option hashes
-    #     :return: True or False
-    #     """
-    #     if ranked_choice is None:
-    #         ranked_choice = self.ranked_choice
-    #
-    #     return all(option_id in ranked_choice for option_id in self._hivemind_issue.options)
+    def load(self, cid: str) -> None:
+        """Load the opinion from IPFS.
 
-    # def valid(self):
-    #     """
-    #     Is the Opinion object a valid opinion? Meaning are all option hashes in the ranked_choice valid?
-    #
-    #     :return: True or False
-    #     """
-    #     if self.contains_duplicates() is True:
-    #         return False
-    #
-    #     return True
-    #
-    # def contains_duplicates(self):
-    #     """
-    #     Does the Opinion object have duplicate option hashes in ranked_choice?
-    #
-    #     :return: True or False
-    #     """
-    #     return len([x for x in self.ranked_choice if self.ranked_choice.count(x) >= 2]) > 0
+        This method handles the conversion of the stored ranking dictionary
+        back into a Ranking object.
 
-    def load(self, cid):
+        :param cid: The IPFS hash to load
+        :type cid: str
+        """
         super(HivemindOpinion, self).load(cid=cid)
 
         # ipfs will store ranking as a dict, but we need to convert it back to a Ranking() object
