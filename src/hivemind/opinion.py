@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from ipfs_dict_chain import IPFSDict
+from ipfs_dict_chain.IPFSDict import IPFSDict
 from .ranking import Ranking
 
 

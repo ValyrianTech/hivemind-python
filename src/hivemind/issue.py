@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from ipfs_dict_chain import IPFSDict
+from ipfs_dict_chain.IPFSDict import IPFSDict
 from .validators import valid_address, valid_bech32_address
 
 
@@ -11,6 +11,8 @@ class HivemindIssue(IPFSDict):
 
         :param cid: The ipfs multihash of the hivemind issue
         """
+        super().__init__(cid=cid)
+        
         self.questions = []
         self.name = None
         self.description = ''
@@ -25,8 +27,6 @@ class HivemindIssue(IPFSDict):
         # Exclude : The selected option is excluded from the results
         # Reset : All opinions are reset
         self.on_selection = None
-
-        super(HivemindIssue, self).__init__(cid=cid)
 
     def add_question(self, question):
         if isinstance(question, str) and question not in self.questions:
@@ -91,7 +91,7 @@ class HivemindIssue(IPFSDict):
 
         if 'options_per_address' in restrictions:
             if not isinstance(restrictions['options_per_address'], int) or restrictions['options_per_address'] < 1:
-                raise Exception('options per address in restrictions is invalid: %s' % restrictions['options_per_address'])
+                raise Exception('options_per_address in restrictions must be a positive integer')
 
         self.restrictions = restrictions
 
@@ -115,6 +115,8 @@ class HivemindIssue(IPFSDict):
 
         for i, additional_question in enumerate(self.questions[1:]):
             info += 'Additional question %s: %s\n' % (i + 1, additional_question)
+
+        return info
 
     def save(self):
         try:

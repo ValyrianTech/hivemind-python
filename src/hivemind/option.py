@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from ipfs_dict_chain import IPFSDict
+from ipfs_dict_chain.IPFSDict import IPFSDict
 from .validators import valid_address, valid_bech32_address
 
 class HivemindOption(IPFSDict):

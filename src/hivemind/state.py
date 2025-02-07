@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from ipfs_dict_chain.IPFSDict import IPFSDict
 from itertools import combinations
 import time
 
-from ipfs_dict_chain import IPFSDict
-from helpers.messagehelpers import verify_message
-from inputs.inputs import get_sil
-from linker.linker import get_lal
+# temporality commenting these out for now, we will need these again later, do not remove
+#from helpers.messagehelpers import verify_message
+#from inputs.inputs import get_sil
+#from linker.linker import get_lal
 
 
 def compare(a, b, opinion_hash):
@@ -45,7 +46,7 @@ def compare(a, b, opinion_hash):
     else:
         return b
 
-class HivemindState(IPFSDictChain):
+class HivemindState(IPFSDict):
     def __init__(self, cid=None):
         self.hivemind_id = None
         self._hivemind_issue = None
