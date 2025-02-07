@@ -109,6 +109,16 @@ results = state.calculate_results()
 winner = state.consensus()
 ```
 
+## Examples
+
+Detailed examples can be found in the [`examples/`](examples/) directory:
+
+1. [`basic_voting.py`](examples/basic_voting.py) - Simple voting example
+2. [`advanced_features.py`](examples/advanced_features.py) - Advanced protocol features
+3. [`protocol_upgrade.py`](examples/protocol_upgrade.py) - Governance decision example
+
+Each example is thoroughly documented and can be run independently. See the [examples README](examples/README.md) for more details.
+
 ## Installation
 
 You can install the package using pip:
