@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
-class Ranking:
+class Ranking(object):
     def __init__(self):
         self.fixed = None
         self.auto = None
@@ -14,8 +13,12 @@ class Ranking:
 
         :param ranked_choice: List - a list of option cids
         """
+        if not isinstance(ranked_choice, list) or not all(isinstance(item, str) for item in ranked_choice):
+            raise Exception('Invalid ranked choice')
+
         self.fixed = ranked_choice
         self.type = 'fixed'
+        self.auto = None
 
     def set_auto_high(self, choice):
         """
@@ -24,8 +27,12 @@ class Ranking:
 
         :param choice: String - option cid of the preferred choice
         """
+        if not isinstance(choice, str):
+            raise Exception('Invalid choice for auto ranking')
+
         self.auto = choice
         self.type = 'auto_high'
+        self.fixed = None
 
     def set_auto_low(self, choice):
         """
@@ -34,8 +41,12 @@ class Ranking:
 
         :param choice: String - option cid of the preferred choice
         """
+        if not isinstance(choice, str):
+            raise Exception('Invalid choice for auto ranking')
+
         self.auto = choice
         self.type = 'auto_low'
+        self.fixed = None
 
     def get(self, options=None):
         """
@@ -44,20 +55,26 @@ class Ranking:
         :param options: List of HivemindOptions, only needed for auto ranking
         :return: A list of option cids
         """
-        if self.type == 'fixed':
-            return self.fixed
-        elif self.type == 'auto_high' or self.type == 'auto_low':
+        ranking = None
+        if self.type is None:
+            raise Exception('No ranking was set')
+        elif self.type == 'fixed':
+            ranking = self.fixed
+        elif self.type in ['auto_high', 'auto_low']:
+            # auto complete the ranking based on given options
             if options is None:
-                raise Exception('Options are required for auto ranking')
+                raise Exception('No options given for auto ranking')
+            elif not isinstance(options, list) or not all(isinstance(option, HivemindOption) for option in options):
+                raise Exception('Invalid list of options given for auto ranking')
 
-            ranked_choice = []
-            for option in options:
-                if option.value == self.auto:
-                    ranked_choice.append(option.cid)
+            choice = HivemindOption(cid=self.auto)
+            if self.type == 'auto_high':
+                ranking = [option.cid() for option in sorted(options, key=lambda x: (abs(x.value - choice.value), -x.value))]
 
-            return ranked_choice
-        else:
-            return []
+            elif self.type == 'auto_low':
+                ranking = [option.cid() for option in sorted(options, key=lambda x: (abs(x.value - choice.value), x.value))]
+
+        return ranking
 
     def to_dict(self):
         """
@@ -65,10 +82,9 @@ class Ranking:
 
         :return: Dict - ranking settings as a dict
         """
-        ranking_dict = {'type': self.type}
         if self.type == 'fixed':
-            ranking_dict['fixed'] = self.fixed
-        elif self.type == 'auto_high' or self.type == 'auto_low':
-            ranking_dict['auto'] = self.auto
-
-        return ranking_dict
+            return {'fixed': self.fixed}
+        elif self.type == 'auto_high':
+            return {'auto_high': self.auto}
+        elif self.type == 'auto_low':
+            return {'auto_low': self.auto}

@@ -3,8 +3,7 @@
 from itertools import combinations
 import time
 
-from helpers.ipfshelpers import IPFSDict
-from helpers.loghelpers import LOG
+from ipfs_dict_chain import IPFSDict
 from helpers.messagehelpers import verify_message
 from inputs.inputs import get_sil
 from linker.linker import get_lal
@@ -46,8 +45,7 @@ def compare(a, b, opinion_hash):
     else:
         return b
 
-
-class HivemindState(IPFSDict):
+class HivemindState(IPFSDictChain):
     def __init__(self, cid=None):
         self.hivemind_id = None
         self._hivemind_issue = None
@@ -60,24 +58,58 @@ class HivemindState(IPFSDict):
 
         super(HivemindState, self).__init__(cid=cid)
 
-    @property
     def hivemind_issue(self):
         return self._hivemind_issue
 
     def get_options(self):
-        return self.options
+        return [HivemindOption(cid=option_cid) for option_cid in self.options]
 
     def set_hivemind_issue(self, issue_hash):
         self.hivemind_id = issue_hash
+        self._hivemind_issue = HivemindIssue(cid=self.hivemind_id)
         self.opinions = [{} for _ in range(len(self._hivemind_issue.questions))]
 
     def add_predefined_options(self):
-        if self._hivemind_issue.constraints is not None and 'choices' in self._hivemind_issue.constraints:
+        options = {}
+
+        if self._hivemind_issue.answer_type == 'Bool':
+            true_option = HivemindOption()
+            true_option.set_hivemind_issue(self.hivemind_id)
+            true_option.set(value=True)
+            true_option.text = self._hivemind_issue.constraints['true_value']
+            true_option_hash = true_option.save()
+            if isinstance(true_option, HivemindOption) and true_option.valid():
+                if true_option_hash not in self.options:
+                    self.options.append(true_option_hash)
+                    options[true_option_hash] = true_option.get()
+
+            false_option = HivemindOption()
+            false_option.set_hivemind_issue(self.hivemind_id)
+            false_option.set(value=False)
+            false_option.text = self._hivemind_issue.constraints['false_value']
+            false_option_hash = false_option.save()
+            if isinstance(false_option, HivemindOption) and false_option.valid():
+                if false_option_hash not in self.options:
+                    self.options.append(false_option_hash)
+                    options[false_option_hash] = false_option.get()
+
+        elif 'choices' in self._hivemind_issue.constraints:
             for choice in self._hivemind_issue.constraints['choices']:
                 option = HivemindOption()
                 option.set_hivemind_issue(self.hivemind_id)
-                option.set(choice)
-                self.options.append(option)
+                option.set(value=choice['value'])
+                option.text = choice['text']
+                option_hash = option.save()
+                if isinstance(option, HivemindOption) and option.valid():
+                    if option_hash not in self.options:
+                        self.options.append(option_hash)
+                        options[option_hash] = option.get()
+
+        return options
+
+    def load(self, cid):
+        super(HivemindState, self).load(cid=cid)
+        self._hivemind_issue = HivemindIssue(cid=self.hivemind_id)
 
     def add_option(self, timestamp, option_hash, address, signature):
         """
@@ -91,77 +123,58 @@ class HivemindState(IPFSDict):
         :param signature: String - The signature of the message: '<timestamp>'+'/ipfs/<option_hash>' by the address
         """
         if self.final is True:
-            raise Exception('This hivemind has been finalized, no more options can be added!')
+            return
 
-        if self._hivemind_issue.restrictions is not None:
-            if address is None or signature is None:
-                raise Exception('This hivemind has restrictions on addresses, an address and signature are required!')
+        if not isinstance(self._hivemind_issue, HivemindIssue) or address is None or signature is None:
+            return
 
-            if 'addresses' in self._hivemind_issue.restrictions and address not in self._hivemind_issue.restrictions['addresses']:
-                raise Exception('Address %s is not allowed to add options to this hivemind!' % address)
+        if not verify_message(message='%s%s' % (timestamp, option_hash), address=address, signature=signature):
+            raise Exception('Can not add option: Signature is not valid')
 
-            if 'options_per_address' in self._hivemind_issue.restrictions:
-                if address not in self.participants:
-                    self.participants[address] = {'options': [], 'opinions': []}
+        if self._hivemind_issue.restrictions is not None and 'addresses' in self._hivemind_issue.restrictions:
+            if address not in self._hivemind_issue.restrictions['addresses']:
+                raise Exception('Can not add option: there are address restrictions on this hivemind issue and address %s is not allowed to add options' % address)
+            elif address is None or signature is None:
+                raise Exception('Can not add option: no address or signature given')
 
-                if len(self.participants[address]['options']) >= self._hivemind_issue.restrictions['options_per_address']:
-                    raise Exception('Address %s has already added the maximum number of options (%d) to this hivemind!' % (address, self._hivemind_issue.restrictions['options_per_address']))
+        if self._hivemind_issue.restrictions is not None and 'options_per_address' in self._hivemind_issue.restrictions:
+            number_of_options = len(self.options_by_participant(address=address))
+            if number_of_options >= self._hivemind_issue.restrictions['options_per_address']:
+                raise Exception('Can not add option: address %s already added too many options: %s' % (address, number_of_options))
 
-            # Verify the signature
-            message = str(timestamp) + '/ipfs/' + option_hash
-            if verify_message(message=message, address=address, signature=signature) is not True:
-                raise Exception('Invalid signature!')
+        option = HivemindOption(cid=option_hash)
+        if isinstance(option, HivemindOption) and option.valid():
+            if option_hash not in self.options:
+                # Signature is already verified, but it is possible an old signature is re-used
+                try:
+                    self.add_signature(address=address, timestamp=timestamp, message=option_hash, signature=signature)
+                except Exception as ex:
+                    raise Exception('Invalid signature: %s' % ex)
 
-            # Add the signature to the signatures dict
-            if address not in self.signatures:
-                self.signatures[address] = []
-
-            self.signatures[address].append({'timestamp': timestamp,
-                                          'message': message,
-                                          'signature': signature})
-
-            # Add the option to the participants dict
-            if address not in self.participants:
-                self.participants[address] = {'options': [], 'opinions': []}
-
-            self.participants[address]['options'].append(option_hash)
-
-        self.options.append(option_hash)
+                self.options.append(option_hash)
 
     def options_by_participant(self, address):
-        if address in self.participants:
-            return self.participants[address]['options']
-        else:
-            return []
+        option_cids = [option_cid for option_cid in self.signatures['options'] if address in self.signatures['options'][option_cid]]
+        return option_cids
 
     def add_opinion(self, timestamp, opinion_hash, signature, address):
         if self.final is True:
-            raise Exception('This hivemind has been finalized, no more opinions can be added!')
+            return
 
-        if self._hivemind_issue.restrictions is not None:
-            if 'addresses' in self._hivemind_issue.restrictions and address not in self._hivemind_issue.restrictions['addresses']:
-                raise Exception('Address %s is not allowed to add opinions to this hivemind!' % address)
+        opinion = HivemindOpinion(cid=opinion_hash)
+        if not verify_message(address=address, message='%s%s' % (timestamp, opinion_hash), signature=signature):
+            raise Exception('Signature is invalid')
 
-            # Verify the signature
-            message = str(timestamp) + '/ipfs/' + opinion_hash
-            if verify_message(message=message, address=address, signature=signature) is not True:
-                raise Exception('Invalid signature!')
+        if isinstance(opinion, HivemindOpinion) and not any(option_hash not in self.options for option_hash in opinion.ranking.get(options=self.get_options())):
+            try:
+                self.add_signature(address=address, timestamp=timestamp, message=opinion_hash, signature=signature)
+            except Exception as ex:
+                raise Exception('Invalid signature: %s' % ex)
 
-            # Add the signature to the signatures dict
-            if address not in self.signatures:
-                self.signatures[address] = []
+            self.opinions[opinion.question_index][address] = {'opinion_cid': opinion_hash, 'timestamp': int(time.time())}
 
-            self.signatures[address].append({'timestamp': timestamp,
-                                          'message': message,
-                                          'signature': signature})
-
-            # Add the opinion to the participants dict
-            if address not in self.participants:
-                self.participants[address] = {'options': [], 'opinions': []}
-
-            self.participants[address]['opinions'].append(opinion_hash)
-
-        self.opinions[opinion_hash.question_index][address] = opinion_hash
+        else:
+            raise Exception('Opinion is invalid')
 
     def get_opinion(self, opinionator, question_index=0):
         """
@@ -171,10 +184,11 @@ class HivemindState(IPFSDict):
         :param question_index: The index of the question in the HivemindQuestion (default=0)
         :return: An Opinion object
         """
+        opinion = None
         if opinionator in self.opinions[question_index]:
-            return self.opinions[question_index][opinionator]
-        else:
-            return None
+            opinion = HivemindOpinion(cid=self.opinions[question_index][opinionator]['opinion_cid'])
+
+        return opinion
 
     def get_weight(self, opinionator):
         """
@@ -184,22 +198,36 @@ class HivemindState(IPFSDict):
         :param opinionator: The opinionator
         :return: The weight of the Opinion (type float)
         """
-        if self._hivemind_issue.restrictions is not None and 'weights' in self._hivemind_issue.restrictions and opinionator in self._hivemind_issue.restrictions['weights']:
-            return self._hivemind_issue.restrictions['weights'][opinionator]
-        else:
-            return 1.0
+        weight = 1.0
+        if opinionator in self._hivemind_issue.restrictions and 'weight' in self._hivemind_issue.restrictions[opinionator]:
+            weight = self._hivemind_issue.restrictions[opinionator]['weight']
+
+        return weight
 
     def info(self):
         """
         Print the details of the hivemind
         """
-        info_string = 'Hivemind state:\n'
-        info_string += '  Options: %d\n' % len(self.options)
-        info_string += '  Opinions: %d\n' % len(self.opinions)
-        info_string += '  Selected: %s\n' % self.selected
-        info_string += '  Final: %s\n' % self.final
+        ret = "================================================================================="
+        ret += '\nHivemind id: ' + self.hivemind_id
+        ret += '\nHivemind main question: ' + self._hivemind_issue.questions[0]
+        ret += '\nHivemind description: ' + self._hivemind_issue.description
+        if self._hivemind_issue.tags is not None:
+            ret += '\nHivemind tags: ' + ' '.join(self._hivemind_issue.tags)
+        ret += '\nAnswer type: ' + self._hivemind_issue.answer_type
+        if self._hivemind_issue.constraints is not None:
+            ret += '\nOption constraints: ' + str(self._hivemind_issue.constraints)
+        ret += '\n' + "================================================================================="
+        ret += '\n' + self.options_info()
 
-        return info_string
+        for i, question in enumerate(self._hivemind_issue.questions):
+            ret += '\nHivemind question %s: %s' % (i, self._hivemind_issue.questions[i])
+            ret += '\n' + self.opinions_info(question_index=i)
+
+            results = self.calculate_results(question_index=i)
+            ret += '\n' + self.results_info(results=results, question_index=i)
+
+        return ret
 
     def options_info(self):
         """
@@ -207,59 +235,74 @@ class HivemindState(IPFSDict):
 
         :return: A string containing all information about the options
         """
-        info_string = 'Options:\n'
-        for option in self.options:
-            info_string += option.info()
+        ret = "Options"
+        ret += "\n======="
+        for i, option_hash in enumerate(self.options):
+            ret += '\nOption %s:' % (i + 1)
+            option = HivemindOption(cid=option_hash)
+            ret += '\n' + option.info()
+            ret += '\n'
 
-        return info_string
+        return ret
 
     def opinions_info(self, question_index=0):
         """
         Print out a list of the Opinions of the hivemind
         """
-        info_string = 'Opinions for question %d:\n' % question_index
-        for opinionator in self.opinions[question_index]:
-            info_string += '  %s: %s\n' % (opinionator, self.opinions[question_index][opinionator].get())
+        ret = "Opinions"
+        ret += "\n========"
+        # opinion_data is a list containing [opinion_hash, signature of '/ipfs/opinion_hash', timestamp]
+        for opinionator, opinion_data in self.opinions[question_index].items():
+            ret += '\nTimestamp: %s' % opinion_data['timestamp']
+            opinion = HivemindOpinion(cid=opinion_data['opinion_cid'])
+            ret += '\n' + opinion.info()
+            ret += '\n'
 
-        return info_string
+        return ret
 
     def calculate_results(self, question_index=0):
         """
         Calculate the results of the hivemind
         """
-        scores = {}
-        for option in self.options:
-            scores[option.cid] = {'wins': 0, 'losses': 0}
+        LOG.info('Calculating results for question %s...' % question_index)
 
-        for option_a, option_b in combinations(self.options, 2):
-            if option_a.cid in self.selected or option_b.cid in self.selected:
-                continue
+        # if selection mode is 'Exclude', we must exclude previously selected options from the results
+        if self._hivemind_issue.on_selection == 'Exclude':
+            selected_options = [selection[question_index] for selection in self.selected]
+            available_options = [option_hash for option_hash in self.options if option_hash not in selected_options]
+        else:
+            available_options = self.options
 
-            wins_a = 0
-            wins_b = 0
+        results = {option: {'win': 0, 'loss': 0, 'unknown': 0, 'score': 0} for option in available_options}
+
+        for a, b in combinations(available_options, 2):
             for opinionator in self.opinions[question_index]:
-                opinion = self.opinions[question_index][opinionator]
-                winner = compare(option_a, option_b, opinion)
-                if winner == option_a:
-                    wins_a += self.get_weight(opinionator)
-                elif winner == option_b:
-                    wins_b += self.get_weight(opinionator)
+                winner = compare(a, b, self.opinions[question_index][opinionator]['opinion_cid'])
+                weight = self.get_weight(opinionator=opinionator)
+                if winner == a:
+                    results[a]['win'] += weight
+                    results[b]['loss'] += weight
+                elif winner == b:
+                    results[b]['win'] += weight
+                    results[a]['loss'] += weight
+                elif winner is None:
+                    results[a]['unknown'] += weight
+                    results[b]['unknown'] += weight
 
-            if wins_a > wins_b:
-                scores[option_a.cid]['wins'] += 1
-                scores[option_b.cid]['losses'] += 1
-            elif wins_b > wins_a:
-                scores[option_b.cid]['wins'] += 1
-                scores[option_a.cid]['losses'] += 1
+        # Calculate scores for each option
+        for option_id in results:
+            if results[option_id]['win'] + results[option_id]['loss'] + results[option_id]['unknown'] > 0:
+                results[option_id]['score'] = results[option_id]['win'] / float(results[option_id]['win'] + results[option_id]['loss'] + results[option_id]['unknown'])
 
-        return scores
+        results_info = self.results_info(results=results, question_index=question_index)
+        for line in results_info.split('\n'):
+            LOG.info(line)
+
+        return results
 
     def get_score(self, option_hash, question_index=0):
         results = self.calculate_results(question_index=question_index)
-        if option_hash in results:
-            return results[option_hash]['wins'] - results[option_hash]['losses']
-        else:
-            return None
+        return results[option_hash]['score']
 
     def get_sorted_options(self, question_index=0):
         """
@@ -267,24 +310,26 @@ class HivemindState(IPFSDict):
 
         :return: A list of Option objects sorted by highest score
         """
-        results = self.calculate_results(question_index=question_index)
-        sorted_options = []
-        for option in self.options:
-            if option.cid not in self.selected:
-                sorted_options.append((option, results[option.cid]['wins'] - results[option.cid]['losses']))
 
-        sorted_options.sort(key=lambda x: x[1], reverse=True)
-        return [x[0] for x in sorted_options]
+        results = self.calculate_results(question_index=question_index)
+        return [HivemindOption(cid=option[0]) for option in sorted(results.items(), key=lambda x: x[1]['score'], reverse=True)]
 
     def consensus(self, question_index=0):
-        sorted_options = self.get_sorted_options(question_index=question_index)
-        if len(sorted_options) > 0:
-            return sorted_options[0]
+        results = self.calculate_results(question_index=question_index)
+
+        sorted_options = self.get_options(question_index=question_index)
+        if len(sorted_options) == 0:
+            return None
+        elif len(sorted_options) == 1:
+            return sorted_options[0].value
+        # Make sure the consensus is not tied between the first two options
+        elif len(sorted_options) >= 2 and results[sorted_options[0].cid()]['score'] > results[sorted_options[1].cid()]['score']:
+            return sorted_options[0].value
         else:
             return None
 
     def ranked_consensus(self, question_index=0):
-        return self.get_sorted_options(question_index=question_index)
+        return [option.value for option in self.get_options(question_index=question_index)]
 
     def get_consensus(self, question_index=0, consensus_type='Single'):
         if consensus_type == 'Single':
@@ -292,51 +337,74 @@ class HivemindState(IPFSDict):
         elif consensus_type == 'Ranked':
             return self.ranked_consensus(question_index=question_index)
         else:
-            raise Exception('Invalid consensus type: %s' % consensus_type)
+            raise NotImplementedError('Unknown consensus_type: %s' % consensus_type)
 
     def results_info(self, results, question_index=0):
         """
         Print out the results of the hivemind
         """
-        info_string = 'Results for question %d:\n' % question_index
-        sorted_options = []
-        for option in self.options:
-            if option.cid not in self.selected:
-                sorted_options.append((option, results[option.cid]['wins'] - results[option.cid]['losses']))
+        ret = 'Hivemind id: ' + self.hivemind_id + '\n'
+        ret += self._hivemind_issue.questions[question_index]
+        ret += '\nResults:\n========'
+        i = 0
 
-        sorted_options.sort(key=lambda x: x[1], reverse=True)
+        # if selection mode is 'Exclude', we must exclude previously selected options from the results
+        if self._hivemind_issue.on_selection == 'Exclude':
+            selected_options = [selection[question_index] for selection in self.selected]
+            available_options = [option_hash for option_hash in self.options if option_hash not in selected_options]
+        else:
+            available_options = self.options
 
-        for option, score in sorted_options:
-            info_string += '  %s: %d\n' % (option.value, score)
-
-        return info_string
-
-    def contributions(self, results, question_index):
-        contributions = {}
-        for option_a, option_b in combinations(self.options, 2):
-            if option_a.cid in self.selected or option_b.cid in self.selected:
+        for option_hash, option_result in sorted(results.items(), key=lambda x: x[1]['score'], reverse=True):
+            if option_hash not in available_options:
                 continue
 
-            for opinionator in self.opinions[question_index]:
-                opinion = self.opinions[question_index][opinionator]
-                winner = compare(option_a, option_b, opinion)
-                if winner == option_a:
-                    if opinionator not in contributions:
-                        contributions[opinionator] = {'wins': 0, 'losses': 0}
+            i += 1
+            option = HivemindOption(cid=option_hash)
+            ret += '\n%s: (%g%%) : %s' % (i, round(option_result['score']*100, 2), option.value)
 
-                    if results[option_a.cid]['wins'] - results[option_a.cid]['losses'] > results[option_b.cid]['wins'] - results[option_b.cid]['losses']:
-                        contributions[opinionator]['wins'] += 1
-                    else:
-                        contributions[opinionator]['losses'] += 1
+        ret += '\nContributions:'
+        ret += '\n================'
+        for opinionator, contribution in self.contributions(results=results, question_index=question_index).items():
+            ret += '\n%s: %s' % (opinionator, contribution)
+        ret += '\n================'
 
-                elif winner == option_b:
-                    if opinionator not in contributions:
-                        contributions[opinionator] = {'wins': 0, 'losses': 0}
+        return ret
 
-                    if results[option_b.cid]['wins'] - results[option_b.cid]['losses'] > results[option_a.cid]['wins'] - results[option_a.cid]['losses']:
-                        contributions[opinionator]['wins'] += 1
-                    else:
-                        contributions[opinionator]['losses'] += 1
+    def contributions(self, results, question_index):
+        deviances = {}
+        total_deviance = 0
+        multipliers = {}
+
+        # sort the option hashes by highest score
+        option_hashes_by_score = [option[0] for option in sorted(results.items(), key=lambda x: x[1]['score'], reverse=True)]
+
+        # sort the opinionators by the timestamp of their opinion
+        opinionators_by_timestamp = [opinionator for opinionator, opinion_data in sorted(self.opinions[question_index].items(), key=lambda x: x[1]['timestamp'])]
+
+        for i, opinionator in enumerate(opinionators_by_timestamp):
+            deviance = 0
+            opinion = HivemindOpinion(cid=self.opinions[question_index][opinionator]['opinion_cid'])
+
+            # Todo, something is wrong here messing up the contribution scores
+            #
+            # Calculate the 'early bird' multiplier (whoever gives their opinion first gets the highest multiplier, value is between 0 and 1), if opinion is an empty list, then multiplier is 0
+            multipliers[opinionator] = 1 - (i/float(len(opinionators_by_timestamp))) if len(opinion.ranking.get(options=self.get_options())) > 0 else 0
+
+            # Calculate the deviance of the opinion, the closer the opinion is to the final result, the lower the deviance
+            for j, option_hash in enumerate(option_hashes_by_score):
+                if option_hash in opinion.ranking.get(options=self.get_options()):
+                    deviance += abs(j - opinion.ranking.get(options=self.get_options()).index(option_hash))
+                else:
+                    deviance += len(option_hashes_by_score)-j
+
+            total_deviance += deviance
+            deviances[opinionator] = deviance
+
+        if total_deviance != 0:  # to avoid divide by zero
+            contributions = {opinionator: (1-(deviances[opinionator]/float(total_deviance)))*multipliers[opinionator] for opinionator in deviances}
+        else:  # everyone has perfect opinion, but contributions should still be multiplied by the 'early bird' multiplier
+            contributions = {opinionator: 1*multipliers[opinionator] for opinionator in deviances}
 
         return contributions
 
@@ -346,19 +414,26 @@ class HivemindState(IPFSDict):
 
         :return: a list containing the option with highest consensus for each question
         """
-        selected_options = []
-        for question_index in range(len(self._hivemind_issue.questions)):
-            consensus = self.consensus(question_index=question_index)
-            if consensus is not None:
-                self.selected.append(consensus.cid)
-                selected_options.append(consensus)
+        # Get the option hash with highest consensus for each question
+        selection = [self.get_options(question_index=question_index)[0].cid() for question_index in range(len(self._hivemind_issue.questions))]
+        self.selected.append(selection)
 
-                if self._hivemind_issue.on_selection == 'Finalize':
-                    self.final = True
-                elif self._hivemind_issue.on_selection == 'Reset':
-                    self.opinions = [{} for _ in range(len(self._hivemind_issue.questions))]
+        if self._hivemind_issue.on_selection is None:
+            return
+        elif self._hivemind_issue.on_selection == 'Finalize':
+            # The hivemind is final, no more options or opinions can be added
+            self.final = True
+        elif self._hivemind_issue.on_selection == 'Exclude':
+            # The selected option is excluded from future results
+            pass
+        elif self._hivemind_issue.on_selection == 'Reset':
+            # All opinions are reset
+            self.opinions = [{}]
+        else:
+            raise NotImplementedError('Unknown selection mode: %s' % self._hivemind_issue.on_selection)
 
-        return selected_options
+        self.save()
+        return selection
 
     def add_signature(self, address, timestamp, message, signature):
         """
@@ -371,32 +446,28 @@ class HivemindState(IPFSDict):
         :param signature: String - signature of 'timestamp+message' by the address
         """
         if address not in self.signatures:
-            self.signatures[address] = []
+            self.signatures[address] = {message: {signature: timestamp}}
+        elif message not in self.signatures[address]:
+            self.signatures[address].update({message: {signature: timestamp}})
+        else:
+            timestamps = [int(key) for key in self.signatures[address][message].values()]
 
-        # Check if this timestamp is higher than all existing timestamps
-        for existing_signature in self.signatures[address]:
-            if existing_signature['timestamp'] >= timestamp:
-                raise Exception('Timestamp must be higher than all existing timestamps!')
-
-        self.signatures[address].append({'timestamp': timestamp,
-                                      'message': message,
-                                      'signature': signature})
+            if timestamp > max(timestamps):
+                self.signatures[address][message][signature] = timestamp
+            else:
+                raise Exception('Invalid timestamp: must be more recent than any previous signature timestamp')
 
     def update_participant_name(self, timestamp, name, address, signature):
-        # First check if this address is allowed to participate
-        if self._hivemind_issue.restrictions is not None and 'addresses' in self._hivemind_issue.restrictions and address not in self._hivemind_issue.restrictions['addresses']:
-            raise Exception('Address %s is not allowed to participate in this hivemind!' % address)
+        # Only need to update name if it is not known yet or if it has changed
+        if address not in self.participants or name != self.participants[address]['name']:
+            if verify_message(address=address, message='%s%s' % (timestamp, name), signature=signature) is True:
+                # First try to add the signature, if the timestamp is not the most recent it will throw an exception
+                # This is to prevent a reused signature attack
+                try:
+                    self.add_signature(address=address, timestamp=timestamp, message=name, signature=signature)
+                except Exception as ex:
+                    raise Exception('%s' % ex)
 
-        # Then verify the signature
-        message = str(timestamp) + name
-        if verify_message(message=message, address=address, signature=signature) is not True:
-            raise Exception('Invalid signature!')
-
-        # Add the signature to the signatures dict
-        self.add_signature(address=address, timestamp=timestamp, message=message, signature=signature)
-
-        # Finally update the name
-        if address not in self.participants:
-            self.participants[address] = {'options': [], 'opinions': [], 'name': name}
-        else:
-            self.participants[address]['name'] = name
+                self.participants[address] = {'name': name}
+            else:
+                raise Exception('Invalid signature')
