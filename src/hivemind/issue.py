@@ -1,38 +1,74 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from typing import List, Optional, Dict, Union
 from ipfs_dict_chain.IPFSDict import IPFSDict
 from .validators import valid_address, valid_bech32_address
 
 
 class HivemindIssue(IPFSDict):
-    def __init__(self, cid=None):
-        """
-        Constructor of Hivemind issue class
+    """A class representing a voting issue in the Hivemind protocol.
 
-        :param cid: The ipfs multihash of the hivemind issue
+    This class handles the creation and management of voting issues, including
+    questions, constraints, and restrictions on who can vote.
+
+    :ivar questions: List of questions associated with this issue
+    :type questions: List[str]
+    :ivar name: Name of the issue
+    :type name: Optional[str]
+    :ivar description: Description of the issue
+    :type description: str
+    :ivar tags: List of tags associated with this issue
+    :type tags: List[str]
+    :ivar answer_type: Type of answer expected ('String', 'Integer', 'Float')
+    :type answer_type: str
+    :ivar constraints: Optional constraints on voting
+    :type constraints: Optional[Dict[str, Union[str, int, float, list]]]
+    :ivar restrictions: Optional restrictions on who can vote
+    :type restrictions: Optional[Dict[str, Union[List[str], int]]]
+    :ivar on_selection: Action to take when an option is selected
+    :type on_selection: Optional[str]
+    """
+
+    def __init__(self, cid: Optional[str] = None) -> None:
+        """Initialize a new HivemindIssue.
+
+        :param cid: The IPFS multihash of the hivemind issue
+        :type cid: Optional[str]
         """
         super().__init__(cid=cid)
         
-        self.questions = []
-        self.name = None
-        self.description = ''
-        self.tags = []
-        self.answer_type = 'String'
-        self.constraints = None
-        self.restrictions = None
+        self.questions: List[str] = []
+        self.name: Optional[str] = None
+        self.description: str = ''
+        self.tags: List[str] = []
+        self.answer_type: str = 'String'
+        self.constraints: Optional[Dict[str, Union[str, int, float, list]]] = None
+        self.restrictions: Optional[Dict[str, Union[List[str], int]]] = None
 
         # What happens when an option is selected: valid values are None, Finalize, Exclude, Reset
         # None : nothing happens
         # Finalize : Hivemind is finalized, no new options or opinions can be added anymore
         # Exclude : The selected option is excluded from the results
         # Reset : All opinions are reset
-        self.on_selection = None
+        self.on_selection: Optional[str] = None
 
-    def add_question(self, question):
+    def add_question(self, question: str) -> None:
+        """Add a question to the hivemind issue.
+
+        :param question: The question text to add
+        :type question: str
+        :raises ValueError: If question is invalid or already exists
+        """
         if isinstance(question, str) and question not in self.questions:
             self.questions.append(question)
 
-    def set_constraints(self, constraints):
+    def set_constraints(self, constraints: Dict[str, Union[str, int, float, list]]) -> None:
+        """Set constraints for the hivemind issue.
+
+        :param constraints: Dictionary of constraints
+        :type constraints: Dict[str, Union[str, int, float, list]]
+        :raises Exception: If constraints are invalid
+        """
         if not isinstance(constraints, dict):
             raise Exception('constraints must be a dict, got %s' % type(constraints))
 
@@ -73,7 +109,13 @@ class HivemindIssue(IPFSDict):
         else:
             raise Exception('constraints contain an invalid key: %s' % constraints)
 
-    def set_restrictions(self, restrictions):
+    def set_restrictions(self, restrictions: Dict[str, Union[List[str], int]]) -> None:
+        """Set voting restrictions for the hivemind issue.
+
+        :param restrictions: Dictionary of restrictions
+        :type restrictions: Dict[str, Union[List[str], int]]
+        :raises Exception: If restrictions are invalid
+        """
         if not isinstance(restrictions, dict):
             raise Exception('Restrictions is not a dict , got %s instead' % type(restrictions))
 
@@ -95,11 +137,11 @@ class HivemindIssue(IPFSDict):
 
         self.restrictions = restrictions
 
-    def info(self):
-        """
-        Get info about the hivemind question
+    def info(self) -> str:
+        """Get information about the hivemind issue.
 
-        :return: A string containing info about the hivemind question
+        :return: A string containing formatted information about the hivemind issue
+        :rtype: str
         """
         info = 'Hivemind name: %s\n' % self.name
         info += 'Hivemind description: %s\n' % self.description
@@ -118,7 +160,13 @@ class HivemindIssue(IPFSDict):
 
         return info
 
-    def save(self):
+    def save(self) -> str:
+        """Save the hivemind issue to IPFS.
+
+        :return: The IPFS hash of the saved issue
+        :rtype: str
+        :raises Exception: If the issue is invalid
+        """
         try:
             self.valid()
         except Exception as ex:
@@ -126,8 +174,13 @@ class HivemindIssue(IPFSDict):
         else:
             return super(HivemindIssue, self).save()
 
-    def valid(self):
+    def valid(self) -> bool:
+        """Check if the hivemind issue is valid.
 
+        :return: True if valid, raises exception otherwise
+        :rtype: bool
+        :raises Exception: If any validation fails
+        """
         # Name must be a string, not empty and not longer than 50 characters
         if not (isinstance(self.name, str) and 0 < len(self.name) <= 50):
             raise Exception('Invalid name for Hivemind Issue: %s' % self.name)

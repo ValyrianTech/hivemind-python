@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from typing import List, Dict, Optional, Union, Any
 from ipfs_dict_chain.IPFSDict import IPFSDict
 from itertools import combinations
 import time
@@ -66,30 +67,79 @@ def compare(a, b, opinion_hash):
         return b
 
 class HivemindState(IPFSDict):
-    def __init__(self, cid=None):
-        self.hivemind_id = None
-        self._hivemind_issue = None
-        self.options = []
-        self.opinions = [{}]  # opinions are recorded for each question separately
-        self.signatures = {}
-        self.participants = {}
-        self.selected = []  # A list of options that have been selected by the hivemind
-        self.final = False  # if set to True, no more options or opinions can be added
+    """A class representing the current state of a Hivemind voting issue.
+
+    This class manages the state of a voting issue, including options, opinions,
+    and voting results. It handles the addition of new options and opinions,
+    calculates voting results, and manages restrictions on who can vote.
+
+    :ivar hivemind_id: The IPFS hash of the associated hivemind issue
+    :type hivemind_id: Optional[str]
+    :ivar _hivemind_issue: The associated hivemind issue object
+    :type _hivemind_issue: Optional[HivemindIssue]
+    :ivar options: List of option CIDs
+    :type options: List[str]
+    :ivar opinions: List of dictionaries containing opinions for each question
+    :type opinions: List[Dict[str, Any]]
+    :ivar signatures: Dictionary mapping addresses to their signatures
+    :type signatures: Dict[str, str]
+    :ivar participants: Dictionary mapping addresses to their participation data
+    :type participants: Dict[str, Any]
+    :ivar selected: List of options that have been selected
+    :type selected: List[str]
+    :ivar final: Whether the hivemind is finalized
+    :type final: bool
+    """
+
+    def __init__(self, cid: Optional[str] = None) -> None:
+        """Initialize a new HivemindState.
+
+        :param cid: The IPFS multihash of the state
+        :type cid: Optional[str]
+        """
+        self.hivemind_id: Optional[str] = None
+        self._hivemind_issue: Optional[HivemindIssue] = None
+        self.options: List[str] = []
+        self.opinions: List[Dict[str, Any]] = [{}]
+        self.signatures: Dict[str, str] = {}
+        self.participants: Dict[str, Any] = {}
+        self.selected: List[str] = []
+        self.final: bool = False
 
         super(HivemindState, self).__init__(cid=cid)
 
-    def hivemind_issue(self):
+    def hivemind_issue(self) -> Optional[HivemindIssue]:
+        """Get the associated hivemind issue.
+
+        :return: The associated hivemind issue object
+        :rtype: Optional[HivemindIssue]
+        """
         return self._hivemind_issue
 
-    def get_options(self):
+    def get_options(self) -> List[HivemindOption]:
+        """Get list of hivemind options.
+
+        :return: List of HivemindOption objects
+        :rtype: List[HivemindOption]
+        """
         return [HivemindOption(cid=option_cid) for option_cid in self.options]
 
-    def set_hivemind_issue(self, issue_hash):
+    def set_hivemind_issue(self, issue_hash: str) -> None:
+        """Set the associated hivemind issue.
+
+        :param issue_hash: IPFS hash of the hivemind issue
+        :type issue_hash: str
+        """
         self.hivemind_id = issue_hash
         self._hivemind_issue = HivemindIssue(cid=self.hivemind_id)
         self.opinions = [{} for _ in range(len(self._hivemind_issue.questions))]
 
-    def add_predefined_options(self):
+    def add_predefined_options(self) -> Dict[str, Dict[str, Any]]:
+        """Add predefined options to the hivemind state.
+
+        :return: Dictionary mapping option CIDs to their data
+        :rtype: Dict[str, Dict[str, Any]]
+        """
         options = {}
 
         if self._hivemind_issue.answer_type == 'Bool':
@@ -127,20 +177,27 @@ class HivemindState(IPFSDict):
 
         return options
 
-    def load(self, cid):
+    def load(self, cid: str) -> None:
+        """Load the hivemind state from IPFS.
+
+        :param cid: The IPFS multihash of the state
+        :type cid: str
+        """
         super(HivemindState, self).load(cid=cid)
         self._hivemind_issue = HivemindIssue(cid=self.hivemind_id)
 
-    def add_option(self, timestamp, option_hash, address, signature):
-        """
-        Add an option to the hivemind state
+    def add_option(self, timestamp: int, option_hash: str, address: Optional[str] = None, signature: Optional[str] = None) -> None:
+        """Add an option to the hivemind state.
 
-        If the hivemind issue has restrictions on addresses, then the address and signature are required
-
-        :param timestamp: Int - a unix timestamp
-        :param option_hash: String - The IPFS multihash of the option
-        :param address: String - The address that supports the option (optional)
-        :param signature: String - The signature of the message: '<timestamp>'+'/ipfs/<option_hash>' by the address
+        :param timestamp: Unix timestamp
+        :type timestamp: int
+        :param option_hash: The IPFS multihash of the option
+        :type option_hash: str
+        :param address: The address that supports the option (optional)
+        :type address: Optional[str]
+        :param signature: The signature of the message (optional)
+        :type signature: Optional[str]
+        :raises Exception: If the option is invalid or restrictions are not met
         """
         if self.final is True:
             return
@@ -173,11 +230,30 @@ class HivemindState(IPFSDict):
 
                 self.options.append(option_hash)
 
-    def options_by_participant(self, address):
+    def options_by_participant(self, address: str) -> List[str]:
+        """Get the options added by a participant.
+
+        :param address: The participant's address
+        :type address: str
+        :return: List of option CIDs
+        :rtype: List[str]
+        """
         option_cids = [option_cid for option_cid in self.signatures['options'] if address in self.signatures['options'][option_cid]]
         return option_cids
 
-    def add_opinion(self, timestamp, opinion_hash, signature, address):
+    def add_opinion(self, timestamp: int, opinion_hash: str, signature: str, address: str) -> None:
+        """Add an opinion to the hivemind state.
+
+        :param timestamp: Unix timestamp
+        :type timestamp: int
+        :param opinion_hash: The IPFS multihash of the opinion
+        :type opinion_hash: str
+        :param signature: The signature of the message
+        :type signature: str
+        :param address: The address of the opinionator
+        :type address: str
+        :raises Exception: If the opinion is invalid or restrictions are not met
+        """
         if self.final is True:
             return
 
@@ -196,13 +272,15 @@ class HivemindState(IPFSDict):
         else:
             raise Exception('Opinion is invalid')
 
-    def get_opinion(self, opinionator, question_index=0):
-        """
-        Get the Opinion object of a certain opinionator
+    def get_opinion(self, opinionator: str, question_index: int = 0) -> Optional[HivemindOpinion]:
+        """Get the opinion of a participant.
 
-        :param opinionator: The opinionator
-        :param question_index: The index of the question in the HivemindQuestion (default=0)
-        :return: An Opinion object
+        :param opinionator: The participant's address
+        :type opinionator: str
+        :param question_index: The index of the question (default=0)
+        :type question_index: int
+        :return: The opinion object
+        :rtype: Optional[HivemindOpinion]
         """
         opinion = None
         if opinionator in self.opinions[question_index]:
@@ -210,13 +288,13 @@ class HivemindState(IPFSDict):
 
         return opinion
 
-    def get_weight(self, opinionator):
-        """
-        Get the weight of an Opinion
-        Default weight is 1.0 unless a specific weight has been specified in the restrictions
+    def get_weight(self, opinionator: str) -> float:
+        """Get the weight of an opinion.
 
-        :param opinionator: The opinionator
-        :return: The weight of the Opinion (type float)
+        :param opinionator: The participant's address
+        :type opinionator: str
+        :return: The weight of the opinion
+        :rtype: float
         """
         weight = 1.0
         if opinionator in self._hivemind_issue.restrictions and 'weight' in self._hivemind_issue.restrictions[opinionator]:
@@ -224,9 +302,11 @@ class HivemindState(IPFSDict):
 
         return weight
 
-    def info(self):
-        """
-        Print the details of the hivemind
+    def info(self) -> str:
+        """Get the information of the hivemind.
+
+        :return: A string containing the information of the hivemind
+        :rtype: str
         """
         ret = "================================================================================="
         ret += '\nHivemind id: ' + self.hivemind_id
@@ -249,11 +329,11 @@ class HivemindState(IPFSDict):
 
         return ret
 
-    def options_info(self):
-        """
-        Get detailed information about the options as a formatted string
+    def options_info(self) -> str:
+        """Get the information of the options.
 
-        :return: A string containing all information about the options
+        :return: A string containing the information of the options
+        :rtype: str
         """
         ret = "Options"
         ret += "\n======="
@@ -265,9 +345,13 @@ class HivemindState(IPFSDict):
 
         return ret
 
-    def opinions_info(self, question_index=0):
-        """
-        Print out a list of the Opinions of the hivemind
+    def opinions_info(self, question_index: int = 0) -> str:
+        """Get the information of the opinions.
+
+        :param question_index: The index of the question (default=0)
+        :type question_index: int
+        :return: A string containing the information of the opinions
+        :rtype: str
         """
         ret = "Opinions"
         ret += "\n========"
@@ -280,9 +364,14 @@ class HivemindState(IPFSDict):
 
         return ret
 
-    def calculate_results(self, question_index=0):
-        """
-        Calculate the results of the hivemind
+    def calculate_results(self, question_index: int = 0) -> Dict[str, Dict[str, float]]:
+        """Calculate the results of the hivemind.
+
+        :param question_index: Index of the question to calculate results for
+        :type question_index: int
+        :return: Dictionary mapping option CIDs to their scores
+        :rtype: Dict[str, Dict[str, float]]
+        :raises Exception: If question_index is invalid
         """
         LOG.info('Calculating results for question %s...' % question_index)
 
@@ -320,21 +409,38 @@ class HivemindState(IPFSDict):
 
         return results
 
-    def get_score(self, option_hash, question_index=0):
+    def get_score(self, option_hash: str, question_index: int = 0) -> float:
+        """Get the score of an option.
+
+        :param option_hash: The IPFS multihash of the option
+        :type option_hash: str
+        :param question_index: The index of the question (default=0)
+        :type question_index: int
+        :return: The score of the option
+        :rtype: float
+        """
         results = self.calculate_results(question_index=question_index)
         return results[option_hash]['score']
 
-    def get_sorted_options(self, question_index=0):
-        """
-        Get the list of Options as sorted by the hivemind
+    def get_sorted_options(self, question_index: int = 0) -> List[HivemindOption]:
+        """Get the sorted list of options.
 
-        :return: A list of Option objects sorted by highest score
+        :param question_index: The index of the question (default=0)
+        :type question_index: int
+        :return: List of HivemindOption objects sorted by highest score
+        :rtype: List[HivemindOption]
         """
-
         results = self.calculate_results(question_index=question_index)
         return [HivemindOption(cid=option[0]) for option in sorted(results.items(), key=lambda x: x[1]['score'], reverse=True)]
 
-    def consensus(self, question_index=0):
+    def consensus(self, question_index: int = 0) -> Any:
+        """Get the consensus of the hivemind.
+
+        :param question_index: The index of the question (default=0)
+        :type question_index: int
+        :return: The consensus value
+        :rtype: Any
+        """
         results = self.calculate_results(question_index=question_index)
 
         sorted_options = self.get_options(question_index=question_index)
@@ -348,10 +454,27 @@ class HivemindState(IPFSDict):
         else:
             return None
 
-    def ranked_consensus(self, question_index=0):
+    def ranked_consensus(self, question_index: int = 0) -> List[Any]:
+        """Get the ranked consensus of the hivemind.
+
+        :param question_index: The index of the question (default=0)
+        :type question_index: int
+        :return: List of consensus values
+        :rtype: List[Any]
+        """
         return [option.value for option in self.get_options(question_index=question_index)]
 
-    def get_consensus(self, question_index=0, consensus_type='Single'):
+    def get_consensus(self, question_index: int = 0, consensus_type: str = 'Single') -> Any:
+        """Get the consensus of the hivemind.
+
+        :param question_index: The index of the question (default=0)
+        :type question_index: int
+        :param consensus_type: The type of consensus (default='Single')
+        :type consensus_type: str
+        :return: The consensus value
+        :rtype: Any
+        :raises NotImplementedError: If consensus_type is unknown
+        """
         if consensus_type == 'Single':
             return self.consensus(question_index=question_index)
         elif consensus_type == 'Ranked':
@@ -359,9 +482,15 @@ class HivemindState(IPFSDict):
         else:
             raise NotImplementedError('Unknown consensus_type: %s' % consensus_type)
 
-    def results_info(self, results, question_index=0):
-        """
-        Print out the results of the hivemind
+    def results_info(self, results: Dict[str, Dict[str, float]], question_index: int = 0) -> str:
+        """Get the results information of the hivemind.
+
+        :param results: Dictionary mapping option CIDs to their scores
+        :type results: Dict[str, Dict[str, float]]
+        :param question_index: The index of the question (default=0)
+        :type question_index: int
+        :return: A string containing the results information
+        :rtype: str
         """
         ret = 'Hivemind id: ' + self.hivemind_id + '\n'
         ret += self._hivemind_issue.questions[question_index]
@@ -391,7 +520,16 @@ class HivemindState(IPFSDict):
 
         return ret
 
-    def contributions(self, results, question_index):
+    def contributions(self, results: Dict[str, Dict[str, float]], question_index: int = 0) -> Dict[str, float]:
+        """Get the contributions of the participants.
+
+        :param results: Dictionary mapping option CIDs to their scores
+        :type results: Dict[str, Dict[str, float]]
+        :param question_index: The index of the question (default=0)
+        :type question_index: int
+        :return: Dictionary mapping participant addresses to their contributions
+        :rtype: Dict[str, float]
+        """
         deviances = {}
         total_deviance = 0
         multipliers = {}
@@ -428,11 +566,11 @@ class HivemindState(IPFSDict):
 
         return contributions
 
-    def select_consensus(self):
-        """
-        Mark the current consensus as being 'selected'
+    def select_consensus(self) -> List[str]:
+        """Select the consensus of the hivemind.
 
-        :return: a list containing the option with highest consensus for each question
+        :return: List of option CIDs that have been selected
+        :rtype: List[str]
         """
         # Get the option hash with highest consensus for each question
         selection = [self.get_options(question_index=question_index)[0].cid() for question_index in range(len(self._hivemind_issue.questions))]
@@ -455,15 +593,18 @@ class HivemindState(IPFSDict):
         self.save()
         return selection
 
-    def add_signature(self, address, timestamp, message, signature):
-        """
-        Add a new name signature to the hivemind state
-        Note: nonce should be a timestamp, and must be higher than all existing signature nonces
+    def add_signature(self, address: str, timestamp: int, message: str, signature: str) -> None:
+        """Add a signature to the hivemind state.
 
-        :param address: String - address of the participant
-        :param timestamp: Int - timestamp of the signature
-        :param message: String - the message (this can be a option cid, opinion cid or a name
-        :param signature: String - signature of 'timestamp+message' by the address
+        :param address: The address of the participant
+        :type address: str
+        :param timestamp: Unix timestamp
+        :type timestamp: int
+        :param message: The message that was signed
+        :type message: str
+        :param signature: The signature of the message
+        :type signature: str
+        :raises Exception: If the signature is invalid
         """
         if address not in self.signatures:
             self.signatures[address] = {message: {signature: timestamp}}
@@ -477,7 +618,19 @@ class HivemindState(IPFSDict):
             else:
                 raise Exception('Invalid timestamp: must be more recent than any previous signature timestamp')
 
-    def update_participant_name(self, timestamp, name, address, signature):
+    def update_participant_name(self, timestamp: int, name: str, address: str, signature: str) -> None:
+        """Update the name of a participant.
+
+        :param timestamp: Unix timestamp
+        :type timestamp: int
+        :param name: The new name of the participant
+        :type name: str
+        :param address: The address of the participant
+        :type address: str
+        :param signature: The signature of the message
+        :type signature: str
+        :raises Exception: If the signature is invalid
+        """
         # Only need to update name if it is not known yet or if it has changed
         if address not in self.participants or name != self.participants[address]['name']:
             if verify_message(address=address, message='%s%s' % (timestamp, name), signature=signature) is True:
