@@ -171,3 +171,31 @@ class TestHivemindOpinion:
         option_hash = test_options[0]  # Using the first test option
         opinion.ranking.set_fixed(ranked_choice=[option_hash])
         assert opinion.ranking.get() == [option_hash]
+
+    def test_auto_high_ranking(self):
+        """Test auto high ranking with numeric values"""
+        opinion = HivemindOpinion()
+        
+        # Create options with numeric values
+        options = []
+        values = [5, 8, 6, 7, 4]  # Same values as in integer_issue_hash fixture
+        for value in values:
+            option = HivemindOption()
+            option.value = value
+            option['value'] = value  # Set in IPFS dict too
+            options.append(option)
+            
+        # Save options to get their CIDs
+        option_cids = [opt.save() for opt in options]
+        
+        # Set auto high ranking with middle value as choice
+        choice_idx = 2  # Value 6
+        opinion.ranking.set_auto_high(choice=option_cids[choice_idx])
+        
+        # Get the ranking
+        ranked_options = opinion.ranking.get(options=options)
+        
+        # Expected order: closest to 6 with preference for higher values
+        # So: 6, 7, 5, 8, 4
+        expected_order = [option_cids[2], option_cids[3], option_cids[0], option_cids[1], option_cids[4]]
+        assert ranked_options == expected_order
