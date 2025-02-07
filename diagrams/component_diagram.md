@@ -1,3 +1,4 @@
+```mermaid
 graph TB
     subgraph HivemindCore[Hivemind Protocol Core]
         direction TB
@@ -59,3 +60,4 @@ graph TB
     end
     
     F --> ValidationFlow
+```

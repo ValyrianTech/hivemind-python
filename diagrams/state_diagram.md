@@ -1,3 +1,4 @@
+```mermaid
 stateDiagram-v2
     [*] --> IssueValidation: Create Issue
     
@@ -106,3 +107,4 @@ stateDiagram-v2
     }
     
     FinalState --> [*]: Complete
+```
