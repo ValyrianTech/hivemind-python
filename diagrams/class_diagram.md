@@ -1,3 +1,4 @@
+```mermaid
 classDiagram
     class IPFSDict {
         +str cid
@@ -97,3 +98,4 @@ classDiagram
     HivemindOption --> Validators : uses
     HivemindOpinion --> Validators : uses
     HivemindIssue --> Validators : uses
+```
