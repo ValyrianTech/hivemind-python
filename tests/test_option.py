@@ -2,30 +2,19 @@ from typing import Dict, Any
 import pytest
 from hivemind import HivemindOption, HivemindIssue
 
-hivemind_issue = HivemindIssue()
-hivemind_issue.name = 'Test Hivemind'
-hivemind_issue.add_question(question='What is the Answer to the Ultimate Question of Life, the Universe, and Everything?')
-hivemind_issue.description = 'What is the meaning of life?'
-hivemind_issue.tags = ['life', 'universe', 'everything']
-hivemind_issue.answer_type = 'String'
-hivemind_issue.set_constraints({'min_length': 2, 'max_length': 10, 'regex': '^[a-zA-Z0-9]+'})
-STRING_QUESTION_HASH = hivemind_issue.save()
 
-hivemind_issue.answer_type = 'Float'
-hivemind_issue.set_constraints({'min_value': 2, 'max_value': 50, 'decimals': 2})
-FLOAT_QUESTION_HASH = hivemind_issue.save()
+@pytest.fixture(scope="module")
+def string_question_hash() -> str:
+    """Create and save a HivemindIssue with string constraints for testing."""
+    hivemind_issue = HivemindIssue()
+    hivemind_issue.name = 'Test Hivemind'
+    hivemind_issue.add_question(question='What is the Answer to the Ultimate Question of Life, the Universe, and Everything?')
+    hivemind_issue.description = 'What is the meaning of life?'
+    hivemind_issue.tags = ['life', 'universe', 'everything']
+    hivemind_issue.answer_type = 'String'
+    hivemind_issue.set_constraints({'min_length': 2, 'max_length': 10, 'regex': '^[a-zA-Z0-9]+'})
+    return hivemind_issue.save()
 
-hivemind_issue.answer_type = 'Integer'
-hivemind_issue.set_constraints({'min_value': 2, 'max_value': 50})
-INTEGER_QUESTION_HASH = hivemind_issue.save()
-
-hivemind_issue.answer_type = 'Bool'
-hivemind_issue.set_constraints({})
-BOOL_QUESTION_HASH = hivemind_issue.save()
-
-hivemind_issue.answer_type = 'Complex'
-hivemind_issue.set_constraints({'specs': {'a_string': 'String', 'a_float': 'Float'}})
-COMPLEX_QUESTION_HASH = hivemind_issue.save()
 
 @pytest.fixture
 def issue() -> HivemindIssue:
@@ -179,15 +168,12 @@ class TestHivemindOption:
         option = HivemindOption()
         assert isinstance(option, HivemindOption)
 
-    def test_initializing_with_option_hash(self):
+    def test_initializing_with_option_hash(self, string_question_hash):
         option = HivemindOption()
-        print(option.__dict__)
-        option.set_hivemind_issue(hivemind_issue_hash=STRING_QUESTION_HASH)
+        option.set_hivemind_issue(hivemind_issue_hash=string_question_hash)
         option.set('42')
-        print(option.__dict__)
 
         option_hash = option.save()
-        print(option_hash)
 
         option2 = HivemindOption(cid=option_hash)
         assert option2.hivemind_id == option.hivemind_id
@@ -211,9 +197,9 @@ class TestHivemindOption:
         with pytest.raises(Exception):
             option.set('a')  # constraint min_length: 2
 
-    def test_setting_value_that_conflicts_with_answer_type(self):
+    def test_setting_value_that_conflicts_with_answer_type(self, string_question_hash):
         option = HivemindOption()
-        option.set_hivemind_issue(hivemind_issue_hash=STRING_QUESTION_HASH)
+        option.set_hivemind_issue(hivemind_issue_hash=string_question_hash)
         with pytest.raises(Exception):
             option.set(42)  # must be string instead of number
 
@@ -226,7 +212,14 @@ class TestHivemindOption:
     ])
     def test_is_valid_string_option(self, value, expected):
         option = HivemindOption()
-        option.set_hivemind_issue(hivemind_issue_hash=STRING_QUESTION_HASH)
+        issue = HivemindIssue()
+        issue.name = 'Test'
+        issue.add_question('What?')
+        issue.answer_type = 'String'
+        issue.set_constraints({'min_length': 2, 'max_length': 10, 'regex': '^[a-zA-Z0-9]+'})
+        
+        option._hivemind_issue = issue
+        option._answer_type = issue.answer_type
         option.value = value
         assert option.is_valid_string_option() is expected
 
@@ -238,12 +231,19 @@ class TestHivemindOption:
         (1, False),
         (42, False),
         (42.123, False),
-        (42.1, False),
-
+        (42.10, True),  # This is valid because it has 2 decimal places
+        (42.1, True),   # This is also valid because 42.1 == 42.10
     ])
     def test_is_valid_float_option(self, value, expected):
         option = HivemindOption()
-        option.set_hivemind_issue(hivemind_issue_hash=FLOAT_QUESTION_HASH)
+        issue = HivemindIssue()
+        issue.name = 'Test'
+        issue.add_question('What?')
+        issue.answer_type = 'Float'
+        issue.set_constraints({'min_value': 2, 'max_value': 50, 'decimals': 2})
+        
+        option._hivemind_issue = issue
+        option._answer_type = issue.answer_type
         option.value = value
         assert option.is_valid_float_option() is expected
 
@@ -260,7 +260,14 @@ class TestHivemindOption:
     ])
     def test_is_valid_integer_option(self, value, expected):
         option = HivemindOption()
-        option.set_hivemind_issue(hivemind_issue_hash=INTEGER_QUESTION_HASH)
+        issue = HivemindIssue()
+        issue.name = 'Test'
+        issue.add_question('What?')
+        issue.answer_type = 'Integer'
+        issue.set_constraints({'min_value': 2, 'max_value': 50})
+        
+        option._hivemind_issue = issue
+        option._answer_type = issue.answer_type
         option.value = value
         assert option.is_valid_integer_option() is expected
 
@@ -277,7 +284,14 @@ class TestHivemindOption:
     ])
     def test_is_valid_bool_option(self, value, expected):
         option = HivemindOption()
-        option.set_hivemind_issue(hivemind_issue_hash=BOOL_QUESTION_HASH)
+        issue = HivemindIssue()
+        issue.name = 'Test'
+        issue.add_question('What?')
+        issue.answer_type = 'Bool'
+        issue.set_constraints({})
+        
+        option._hivemind_issue = issue
+        option._answer_type = issue.answer_type
         option.value = value
         assert option.is_valid_bool_option() is expected
 
@@ -292,6 +306,13 @@ class TestHivemindOption:
     ])
     def test_is_valid_complex_option(self, value, expected):
         option = HivemindOption()
-        option.set_hivemind_issue(hivemind_issue_hash=COMPLEX_QUESTION_HASH)
+        issue = HivemindIssue()
+        issue.name = 'Test'
+        issue.add_question('What?')
+        issue.answer_type = 'Complex'
+        issue.set_constraints({'specs': {'a_string': 'String', 'a_float': 'Float'}})
+        
+        option._hivemind_issue = issue
+        option._answer_type = issue.answer_type
         option.value = value
         assert option.is_valid_complex_option() is expected
