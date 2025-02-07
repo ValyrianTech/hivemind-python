@@ -5,12 +5,29 @@ from itertools import combinations
 import time
 from .issue import HivemindIssue
 from .option import HivemindOption
+from .opinion import HivemindOpinion
+from bitcoin.signmessage import VerifyMessage
 
 # temporality commenting these out for now, we will need these again later, do not remove
-#from helpers.messagehelpers import verify_message
+
 #from inputs.inputs import get_sil
 #from linker.linker import get_lal
 
+def verify_message(message: str, address: str, signature: str) -> bool:
+    """Verify a signed message using Bitcoin's message verification.
+    
+    Args:
+        message: The message that was signed
+        address: The Bitcoin address that signed the message
+        signature: The base64-encoded signature
+        
+    Returns:
+        bool: True if the signature is valid, False otherwise
+    """
+    try:
+        return VerifyMessage(address, message, signature)
+    except Exception:
+        return False
 
 def compare(a, b, opinion_hash):
     """
