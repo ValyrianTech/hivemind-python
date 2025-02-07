@@ -1,8 +1,70 @@
 from typing import List
 import pytest
 import logging
-from hivemind import HivemindOpinion, HivemindOption
+from hivemind import HivemindOpinion, HivemindOption, HivemindIssue, HivemindState
 from ipfs_dict_chain.IPFS import connect, IPFSError
+
+
+@pytest.fixture(scope="module")
+def string_issue_hash() -> str:
+    """Create and save a HivemindIssue with string constraints for testing."""
+    hivemind_issue = HivemindIssue()
+    hivemind_issue.name = 'Test Hivemind'
+    hivemind_issue.add_question(question='What is the Answer to the Ultimate Question of Life, the Universe, and Everything?')
+    hivemind_issue.description = 'What is the meaning of life?'
+    hivemind_issue.tags = ['life', 'universe', 'everything']
+    hivemind_issue.answer_type = 'String'
+    hivemind_issue.set_constraints({'min_length': 2, 'max_length': 10, 'regex': '^[a-zA-Z0-9]+', 'choices': [{'value': '42', 'text': '42'}, {'value': 'fortytwo', 'text': 'fortytwo'}]})
+    return hivemind_issue.save()
+
+
+@pytest.fixture(scope="module")
+def string_state_hash(string_issue_hash: str) -> str:
+    """Create and save a HivemindState with string issue for testing."""
+    hivemind_state = HivemindState()
+    hivemind_state.hivemind_id = string_issue_hash
+    hivemind_state._hivemind_issue = HivemindIssue(cid=string_issue_hash)
+    hivemind_state._hivemind_issue.load(string_issue_hash)
+    hivemind_state.add_predefined_options()
+    return hivemind_state.save()
+
+
+@pytest.fixture(scope="module")
+def string_options(string_state_hash: str) -> tuple[str, str]:
+    """Get the option hashes from the string state."""
+    hivemind_state = HivemindState(string_state_hash)
+    return hivemind_state.options[0], hivemind_state.options[1]
+
+
+@pytest.fixture(scope="module")
+def integer_issue_hash() -> str:
+    """Create and save a HivemindIssue with integer constraints for testing."""
+    hivemind_issue = HivemindIssue()
+    hivemind_issue.name = 'Test Hivemind'
+    hivemind_issue.add_question(question='Choose a number')
+    hivemind_issue.description = 'Choose a number'
+    hivemind_issue.answer_type = 'Integer'
+    hivemind_issue.set_constraints({'min_value': 0, 'max_value': 10, 'choices': [{'value': 8, 'text': '8'}, {'value': 5, 'text': '5'}, {'value': 6, 'text': '6'}, {'value': 7, 'text': '7'}, {'value': 4, 'text': '4'}]})
+    return hivemind_issue.save()
+
+
+@pytest.fixture(scope="module")
+def integer_state_hash(integer_issue_hash: str) -> str:
+    """Create and save a HivemindState with integer issue for testing."""
+    hivemind_state = HivemindState()
+    hivemind_state.hivemind_id = integer_issue_hash
+    hivemind_state._hivemind_issue = HivemindIssue(cid=integer_issue_hash)
+    hivemind_state._hivemind_issue.load(integer_issue_hash)
+    hivemind_state._answer_type = hivemind_state._hivemind_issue.answer_type  # Set answer type before adding options
+    hivemind_state.add_predefined_options()
+    return hivemind_state.save()
+
+
+@pytest.fixture(scope="module")
+def integer_options(integer_state_hash: str) -> tuple[str, str, str, str, str]:
+    """Get the option hashes from the integer state."""
+    hivemind_state = HivemindState(integer_state_hash)
+    return hivemind_state.options[0], hivemind_state.options[1], hivemind_state.options[2], hivemind_state.options[3], hivemind_state.options[4]
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -100,3 +162,12 @@ class TestHivemindOpinion:
 
         # Restore original method
         opinion.info = original_info
+
+    def test_initialization(self):
+        assert isinstance(HivemindOpinion(), HivemindOpinion)
+
+    def test_fixed_ranking(self, test_options):
+        opinion = HivemindOpinion()
+        option_hash = test_options[0]  # Using the first test option
+        opinion.ranking.set_fixed(ranked_choice=[option_hash])
+        assert opinion.ranking.get() == [option_hash]
