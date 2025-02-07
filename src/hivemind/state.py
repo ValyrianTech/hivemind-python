@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from typing import List, Dict, Optional, Union, Any
-from ipfs_dict_chain.IPFSDict import IPFSDict
+from ipfs_dict_chain.IPFSDictChain import IPFSDictChain
 from itertools import combinations
 import time
 from .issue import HivemindIssue
@@ -62,7 +62,7 @@ def compare(a, b, opinion_hash):
     else:
         return b
 
-class HivemindState(IPFSDict):
+class HivemindState(IPFSDictChain):
     """A class representing the current state of a Hivemind voting issue.
 
     This class manages the state of a voting issue, including options, opinions,
