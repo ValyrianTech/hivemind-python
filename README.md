@@ -139,6 +139,9 @@ pip install -e .
 
 - Python 3.10 or higher
 - ipfs-dict-chain >= 1.0.9
+- A running IPFS node (see [IPFS Installation Guide](https://docs.ipfs.tech/install/))
+  - The IPFS daemon must be running and accessible via the default API endpoint
+  - Default endpoint: http://127.0.0.1:5001
 
 ## Advanced Features
 
