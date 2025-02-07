@@ -20,29 +20,45 @@ pytest-cov >= 4.0.0
   - When tests fail, you should never change the original code without my permission, only change the test code itself.
 
 # Project Structure
-The project follows this organization:
+/
+  - LICENSE: Software license terms and conditions
+  - README.md: Project overview, installation and usage instructions
+  - pytest.ini: Configuration file for pytest testing framework
+  - requirements.txt: List of Python package dependencies
+  - setup.py: Package installation and distribution configuration
+
+/diagrams/
+  - class_diagram.md: UML class diagram showing system architecture
+  - component_diagram.md: System component relationships and interactions
+  - state_diagram.md: State transitions in the voting system
+  - voting_sequence.md: Sequence diagram of the voting process
+
+/docs/
+  /source/
+    - conf.py: Sphinx documentation configuration
+    - index.rst: Main documentation landing page
+    /modules/
+      - issue.rst: Documentation for voting issues module
+      - opinion.rst: Documentation for voter opinions module
+      - option.rst: Documentation for voting options module
+      - ranking.rst: Documentation for ranking algorithms
+      - state.rst: Documentation for system state management
+      - validators.rst: Documentation for input validation utilities
 
 /src/hivemind/
-  - __init__.py: Package initialization and exports
-  - issue.py: Voting issues/questions implementation
-  - option.py: Voting options management
-  - opinion.py: Voter opinions handling
-  - ranking.py: Ranking logic implementation
-  - state.py: Hivemind state management
-  - validators.py: Input validation utilities
+  - __init__.py: Package initialization and public API exports
+  - issue.py: Implementation of voting issues and questions
+  - opinion.py: Handling of voter opinions and preferences
+  - option.py: Management of voting options and choices
+  - ranking.py: Condorcet-style ranking algorithm implementation
+  - state.py: IPFS-based state management system
+  - validators.py: Input validation and data verification
 
 /tests/
-  - conftest.py: Pytest configuration
-  - test_issue.py: Tests for issue module
-  - test_opinion.py: Tests for opinion module
-  - test_option.py: Tests for option module
-  - test_ranking.py: Tests for ranking module
-
-Key Files:
-  - setup.py: Package configuration and metadata
-  - requirements.txt: Project dependencies
-  - pytest.ini: Pytest configuration
-  - README.md: Project documentation
-
-
-  
+  - conftest.py: Pytest fixtures and shared test configurations
+  - test_ipfs.py: Tests for IPFS integration functionality
+  - test_issue.py: Tests for voting issues implementation
+  - test_opinion.py: Tests for opinion handling
+  - test_option.py: Tests for voting options management
+  - test_ranking.py: Tests for ranking algorithm
+  - test_state.py: Tests for state management system
