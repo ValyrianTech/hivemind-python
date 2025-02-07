@@ -1,36 +1,42 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import re
+import logging
 from ipfs_dict_chain.IPFSDict import IPFSDict
 from .validators import valid_address, valid_bech32_address
+from .issue import HivemindIssue
+
+LOG = logging.getLogger(__name__)
 
 class HivemindOption(IPFSDict):
     def __init__(self, cid=None):
-        """
-        Constructor of the Option object
+        """Initialize a new HivemindOption
 
         :param cid: The IPFS multihash of the Option (optional)
         """
-        self._cid = cid
-        self.hivemind_id = None
-        self._hivemind_issue = None  # set as a private member because it is not json encodable and members of an IPFSDict starting with '_' are ignored when saving
-        self._answer_type = None  # can be 'String', 'Bool', 'Integer', 'Float', 'Hivemind', 'Image', 'Video', 'Complex', 'Address'
-
+        super().__init__(cid=cid)
         self.value = None
-        self.text = None
-
-        super(HivemindOption, self).__init__(cid=cid)
+        self.text = ''
+        self._hivemind_issue = None
+        self._answer_type = 'String'
+        self.hivemind_id = None
 
     def cid(self):
         return self._cid
 
     def load(self, cid):
-        super(HivemindOption, self).load(cid=cid)
+        super().load(cid=cid)
         self.set_hivemind_issue(hivemind_issue_hash=self.hivemind_id)
 
     def set_hivemind_issue(self, hivemind_issue_hash):
+        """Set the hivemind issue for this option
+
+        :param hivemind_issue_hash: The IPFS hash of the hivemind issue
+        """
         self.hivemind_id = hivemind_issue_hash
-        self._hivemind_issue = HivemindIssue(cid=self.hivemind_id)
-        self._answer_type = self._hivemind_issue.answer_type
+        issue = HivemindIssue(cid=hivemind_issue_hash)
+        self._hivemind_issue = issue
+        self._answer_type = issue.answer_type
 
     def set(self, value):
         self.value = value
@@ -202,10 +208,13 @@ class HivemindOption(IPFSDict):
 
     def info(self):
         """
-        Get all details of the Option as a formatted string
-        """
-        ret = 'Option hash: %s' % self._cid
-        ret += '\nAnswer type: %s' % self._answer_type
-        ret += '\nOption value: %s' % self.value
+        Get info about the option
 
-        return ret
+        :return: A string containing info about the option
+        """
+        info = f'Option hash: {self.cid}\n'
+        info += f'Answer type: {self._answer_type}\n'
+        info += f'Value: {self.value}\n'
+        if self.text:
+            info += f'Text: {self.text}\n'
+        return info
