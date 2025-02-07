@@ -1,6 +1,11 @@
-```mermaid
 classDiagram
     class IPFSDict {
+        +str cid
+        +load(cid: str) Dict
+        +save() str
+    }
+    
+    class IPFSDictChain {
         +str cid
         +load(cid: str) Dict
         +save() str
@@ -85,11 +90,10 @@ classDiagram
     IPFSDict <|-- HivemindIssue
     IPFSDict <|-- HivemindOption
     IPFSDict <|-- HivemindOpinion
-    IPFSDict <|-- HivemindState
+    IPFSDictChain <|-- HivemindState
     HivemindOpinion *-- Ranking
     HivemindOption --> HivemindIssue : references
     HivemindState --> Validators : uses
     HivemindOption --> Validators : uses
     HivemindOpinion --> Validators : uses
     HivemindIssue --> Validators : uses
-```

@@ -1,4 +1,3 @@
-```mermaid
 graph TB
     subgraph HivemindCore[Hivemind Protocol Core]
         direction TB
@@ -14,9 +13,11 @@ graph TB
     end
     
     subgraph StorageLayer[Storage Layer]
-        G[IPFS Dict Chain]
+        G[IPFS Dict]
+        G2[IPFS Dict Chain]
         H[IPFS Network]
         G --> |stores/retrieves| H
+        G2 --> |stores/retrieves| H
     end
     
     subgraph SecurityLayer[Security Layer]
@@ -43,7 +44,7 @@ graph TB
     B --> |persists| G
     C --> |persists| G
     D --> |persists| G
-    A --> |persists| G
+    A --> |persists| G2
     
     E --> |computes| R[Result Calculation]
     R --> |updates| A
@@ -60,4 +61,3 @@ graph TB
     end
     
     F --> ValidationFlow
-```
