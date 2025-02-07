@@ -1,5 +1,5 @@
 # hivemind-python
-A python package implementing the Hivemind Protocol, a Condorcet-style Ranked Choice Voting System that stores all data on IPFS
+A python package implementing the Hivemind Protocol, a Condorcet-style Ranked Choice Voting System that stores all data on IPFS and uses Bitcoin Signed Messages to verify votes.
 
 [![Tests](https://github.com/ValyrianTech/hivemind-python/actions/workflows/tests.yml/badge.svg)](https://github.com/ValyrianTech/hivemind-python/actions/workflows/tests.yml)
 [![Documentation](https://github.com/ValyrianTech/hivemind-python/actions/workflows/documentation.yml/badge.svg)](https://github.com/ValyrianTech/hivemind-python/actions/workflows/documentation.yml)
