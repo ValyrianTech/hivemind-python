@@ -1,12 +1,113 @@
-# hivemind-python
-A python package implementing the Hivemind Protocol, a Condorcet-style Ranked Choice Voting System that stores all data on IPFS and uses Bitcoin Signed Messages to verify votes.
+# Hivemind Protocol
+
+A decentralized decision-making protocol implementing Condorcet-style Ranked Choice Voting with IPFS-based data storage and Bitcoin-signed message verification.
 
 [![Tests](https://github.com/ValyrianTech/hivemind-python/actions/workflows/tests.yml/badge.svg)](https://github.com/ValyrianTech/hivemind-python/actions/workflows/tests.yml)
 [![Documentation](https://github.com/ValyrianTech/hivemind-python/actions/workflows/documentation.yml/badge.svg)](https://github.com/ValyrianTech/hivemind-python/actions/workflows/documentation.yml)
 
-## Documentation
+## What is the Hivemind Protocol?
 
-Full documentation is available at [https://valyriantech.github.io/hivemind-python/](https://valyriantech.github.io/hivemind-python/)
+The Hivemind Protocol is a revolutionary approach to decentralized decision-making that combines:
+- Condorcet-style ranked choice voting
+- Immutable IPFS-based data storage
+- Cryptographic verification using Bitcoin signed messages
+- Flexible voting mechanisms and constraints
+
+### Key Features
+
+1. **Decentralized & Transparent**
+   - All voting data stored on IPFS
+   - Complete audit trail of decisions
+   - No central authority or server
+   - Cryptographically verifiable results
+
+2. **Advanced Voting Mechanisms**
+   - Condorcet-style ranked choice voting
+   - Multiple ranking strategies (fixed, auto-high, auto-low)
+   - Support for various answer types (String, Integer, Float)
+   - Weighted voting capabilities
+   - Custom voting restrictions and rules
+
+3. **Secure & Verifiable**
+   - Bitcoin-style message signing for vote verification
+   - Immutable voting history
+   - Cryptographic proof of participation
+   - Tamper-evident design
+
+## How It Works
+
+### 1. Issue Creation
+An issue represents a decision to be made. It can contain:
+- Multiple questions
+- Answer type constraints (String/Integer/Float)
+- Participation rules
+- Custom validation rules
+
+```python
+issue = HivemindIssue()
+issue.name = "Protocol Upgrade"
+issue.add_question("Should we implement EIP-1559?")
+issue.answer_type = "String"
+```
+
+### 2. Option Submission
+Participants can submit options as potential answers:
+- Each option is stored on IPFS
+- Options are validated against issue constraints
+- Options require cryptographic signatures
+- Options can be added dynamically
+
+```python
+option = HivemindOption()
+option.set_hivemind_issue(issue.cid)
+option.set("Yes, implement EIP-1559")
+```
+
+### 3. Opinion Formation
+Participants express preferences through three ranking methods:
+
+1. **Fixed Ranking**
+   ```python
+   opinion = HivemindOpinion()
+   opinion.ranking.set_fixed([option1.cid, option2.cid])  # Explicit order
+   ```
+
+2. **Auto-High Ranking**
+   ```python
+   opinion.ranking.set_auto_high(preferred_option.cid)  # Higher values preferred
+   ```
+
+3. **Auto-Low Ranking**
+   ```python
+   opinion.ranking.set_auto_low(preferred_option.cid)  # Lower values preferred
+   ```
+
+### 4. State Management
+The protocol maintains state through:
+- Option tracking
+- Opinion collection
+- Signature verification
+- Result calculation
+- State transitions
+
+```python
+state = HivemindState()
+state.set_hivemind_issue(issue.cid)
+state.add_option(timestamp, option.cid, voter_address, signature)
+state.add_opinion(timestamp, opinion.cid, signature, voter_address)
+```
+
+### 5. Result Calculation
+Results are calculated using Condorcet method:
+1. Pairwise comparison of all options
+2. Preference matrix creation
+3. Winner determination
+4. Tie resolution
+
+```python
+results = state.calculate_results()
+winner = state.consensus()
+```
 
 ## Installation
 
@@ -29,50 +130,53 @@ pip install -e .
 - Python 3.10 or higher
 - ipfs-dict-chain >= 1.0.9
 
-## Basic Usage
+## Advanced Features
 
+### Custom Constraints
 ```python
-from hivemind import HivemindIssue, HivemindOption, HivemindOpinion, HivemindState
-
-# Create a new voting issue
-issue = HivemindIssue()
-issue.name = "Best Color"
-issue.add_question("What is the best color?")
-issue.answer_type = "String"
-
-# Create the hivemind state
-state = HivemindState()
-state.set_hivemind_issue(issue.cid)
-
-# Add options
-blue = HivemindOption()
-blue.set_hivemind_issue(issue.cid)
-blue.set("Blue")
-state.add_option(timestamp, blue.cid, voter_address, signature)
-
-red = HivemindOption()
-red.set_hivemind_issue(issue.cid)
-red.set("Red")
-state.add_option(timestamp, red.cid, voter_address, signature)
-
-# Add an opinion
-opinion = HivemindOpinion()
-opinion.ranking.set_fixed([blue.cid, red.cid])  # Prefers blue over red
-state.add_opinion(timestamp, opinion.cid, signature, voter_address)
-
-# Get results
-results = state.calculate_results()
-winner = state.consensus()
+issue.set_constraints({
+    'min_value': 0,
+    'max_value': 100,
+    'specs': {'type': 'Integer'}
+})
 ```
 
-## Features
+### Voting Restrictions
+```python
+issue.set_restrictions({
+    'min_participants': 5,
+    'allowed_addresses': ['addr1', 'addr2'],
+    'min_weight': 10
+})
+```
 
-- Condorcet-style ranked choice voting
-- IPFS-based data storage
-- Support for multiple question types
-- Cryptographic verification of votes
-- Flexible voting restrictions and weights
-- Support for auto-ranking and fixed ranking
+### Auto-Ranking with Values
+```python
+option1.set(75)  # Integer value
+option2.set(25)  # Integer value
+opinion.ranking.set_auto_high(option1.cid)  # Will rank options by proximity to 75
+```
+
+## Use Cases
+
+1. **Governance Decisions**
+   - Protocol upgrades
+   - Parameter adjustments
+   - Resource allocation
+
+2. **Community Polling**
+   - Feature prioritization
+   - Community preferences
+   - Strategic decisions
+
+3. **Multi-stakeholder Decisions**
+   - Investment decisions
+   - Project prioritization
+   - Resource allocation
+
+## Documentation
+
+Full documentation is available at [https://valyriantech.github.io/hivemind-python/](https://valyriantech.github.io/hivemind-python/)
 
 ## License
 
