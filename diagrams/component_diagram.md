@@ -1,6 +1,5 @@
-```mermaid
 graph TB
-    subgraph Hivemind Protocol
+    subgraph HivemindProtocol[Hivemind Protocol]
         A[HivemindState] --> B[HivemindIssue]
         A --> C[HivemindOption]
         A --> D[HivemindOpinion]
@@ -10,17 +9,17 @@ graph TB
         C --> F
     end
     
-    subgraph Storage Layer
+    subgraph StorageLayer[Storage Layer]
         G[IPFS Dict Chain]
         H[IPFS Network]
         G --> H
     end
     
-    subgraph Security Layer
+    subgraph SecurityLayer[Security Layer]
         I[Cryptographic Verification]
         J[Address Validation]
     end
     
-    Hivemind Protocol --> Storage Layer
-    Hivemind Protocol --> Security Layer
-```
+    A --> G
+    F --> I
+    F --> J
