@@ -3,6 +3,8 @@
 from ipfs_dict_chain.IPFSDict import IPFSDict
 from itertools import combinations
 import time
+from .issue import HivemindIssue
+from .option import HivemindOption
 
 # temporality commenting these out for now, we will need these again later, do not remove
 #from helpers.messagehelpers import verify_message
