@@ -14,12 +14,14 @@ class HivemindOption(IPFSDict):
 
         :param cid: The IPFS multihash of the Option (optional)
         """
-        super().__init__(cid=cid)
         self.value = None
         self.text = ''
         self._hivemind_issue = None
         self._answer_type = 'String'
         self.hivemind_id = None
+        super().__init__(cid=cid)
+        if cid is not None:
+            self.set_hivemind_issue(hivemind_issue_hash=self.hivemind_id)
 
     def cid(self):
         return self._cid
