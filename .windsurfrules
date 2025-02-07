@@ -1,0 +1,47 @@
+# Project
+Hivemind-python is a python package implementing the Hivemind Protocol, a Condorcet-style Ranked Choice Voting System that stores all data on IPFS.
+
+# Requirements
+ipfs-dict-chain >= 1.0.9
+pytest >= 7.0.0
+pytest-cov >= 4.0.0
+
+# development_rules:
+  - All tests must pass before pushing changes
+  - Use package-relative imports
+  - Maintain Python 3.10 compatibility
+  - Follow existing code style and patterns (PEP 8)
+  - Use type hints and annotations
+  - Use Sphinx for documentation
+  - Update README.md as needed
+  - Use a testdriven development (TDD) approach
+  - Use the following command to run tests: python -m pytest
+  - Always use 'python -m' versions of commands where possible
+
+# Project Structure
+The project follows this organization:
+
+/src/hivemind/
+  - __init__.py: Package initialization and exports
+  - issue.py: Voting issues/questions implementation
+  - option.py: Voting options management
+  - opinion.py: Voter opinions handling
+  - ranking.py: Ranking logic implementation
+  - state.py: Hivemind state management
+  - validators.py: Input validation utilities
+
+/tests/
+  - conftest.py: Pytest configuration
+  - test_issue.py: Tests for issue module
+  - test_opinion.py: Tests for opinion module
+  - test_option.py: Tests for option module
+  - test_ranking.py: Tests for ranking module
+
+Key Files:
+  - setup.py: Package configuration and metadata
+  - requirements.txt: Project dependencies
+  - pytest.ini: Pytest configuration
+  - README.md: Project documentation
+
+
+  
