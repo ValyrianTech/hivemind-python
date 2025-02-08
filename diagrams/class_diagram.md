@@ -80,12 +80,11 @@ classDiagram
         +info() Dict
     }
 
-    class Validators {
-        +validate_address(address: str) bool
-        +validate_signature(message: str, signature: str, address: str) bool
-        +validate_timestamp(timestamp: int) bool
-        +validate_hivemind_id(hivemind_id: str) bool
-        +validate_option_value(value: Any, answer_type: str) bool
+    class validators {
+        <<module>>
+        +valid_address(address: str, testnet: bool) bool
+        +valid_bech32_address(address: str, testnet: bool) bool
+        +bech32_decode(bech: str) Tuple[Optional[str], Optional[list]]
     }
     
     IPFSDict <|-- HivemindIssue
@@ -94,8 +93,8 @@ classDiagram
     IPFSDictChain <|-- HivemindState
     HivemindOpinion *-- Ranking
     HivemindOption --> HivemindIssue : references
-    HivemindState --> Validators : uses
-    HivemindOption --> Validators : uses
-    HivemindOpinion --> Validators : uses
-    HivemindIssue --> Validators : uses
+    HivemindState ..> validators : uses
+    HivemindOption ..> validators : uses
+    HivemindOpinion ..> validators : uses
+    HivemindIssue ..> validators : uses
 ```
