@@ -78,18 +78,16 @@ class HivemindOpinion(IPFSDict):
         super(HivemindOpinion, self).load(cid=cid)
 
         # ipfs will store ranking as a dict, but we need to convert it back to a Ranking() object
-        if not isinstance(self.ranking, dict):
-            return
-
-        if 'fixed' in self.ranking:
-            ranked_choice = self.ranking['fixed']
-            self.ranking = Ranking()
-            self.ranking.set_fixed(ranked_choice=ranked_choice)
-        elif 'auto_high' in self.ranking:
-            choice = self.ranking['auto_high']
-            self.ranking = Ranking()
-            self.ranking.set_auto_high(choice=choice)
-        elif 'auto_low' in self.ranking:
-            choice = self.ranking['auto_low']
-            self.ranking = Ranking()
-            self.ranking.set_auto_low(choice=choice)
+        if isinstance(self.ranking, dict):
+            if 'fixed' in self.ranking:
+                ranked_choice = self.ranking['fixed']
+                self.ranking = Ranking()
+                self.ranking.set_fixed(ranked_choice=ranked_choice)
+            elif 'auto_high' in self.ranking:
+                choice = self.ranking['auto_high']
+                self.ranking = Ranking()
+                self.ranking.set_auto_high(choice=choice)
+            elif 'auto_low' in self.ranking:
+                choice = self.ranking['auto_low']
+                self.ranking = Ranking()
+                self.ranking.set_auto_low(choice=choice)
