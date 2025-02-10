@@ -77,17 +77,20 @@ class HivemindOpinion(IPFSDict):
         """
         super(HivemindOpinion, self).load(cid=cid)
 
+        # Initialize a new Ranking object if ranking is None
+        if self.ranking is None:
+            self.ranking = Ranking()
+            return
+
         # ipfs will store ranking as a dict, but we need to convert it back to a Ranking() object
         if isinstance(self.ranking, dict):
-            if 'fixed' in self.ranking:
-                ranked_choice = self.ranking['fixed']
-                self.ranking = Ranking()
-                self.ranking.set_fixed(ranked_choice=ranked_choice)
-            elif 'auto_high' in self.ranking:
-                choice = self.ranking['auto_high']
-                self.ranking = Ranking()
-                self.ranking.set_auto_high(choice=choice)
-            elif 'auto_low' in self.ranking:
-                choice = self.ranking['auto_low']
-                self.ranking = Ranking()
-                self.ranking.set_auto_low(choice=choice)
+            ranking_dict = self.ranking  # Store the dict temporarily
+            self.ranking = Ranking()  # Create new Ranking object
+            
+            if 'fixed' in ranking_dict:
+                self.ranking.set_fixed(ranked_choice=ranking_dict['fixed'])
+            elif 'auto_high' in ranking_dict:
+                self.ranking.set_auto_high(choice=ranking_dict['auto_high'])
+            elif 'auto_low' in ranking_dict:
+                self.ranking.set_auto_low(choice=ranking_dict['auto_low'])
+            # If none of the expected keys are present, ranking will remain empty
