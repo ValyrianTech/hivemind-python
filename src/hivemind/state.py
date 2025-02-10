@@ -7,7 +7,7 @@ import time
 from .issue import HivemindIssue
 from .option import HivemindOption
 from .opinion import HivemindOpinion
-from bitcoin.signmessage import VerifyMessage
+from bitcoin.signmessage import VerifyMessage, BitcoinMessage
 
 
 def verify_message(message: str, address: str, signature: str) -> bool:
@@ -22,7 +22,7 @@ def verify_message(message: str, address: str, signature: str) -> bool:
         bool: True if the signature is valid, False otherwise
     """
     try:
-        return VerifyMessage(address, message, signature)
+        return VerifyMessage(address, BitcoinMessage(message), signature)
     except Exception:
         return False
 

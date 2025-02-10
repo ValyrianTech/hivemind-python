@@ -13,6 +13,9 @@ setup(
     url="https://github.com/ValyrianTech/hivemind-python",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
+    # Add package mapping to make imports clearer
+    py_modules=[],
+    package_data={"hivemind": ["py.typed"]},  # Add py.typed marker file for type hints
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",

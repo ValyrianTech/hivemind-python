@@ -121,18 +121,19 @@ Each example is thoroughly documented and can be run independently. See the [exa
 
 ## Installation
 
-You can install the package using pip:
-
 ```bash
 pip install hivemind-python
 ```
 
-Or install from source:
+## Usage
 
-```bash
-git clone https://github.com/ValyrianTech/hivemind-python.git
-cd hivemind-python
-pip install -e .
+Import the package:
+
+```python
+import hivemind  # Note: Import as 'hivemind', not 'hivemind_python'
+
+# Create a new voting issue
+issue = hivemind.HivemindIssue("My voting issue")
 ```
 
 ## Requirements
