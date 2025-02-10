@@ -4,6 +4,10 @@ from typing import List, Dict, Optional, Union, Any
 from ipfs_dict_chain.IPFSDictChain import IPFSDictChain
 from itertools import combinations
 import time
+import logging
+
+LOG = logging.getLogger(__name__)
+
 from .issue import HivemindIssue
 from .option import HivemindOption
 from .opinion import HivemindOpinion
@@ -37,30 +41,19 @@ def compare(a, b, opinion_hash):
     If one of the Options is not given in the Opinion object, the other option wins by default
     If both Options are not in the Opinion object, None is returned
     """
-    ranked_choice = opinion_hash.get()
-    if ranked_choice is None:
-        return None
-
-    try:
-        index_a = ranked_choice.index(a.cid)
-    except ValueError:
-        index_a = -1
-
-    try:
-        index_b = ranked_choice.index(b.cid)
-    except ValueError:
-        index_b = -1
-
-    if index_a == -1 and index_b == -1:
-        return None
-    elif index_a == -1:
+    opinion = HivemindOpinion(cid=opinion_hash)
+    ranked_choice = opinion.ranking
+    if a in ranked_choice and b in ranked_choice:
+        if ranked_choice.index(a) < ranked_choice.index(b):
+            return a
+        elif ranked_choice.index(a) > ranked_choice.index(b):
+            return b
+    elif a in ranked_choice:
+        return a
+    elif b in ranked_choice:
         return b
-    elif index_b == -1:
-        return a
-    elif index_a < index_b:
-        return a
     else:
-        return b
+        return None
 
 class HivemindState(IPFSDictChain):
     """A class representing the current state of a Hivemind voting issue.
