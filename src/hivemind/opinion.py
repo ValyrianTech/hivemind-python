@@ -82,6 +82,13 @@ class HivemindOpinion(IPFSDict):
             self.ranking = Ranking()
             return
 
+        # Handle the case where ranking is a list (legacy format)
+        if isinstance(self.ranking, list):
+            ranked_choice = self.ranking
+            self.ranking = Ranking()
+            self.ranking.set_fixed(ranked_choice=ranked_choice)
+            return
+
         # ipfs will store ranking as a dict, but we need to convert it back to a Ranking() object
         if isinstance(self.ranking, dict):
             ranking_dict = self.ranking  # Store the dict temporarily
