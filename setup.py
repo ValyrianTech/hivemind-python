@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="hivemind-python",
-    version="0.1.1",
+    version="0.1.2",
     author="ValyrianTech",
     description="A Condorcet-style Ranked Choice Voting System that stores all data on IPFS",
     long_description=long_description,
