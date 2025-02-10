@@ -181,6 +181,12 @@ class HivemindState(IPFSDictChain):
         """
         super(HivemindState, self).load(cid=cid)
         self._hivemind_issue = HivemindIssue(cid=self.hivemind_id)
+        
+        # Initialize opinions list with empty dictionaries for each question
+        if hasattr(self._hivemind_issue, 'questions'):
+            self.opinions = [{} for _ in range(len(self._hivemind_issue.questions))]
+        if not self.opinions:  # Ensure at least one empty dict even if no questions
+            self.opinions = [{}]
 
     def add_option(self, timestamp: int, option_hash: str, address: Optional[str] = None, signature: Optional[str] = None) -> None:
         """Add an option to the hivemind state.
@@ -263,7 +269,11 @@ class HivemindState(IPFSDictChain):
             except Exception as ex:
                 raise Exception('Invalid signature: %s' % ex)
 
-            self.opinions[opinion.question_index][address] = {'opinion_cid': opinion_hash, 'timestamp': int(time.time())}
+            # Ensure we have enough dictionaries in the opinions list
+            while len(self.opinions) <= opinion.question_index:
+                self.opinions.append({})
+
+            self.opinions[opinion.question_index][address] = {'opinion_cid': opinion_hash, 'timestamp': timestamp}
 
         else:
             raise Exception('Opinion is invalid')
