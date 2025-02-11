@@ -30,7 +30,6 @@ def fetch_state():
         if not ipfs_hash:
             return jsonify({'error': 'IPFS hash is required'}), 400
             
-        app.logger.info("=== USING NEW CODE VERSION - NO RESULTS CALCULATION ===")
         app.logger.info(f"Attempting to load state from IPFS with CID: {ipfs_hash}")
         
         from ipfs_dict_chain.IPFS import connect, get_json, IPFSError
@@ -42,42 +41,34 @@ def fetch_state():
                 # Get the raw state data
                 raw_data = get_json(cid=ipfs_hash)
                 app.logger.info(f"Successfully read raw data from IPFS")
+                app.logger.info(f"Raw data: {raw_data}")
                 
                 if not isinstance(raw_data, dict):
                     return jsonify({'error': 'THIS IS THE NEW CODE - Got invalid data format'}), 400
                 
-                # Load each option's data from IPFS
-                options = []
-                for option_cid in raw_data.get('options', []):
-                    try:
-                        option_data = get_json(cid=option_cid)
-                        if isinstance(option_data, dict):
-                            options.append({
-                                'cid': option_cid,
-                                'text': option_data.get('text', 'No text available'),
-                                'value': option_data.get('value', 'N/A')
-                            })
-                        else:
-                            options.append({
-                                'cid': option_cid,
-                                'text': 'Invalid option data',
-                                'value': 'N/A'
-                            })
-                    except Exception as e:
-                        app.logger.error(f"Error loading option {option_cid}: {str(e)}")
-                        options.append({
-                            'cid': option_cid,
-                            'text': f'Error loading option: {str(e)}',
-                            'value': 'N/A'
-                        })
-                
-                # Return the data without any result calculations
+                # Extract issue information
+                issue_info = {
+                    'name': raw_data.get('name', 'Unnamed Issue'),
+                    'description': raw_data.get('description', 'No description available'),
+                    'tags': raw_data.get('tags', []),
+                    'questions': raw_data.get('questions', []),
+                    'answer_type': raw_data.get('answer_type', 'Unknown'),
+                    'created_at': raw_data.get('created_at', 'Unknown'),
+                    'hivemind_id': raw_data.get('hivemind_id')
+                }
+
+                # Extract options and opinions
+                options = raw_data.get('options', [])
+                opinions = raw_data.get('opinions', [])
+                total_opinions = len(opinions[0]) if opinions and len(opinions) > 0 else 0
+
+                app.logger.info(f"Extracted issue info: {issue_info}")
+
                 return jsonify({
-                    'hivemind_id': raw_data.get('hivemind_id', ipfs_hash),
+                    'issue': issue_info,
                     'options': options,
-                    'opinions': raw_data.get('opinions', []),
-                    'total_opinions': len(raw_data.get('opinions', [])),
-                    'version': 'NEW CODE - NO RESULTS CALCULATION'
+                    'total_opinions': total_opinions,
+                    'hivemind_id': raw_data.get('hivemind_id')
                 })
                 
             except Exception as e:
