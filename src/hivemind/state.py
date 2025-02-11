@@ -233,7 +233,7 @@ class HivemindState(IPFSDictChain):
         :return: List of option CIDs
         :rtype: List[str]
         """
-        option_cids = [option_cid for option_cid in self.signatures['options'] if address in self.signatures['options'][option_cid]]
+        option_cids = [option_cid for option_cid in self.signatures.get('options', {}) if address in self.signatures.get('options', {})[option_cid]]
         return option_cids
 
     def add_opinion(self, timestamp: int, opinion_hash: str, signature: str, address: str) -> None:
