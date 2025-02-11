@@ -18,6 +18,7 @@ pytest-cov >= 4.0.0
   - Use the following command to run tests: python -m pytest
   - Always use 'python -m' versions of commands where possible
   - When tests fail, you should never change the original code without my permission, only change the test code itself.
+  - Use PowerShell syntax for your commands, like using ; instead of &&
 
 # Project Structure
 /
