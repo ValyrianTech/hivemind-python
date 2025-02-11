@@ -35,8 +35,6 @@ class HivemindIssue(IPFSDict):
         :param cid: The IPFS multihash of the hivemind issue
         :type cid: Optional[str]
         """
-        super().__init__(cid=cid)
-        
         self.questions: List[str] = []
         self.name: Optional[str] = None
         self.description: str = ''
@@ -51,6 +49,8 @@ class HivemindIssue(IPFSDict):
         # Exclude : The selected option is excluded from the results
         # Reset : All opinions are reset
         self.on_selection: Optional[str] = None
+
+        super().__init__(cid=cid)
 
     def add_question(self, question: str) -> None:
         """Add a question to the hivemind issue.

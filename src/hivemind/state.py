@@ -42,7 +42,7 @@ def compare(a, b, opinion_hash):
     If both Options are not in the Opinion object, None is returned
     """
     opinion = HivemindOpinion(cid=opinion_hash)
-    ranked_choice = opinion.ranking
+    ranked_choice = opinion.ranking.get()
     if a in ranked_choice and b in ranked_choice:
         if ranked_choice.index(a) < ranked_choice.index(b):
             return a
