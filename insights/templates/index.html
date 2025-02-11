@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hivemind Insights</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-4xl font-bold text-center mb-8 text-gray-800">Hivemind Insights</h1>
+        
+        <!-- Input Form -->
+        <div class="max-w-xl mx-auto bg-white rounded-lg shadow-md p-6 mb-8">
+            <div class="flex space-x-4">
+                <input type="text" id="ipfsHash" 
+                       class="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="Enter IPFS Hash">
+                <button onclick="fetchState()" 
+                        class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    Load
+                </button>
+            </div>
+            <div id="version" class="mt-2 text-sm text-blue-600"></div>
+            <div id="error" class="mt-4 text-red-500 hidden"></div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loading" class="text-center hidden">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        </div>
+
+        <!-- Issues List -->
+        <div id="issuesList" class="space-y-6">
+        </div>
+    </div>
+
+    <script>
+        async function fetchState() {
+            const ipfsHash = document.getElementById('ipfsHash').value.trim();
+            const errorDiv = document.getElementById('error');
+            const loadingDiv = document.getElementById('loading');
+            const versionDiv = document.getElementById('version');
+            const issuesList = document.getElementById('issuesList');
+
+            if (!ipfsHash) {
+                showError('Please enter an IPFS hash');
+                return;
+            }
+
+            // Reset and show loading
+            errorDiv.classList.add('hidden');
+            versionDiv.textContent = '';
+            loadingDiv.classList.remove('hidden');
+            issuesList.innerHTML = '';
+
+            try {
+                const response = await fetch('/fetch_state', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ ipfs_hash: ipfsHash })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Display options
+                    const optionsSection = document.createElement('div');
+                    optionsSection.className = 'bg-white rounded-lg shadow-md p-6 mb-6';
+                    optionsSection.innerHTML = `
+                        <h2 class="text-2xl font-semibold mb-4">Options (${data.options.length})</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            ${data.options.map(option => `
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <h4 class="font-semibold mb-2">${option.text || 'Unnamed Option'}</h4>
+                                    <div class="space-y-2">
+                                        <p><span class="font-medium">Value:</span> ${option.value || 'N/A'}</p>
+                                        <p class="text-sm font-mono break-all"><span class="font-medium">CID:</span> ${option.cid}</p>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    issuesList.appendChild(optionsSection);
+
+                    // Display opinions
+                    const opinionsSection = document.createElement('div');
+                    opinionsSection.className = 'bg-white rounded-lg shadow-md p-6';
+                    opinionsSection.innerHTML = `
+                        <h2 class="text-2xl font-semibold mb-4">Opinions (${data.total_opinions})</h2>
+                        <div class="space-y-4">
+                            ${Array.isArray(data.opinions) ? data.opinions.map((opinion, index) => `
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <h4 class="font-semibold mb-2">Opinion ${index + 1}</h4>
+                                    <pre class="text-sm overflow-x-auto">${JSON.stringify(opinion, null, 2)}</pre>
+                                </div>
+                            `).join('') : ''}
+                        </div>
+                    `;
+                    issuesList.appendChild(opinionsSection);
+
+                    // Show version if available
+                    if (data.version) {
+                        versionDiv.textContent = data.version;
+                    }
+                } else {
+                    showError(data.error || 'Failed to load state');
+                }
+            } catch (error) {
+                showError('Failed to fetch state: ' + error.message);
+            } finally {
+                loadingDiv.classList.add('hidden');
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+        }
+
+        // Initial fetch
+        fetchState();
+    </script>
+</body>
+</html>
