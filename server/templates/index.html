@@ -185,6 +185,22 @@
                         </div>
                     `;
                     issuesList.appendChild(optionsSection);
+
+                    // Display raw opinions data
+                    if (data.opinions) {
+                        const opinionsSection = document.createElement('div');
+                        opinionsSection.className = 'bg-white rounded-lg shadow-md p-6';
+                        opinionsSection.innerHTML = `
+                            <h2 class="text-2xl font-semibold mb-4">Opinions (${data.total_opinions})</h2>
+                            <div class="overflow-x-auto">
+                                <pre class="text-sm font-mono bg-gray-50 p-4 rounded-lg whitespace-pre-wrap">
+${JSON.stringify(data.opinions, null, 2)}
+                                </pre>
+                            </div>
+                        `;
+                        issuesList.appendChild(opinionsSection);
+                    }
+
                 } else {
                     showError(data.detail || 'Failed to load state');
                 }

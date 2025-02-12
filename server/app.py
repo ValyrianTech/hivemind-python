@@ -148,6 +148,7 @@ async def fetch_state(request: IPFSHashRequest):
                     'issue': issue_info,
                     'options': options,
                     'total_opinions': total_opinions,
+                    'opinions': raw_data.get('opinions', {}),  
                     'hivemind_id': raw_data.get('hivemind_id'),
                     'previous_cid': raw_data.get('previous_cid')
                 }
