@@ -3,6 +3,8 @@
 
 import sys
 import os
+import queue
+import atexit
 
 # Add parent directory to Python path to find hivemind package
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -13,6 +15,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import logging
+from logging.handlers import QueueHandler, QueueListener, RotatingFileHandler
 import os
 from typing import Optional, List, Dict, Any, Union
 
@@ -20,57 +23,55 @@ from hivemind.state import HivemindOption, HivemindOpinion, HivemindState
 from hivemind.issue import HivemindIssue
 from hivemind.option import HivemindOption
 
-# Set up logging
-if not os.path.exists('logs'):
-    os.makedirs('logs')
+# Set up logging with queue handler
+def setup_logging():
+    # Create log directory if it doesn't exist
+    if not os.path.exists('logs'):
+        os.makedirs('logs')
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s %(levelname)s: %(message)s',
-    handlers=[
-        logging.FileHandler('logs/debug.log'),
-        logging.StreamHandler()  # This will also print to console
-    ]
-)
+    # Create queue for logging
+    log_queue = queue.Queue(-1)  # No limit on size
+
+    # Configure queue handler
+    queue_handler = QueueHandler(log_queue)
+    
+    # Configure root logger with queue handler
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+    root_logger.addHandler(queue_handler)
+    
+    # Configure file handler for the queue listener
+    file_handler = RotatingFileHandler(
+        'logs/debug.log',
+        maxBytes=10*1024*1024,  # 10MB
+        backupCount=5,
+        delay=True  # Delay file creation until first log
+    )
+    file_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s: %(message)s'))
+    
+    # Create and start queue listener
+    console_handler = logging.StreamHandler()  # For console output
+    console_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s: %(message)s'))
+    
+    listener = QueueListener(
+        log_queue,
+        file_handler,
+        console_handler,
+        respect_handler_level=True
+    )
+    listener.start()
+    
+    # Register cleanup on exit
+    atexit.register(listener.stop)
+    
+    return listener
+
+# Initialize logging
+log_listener = setup_logging()
 logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
 app = FastAPI(title="Hivemind Insights")
-import sys
-import os
-
-# Add parent directory to Python path to find hivemind package
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
-import logging
-from logging.handlers import RotatingFileHandler
-import os
-from typing import Optional, List, Dict, Any, Union
-
-from hivemind.state import HivemindOption, HivemindOpinion, HivemindState
-from hivemind.issue import HivemindIssue
-
-# Initialize FastAPI app
-app = FastAPI(title="Hivemind Insights")
-
-# Set up logging
-logging.basicConfig(level=logging.DEBUG)
-if not os.path.exists('logs'):
-    os.mkdir('logs')
-file_handler = RotatingFileHandler('logs/debug.log', maxBytes=10240, backupCount=10)
-file_handler.setFormatter(logging.Formatter(
-    '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
-))
-file_handler.setLevel(logging.INFO)
-logger = logging.getLogger('hivemind')
-logger.addHandler(file_handler)
-logger.setLevel(logging.INFO)
-logger.info('Hivemind Insights FastAPI startup')
 
 # Mount static files and templates
 static_dir = os.path.join(os.path.dirname(__file__), "static")
