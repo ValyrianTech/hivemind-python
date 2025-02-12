@@ -122,7 +122,8 @@ def fetch_state():
                     'issue': issue_info,
                     'options': options,
                     'total_opinions': total_opinions,
-                    'hivemind_id': raw_data.get('hivemind_id')
+                    'hivemind_id': raw_data.get('hivemind_id'),
+                    'previous_cid': raw_data.get('previous_cid')
                 })
                 
             except Exception as e:
