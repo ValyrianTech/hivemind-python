@@ -36,6 +36,10 @@
     </div>
 
     <script>
+        // Store the chain relationships
+        let cidChain = new Map(); // Maps CID -> { previous: CID, next: CID }
+        let currentCid = null;
+
         async function fetchState() {
             const ipfsHash = document.getElementById('ipfsHash').value.trim();
             const errorDiv = document.getElementById('error');
@@ -64,31 +68,81 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    // Display previous CID if available
+                    // Update chain
+                    if (!cidChain.has(ipfsHash)) {
+                        cidChain.set(ipfsHash, { previous: data.previous_cid, next: null });
+                    }
+                    if (data.previous_cid && !cidChain.has(data.previous_cid)) {
+                        cidChain.set(data.previous_cid, { previous: null, next: ipfsHash });
+                    }
+                    // Update next pointers
                     if (data.previous_cid) {
-                        const previousCidSection = document.createElement('div');
-                        previousCidSection.className = 'bg-blue-50 border-l-4 border-blue-400 p-4 mb-6';
-                        previousCidSection.innerHTML = `
+                        const prevInfo = cidChain.get(data.previous_cid);
+                        if (prevInfo) {
+                            prevInfo.next = ipfsHash;
+                        }
+                    }
+
+                    currentCid = ipfsHash;
+                    console.log('Chain:', Object.fromEntries(cidChain));
+                    console.log('Current CID:', currentCid);
+
+                    // Create navigation section
+                    const navigationSection = document.createElement('div');
+                    navigationSection.className = 'bg-blue-50 border-l-4 border-blue-400 p-4 mb-6';
+                    
+                    let navigationContent = '<div class="flex items-center justify-between w-full">';
+                    
+                    // Previous version - always on the left
+                    navigationContent += '<div class="flex items-center">';
+                    if (data.previous_cid) {
+                        navigationContent += `
                             <div class="flex items-center">
                                 <div class="flex-shrink-0">
                                     <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                                         <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
                                     </svg>
                                 </div>
-                                <div class="ml-3">
+                                <div class="ml-2">
                                     <p class="text-sm text-blue-700">
-                                        Previous version available:
-                                        <a href="#" onclick="document.getElementById('ipfsHash').value='${data.previous_cid}'; fetchState(); return false;" 
+                                        Prev <a href="#" onclick="document.getElementById('ipfsHash').value='${data.previous_cid}'; fetchState(); return false;" 
                                            class="font-mono hover:underline">
                                             ${data.previous_cid}
                                         </a>
                                     </p>
                                 </div>
-                            </div>
-                        `;
-                        issuesList.appendChild(previousCidSection);
+                            </div>`;
                     }
-                    
+                    navigationContent += '</div>';
+
+                    // Next version - always on the right
+                    navigationContent += '<div class="flex items-center">';
+                    const currentInfo = cidChain.get(currentCid);
+                    if (currentInfo && currentInfo.next) {
+                        const nextCid = currentInfo.next;
+                        navigationContent += `
+                            <div class="flex items-center">
+                                <div class="mr-2">
+                                    <p class="text-sm text-blue-700">
+                                        Next <a href="#" onclick="document.getElementById('ipfsHash').value='${nextCid}'; fetchState(); return false;" 
+                                           class="font-mono hover:underline">
+                                            ${nextCid}
+                                        </a>
+                                    </p>
+                                </div>
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                            </div>`;
+                    }
+                    navigationContent += '</div>';
+
+                    navigationContent += '</div>';
+                    navigationSection.innerHTML = navigationContent;
+                    issuesList.appendChild(navigationSection);
+
                     // Display issue information
                     const issueInfoSection = document.createElement('div');
                     issueInfoSection.className = 'bg-white rounded-lg shadow-md p-6 mb-6';
