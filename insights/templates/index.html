@@ -115,10 +115,22 @@
                                 `}
                             </div>
                             <div class="bg-gray-50 rounded-lg p-4">
-                                <p class="font-medium text-gray-700">Created At</p>
-                                <p class="text-gray-600 mt-1">${issue.created_at || 'Unknown'}</p>
+                                <p class="font-medium text-gray-700">Constraints</p>
+                                ${issue.constraints ? `
+                                    <pre class="text-xs font-mono mt-1 text-gray-600 whitespace-pre-wrap">${JSON.stringify(issue.constraints, null, 2)}</pre>
+                                ` : `
+                                    <p class="text-gray-500 mt-1 italic">No constraints</p>
+                                `}
                             </div>
                             <div class="bg-gray-50 rounded-lg p-4">
+                                <p class="font-medium text-gray-700">Restrictions</p>
+                                ${issue.restrictions ? `
+                                    <pre class="text-xs font-mono mt-1 text-gray-600 whitespace-pre-wrap">${JSON.stringify(issue.restrictions, null, 2)}</pre>
+                                ` : `
+                                    <p class="text-gray-500 mt-1 italic">No restrictions</p>
+                                `}
+                            </div>
+                            <div class="md:col-span-2 bg-gray-50 rounded-lg p-4">
                                 <p class="font-medium text-gray-700">Hivemind ID</p>
                                 <p class="text-xs font-mono break-all text-gray-600 mt-1">${data.hivemind_id}</p>
                             </div>

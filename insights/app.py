@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify
-from hivemind.state import HivemindOption, HivemindOpinion
+from hivemind.state import HivemindOption, HivemindOpinion, HivemindState
+from hivemind.issue import HivemindIssue
 import logging
 from logging.handlers import RotatingFileHandler
 import os
@@ -44,21 +45,74 @@ def fetch_state():
                 app.logger.info(f"Raw data: {raw_data}")
                 
                 if not isinstance(raw_data, dict):
-                    return jsonify({'error': 'THIS IS THE NEW CODE - Got invalid data format'}), 400
+                    return jsonify({'error': 'Invalid data format'}), 400
                 
-                # Extract issue information
-                issue_info = {
-                    'name': raw_data.get('name', 'Unnamed Issue'),
-                    'description': raw_data.get('description', 'No description available'),
-                    'tags': raw_data.get('tags', []),
-                    'questions': raw_data.get('questions', []),
-                    'answer_type': raw_data.get('answer_type', 'Unknown'),
-                    'created_at': raw_data.get('created_at', 'Unknown'),
-                    'hivemind_id': raw_data.get('hivemind_id')
-                }
+                # Create HivemindState object
+                state = HivemindState()
+                state.__dict__.update(raw_data)
+                
+                # First get the issue data from IPFS
+                issue_cid = raw_data.get('hivemind_id')
+                if issue_cid:
+                    try:
+                        issue_data = get_json(cid=issue_cid)
+                        app.logger.info(f"Successfully fetched issue data: {issue_data}")
+                        issue = HivemindIssue()
+                        issue.__dict__.update(issue_data)
+                        
+                        issue_info = {
+                            'name': issue.name or 'Unnamed Issue',
+                            'description': issue.description or 'No description available',
+                            'tags': issue.tags or [],
+                            'questions': issue.questions or [],
+                            'answer_type': issue.answer_type or 'Unknown',
+                            'constraints': issue.constraints,
+                            'restrictions': issue.restrictions,
+                            'hivemind_id': issue_cid
+                        }
+                    except Exception as e:
+                        app.logger.error(f"Failed to fetch issue data: {str(e)}")
+                        issue_info = {
+                            'name': 'Unnamed Issue',
+                            'description': 'Failed to load issue data',
+                            'tags': [],
+                            'questions': [],
+                            'answer_type': 'Unknown',
+                            'constraints': None,
+                            'restrictions': None,
+                            'hivemind_id': issue_cid
+                        }
+                else:
+                    issue_info = {
+                        'name': 'Unnamed Issue',
+                        'description': 'No issue ID available',
+                        'tags': [],
+                        'questions': [],
+                        'answer_type': 'Unknown',
+                        'constraints': None,
+                        'restrictions': None,
+                        'hivemind_id': None
+                    }
 
                 # Extract options and opinions
-                options = raw_data.get('options', [])
+                options = []
+                for option_cid in raw_data.get('options', []):
+                    try:
+                        option_data = get_json(cid=option_cid)
+                        option = {
+                            'cid': option_cid,
+                            'value': option_data.get('value', 'N/A'),
+                            'text': option_data.get('text', 'Unnamed Option')
+                        }
+                        options.append(option)
+                    except Exception as e:
+                        app.logger.error(f"Failed to fetch option data for {option_cid}: {str(e)}")
+                        options.append({
+                            'cid': option_cid,
+                            'value': 'Failed to load',
+                            'text': 'Failed to load option data'
+                        })
+
                 opinions = raw_data.get('opinions', [])
                 total_opinions = len(opinions[0]) if opinions and len(opinions) > 0 else 0
 
@@ -74,21 +128,21 @@ def fetch_state():
             except Exception as e:
                 app.logger.error(f"Failed to read data from IPFS: {str(e)}")
                 return jsonify({
-                    'error': 'NEW CODE - Failed to read data from IPFS',
+                    'error': 'Failed to read data from IPFS',
                     'details': str(e)
                 }), 500
                 
         except Exception as e:
             app.logger.error(f"Error connecting to IPFS: {str(e)}")
             return jsonify({
-                'error': 'NEW CODE - Failed to connect to IPFS',
+                'error': 'Failed to connect to IPFS',
                 'details': str(e)
             }), 500
             
     except Exception as e:
         app.logger.exception("Error processing request")
         return jsonify({
-            'error': 'NEW CODE - Internal server error',
+            'error': 'Internal server error',
             'details': str(e)
         }), 500
 
