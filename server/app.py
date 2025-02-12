@@ -142,13 +142,38 @@ async def fetch_state(request: IPFSHashRequest):
                 opinions = raw_data.get('opinions', [])
                 total_opinions = len(opinions[0]) if opinions and len(opinions) > 0 else 0
 
+                # Load full opinion data using HivemindOpinion
+                full_opinions = []
+                for question_opinions in opinions:
+                    question_data = {}
+                    for address, opinion_info in question_opinions.items():
+                        try:
+                            opinion = HivemindOpinion()
+                            opinion.load(opinion_info['opinion_cid'])
+                            logger.info(f"Loaded opinion data for {address}: {opinion.__dict__}")
+                            ranking = opinion.ranking.get_fixed() if hasattr(opinion, 'ranking') and opinion.ranking else None
+                            logger.info(f"Extracted ranking: {ranking}")
+                            question_data[address] = {
+                                'opinion_cid': opinion_info['opinion_cid'],
+                                'timestamp': opinion_info['timestamp'],
+                                'ranking': ranking
+                            }
+                        except Exception as e:
+                            logger.error(f"Failed to load opinion data for {address}: {str(e)}")
+                            question_data[address] = {
+                                'opinion_cid': opinion_info['opinion_cid'],
+                                'timestamp': opinion_info['timestamp'],
+                                'ranking': None
+                            }
+                    full_opinions.append(question_data)
+
                 logger.info(f"Extracted issue info: {issue_info}")
 
                 return {
                     'issue': issue_info,
                     'options': options,
                     'total_opinions': total_opinions,
-                    'opinions': raw_data.get('opinions', {}),  
+                    'opinions': full_opinions,
                     'hivemind_id': raw_data.get('hivemind_id'),
                     'previous_cid': raw_data.get('previous_cid')
                 }

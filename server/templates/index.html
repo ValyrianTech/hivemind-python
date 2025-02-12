@@ -225,7 +225,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             ${data.options.map(option => `
                                 <div class="bg-gray-50 rounded-lg p-4">
-                                    <h4 class="font-semibold mb-2">${option.text || 'Unnamed Option'}</h4>
+                                    <h4 class="font-semibold mb-2">${option.text || option.value || 'Unnamed Option'}</h4>
                                     <div class="space-y-2">
                                         <p class="text-sm text-gray-600">
                                             <span class="font-medium">Value:</span> ${option.value}
@@ -254,7 +254,15 @@
                         
                         // Group opinions by question
                         const questions = Array.isArray(data.issue.questions) ? data.issue.questions : [];
+                        
+                        // Debug logging
+                        console.log('Opinions data:', data.opinions);
+                        console.log('Questions:', questions);
+                        
                         questions.forEach((question, qIndex) => {
+                            // Get the opinions object for this question index
+                            const questionOpinions = data.opinions[qIndex] || {};
+                            
                             opinionsHtml += `
                                 <div class="bg-gray-50 rounded-lg p-4">
                                     <h3 class="text-lg font-medium mb-4">
@@ -270,7 +278,7 @@
                                                 </tr>
                                             </thead>
                                             <tbody class="divide-y divide-gray-200">
-                                                ${Object.entries(data.opinions[qIndex] || {}).map(([address, opinionData]) => {
+                                                ${Object.entries(questionOpinions).map(([address, opinionData]) => {
                                                     // Format timestamp if it exists and is valid
                                                     let formattedTimestamp = '-';
                                                     if (opinionData && opinionData.timestamp) {
@@ -285,10 +293,26 @@
                                                     }
 
                                                     return `
-                                                        <tr class="hover:bg-gray-100">
+                                                        <tr class="hover:bg-gray-100 cursor-pointer transition-colors" 
+                                                            onclick="toggleOpinionDetails(this, ${qIndex}, '${address}')">
                                                             <td class="px-4 py-2 text-sm font-mono text-gray-600">${address}</td>
-                                                            <td class="px-4 py-2 text-sm font-mono text-gray-600">${opinionData ? opinionData.opinion_cid || '-' : '-'}</td>
+                                                            <td class="px-4 py-2 text-sm font-mono text-gray-600">${opinionData.opinion_cid || '-'}</td>
                                                             <td class="px-4 py-2 text-sm text-gray-600">${formattedTimestamp}</td>
+                                                        </tr>
+                                                        <tr class="opinion-details hidden">
+                                                            <td colspan="3" class="px-4 py-2 bg-blue-50">
+                                                                <div>
+                                                                    <p class="font-medium text-gray-700 mb-2">Ranking:</p>
+                                                                    ${opinionData.ranking ? `
+                                                                        <ol class="list-decimal list-inside space-y-1">
+                                                                            ${opinionData.ranking.map(optionCid => {
+                                                                                const option = data.options.find(opt => opt.cid === optionCid);
+                                                                                return `<li class="text-gray-600">${option ? (option.text || option.value) : 'Unknown Option'}</li>`;
+                                                                            }).join('')}
+                                                                        </ol>
+                                                                    ` : '<p class="text-gray-600">No ranking available</p>'}
+                                                                </div>
+                                                            </td>
                                                         </tr>
                                                     `;
                                                 }).join('')}
@@ -316,11 +340,28 @@
             }
         }
 
+        // Function to toggle opinion details with IPFS data
+        function toggleOpinionDetails(row, questionIndex, address) {
+            const detailsRow = row.nextElementSibling;
+            detailsRow.classList.toggle('hidden');
+        }
+
         function showError(message) {
             const errorDiv = document.getElementById('error');
             errorDiv.textContent = message;
             errorDiv.classList.remove('hidden');
         }
     </script>
+    <style>
+        .opinion-details {
+            transition: opacity 150ms ease-in-out;
+        }
+        .opinion-details.hidden {
+            opacity: 0;
+        }
+        .opinion-details:not(.hidden) {
+            opacity: 1;
+        }
+    </style>
 </body>
 </html>
