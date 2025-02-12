@@ -249,13 +249,8 @@
                         let opinionsHtml = `
                             <div class="flex items-center justify-between mb-6">
                                 <h2 class="text-2xl font-semibold">Opinions (${data.total_opinions})</h2>
-                                <div class="flex space-x-2">
-                                    <button onclick="toggleOpinionsView()" class="px-3 py-1 text-sm bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200">
-                                        Toggle View
-                                    </button>
-                                </div>
                             </div>
-                            <div id="opinions-table-view" class="space-y-6">`;
+                            <div class="space-y-6">`;
                         
                         // Group opinions by question
                         const questions = Array.isArray(data.issue.questions) ? data.issue.questions : [];
@@ -303,13 +298,7 @@
                                 </div>`;
                         });
                         
-                        // Add raw JSON view (hidden by default)
                         opinionsHtml += `
-                            </div>
-                            <div id="opinions-raw-view" class="hidden">
-                                <pre class="text-sm font-mono bg-gray-50 p-4 rounded-lg whitespace-pre-wrap overflow-x-auto">
-${JSON.stringify(data.opinions, null, 2)}
-                                </pre>
                             </div>
                         `;
                         
@@ -331,18 +320,6 @@ ${JSON.stringify(data.opinions, null, 2)}
             const errorDiv = document.getElementById('error');
             errorDiv.textContent = message;
             errorDiv.classList.remove('hidden');
-        }
-
-        function toggleOpinionsView() {
-            const tableView = document.getElementById('opinions-table-view');
-            const rawView = document.getElementById('opinions-raw-view');
-            if (tableView.classList.contains('hidden')) {
-                tableView.classList.remove('hidden');
-                rawView.classList.add('hidden');
-            } else {
-                tableView.classList.add('hidden');
-                rawView.classList.remove('hidden');
-            }
         }
     </script>
 </body>
