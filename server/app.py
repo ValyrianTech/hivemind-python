@@ -1,3 +1,41 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import sys
+import os
+
+# Add parent directory to Python path to find hivemind package
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+import logging
+import os
+from typing import Optional, List, Dict, Any, Union
+
+from hivemind.state import HivemindOption, HivemindOpinion, HivemindState
+from hivemind.issue import HivemindIssue
+from hivemind.option import HivemindOption
+
+# Set up logging
+if not os.path.exists('logs'):
+    os.makedirs('logs')
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s: %(message)s',
+    handlers=[
+        logging.FileHandler('logs/debug.log'),
+        logging.StreamHandler()  # This will also print to console
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# Initialize FastAPI app
+app = FastAPI(title="Hivemind Insights")
 import sys
 import os
 
@@ -149,10 +187,26 @@ async def fetch_state(request: IPFSHashRequest):
                     for address, opinion_info in question_opinions.items():
                         try:
                             opinion = HivemindOpinion()
-                            opinion.load(opinion_info['opinion_cid'])
+                            # Run the opinion loading in the same event loop
+                            opinion_data = await loop.run_in_executor(None, lambda: get_json(cid=opinion_info['opinion_cid']))
+                            opinion.__dict__.update(opinion_data)
                             logger.info(f"Loaded opinion data for {address}: {opinion.__dict__}")
-                            ranking = opinion.ranking.get_fixed() if hasattr(opinion, 'ranking') and opinion.ranking else None
-                            logger.info(f"Extracted ranking: {ranking}")
+                            
+                            # Extract ranking based on the data format
+                            ranking = None
+                            if hasattr(opinion, 'ranking'):
+                                if isinstance(opinion.ranking, list):
+                                    # Legacy format where ranking is directly a list
+                                    ranking = opinion.ranking
+                                elif isinstance(opinion.ranking, dict):
+                                    # Dict format with fixed/auto_high/auto_low
+                                    if 'fixed' in opinion.ranking:
+                                        ranking = opinion.ranking['fixed']
+                                elif hasattr(opinion.ranking, 'fixed') and opinion.ranking.fixed:
+                                    # Ranking object with fixed ranking
+                                    ranking = opinion.ranking.fixed
+                                    
+                            logger.info(f"Extracted ranking for {address}: {ranking}")
                             question_data[address] = {
                                 'opinion_cid': opinion_info['opinion_cid'],
                                 'timestamp': opinion_info['timestamp'],
