@@ -1,4 +1,0 @@
-flask>=2.0.0
-ipfs-dict-chain>=1.0.9
-hivemind-python  # Local package
-python-dotenv>=1.0.0
