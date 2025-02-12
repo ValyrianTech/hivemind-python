@@ -240,18 +240,80 @@
                     `;
                     issuesList.appendChild(optionsSection);
 
-                    // Display raw opinions data
+                    // Display opinions data in an organized way
                     if (data.opinions) {
                         const opinionsSection = document.createElement('div');
                         opinionsSection.className = 'bg-white rounded-lg shadow-md p-6';
-                        opinionsSection.innerHTML = `
-                            <h2 class="text-2xl font-semibold mb-4">Opinions (${data.total_opinions})</h2>
-                            <div class="overflow-x-auto">
-                                <pre class="text-sm font-mono bg-gray-50 p-4 rounded-lg whitespace-pre-wrap">
+                        
+                        // Create the header
+                        let opinionsHtml = `
+                            <div class="flex items-center justify-between mb-6">
+                                <h2 class="text-2xl font-semibold">Opinions (${data.total_opinions})</h2>
+                                <div class="flex space-x-2">
+                                    <button onclick="toggleOpinionsView()" class="px-3 py-1 text-sm bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200">
+                                        Toggle View
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="opinions-table-view" class="space-y-6">`;
+                        
+                        // Group opinions by question
+                        const questions = Array.isArray(data.issue.questions) ? data.issue.questions : [];
+                        questions.forEach((question, qIndex) => {
+                            opinionsHtml += `
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <h3 class="text-lg font-medium mb-4">
+                                        Question ${qIndex + 1}: ${question}
+                                    </h3>
+                                    <div class="overflow-x-auto">
+                                        <table class="min-w-full divide-y divide-gray-200">
+                                            <thead>
+                                                <tr>
+                                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bitcoin Address</th>
+                                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Opinion CID</th>
+                                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-gray-200">
+                                                ${Object.entries(data.opinions[qIndex] || {}).map(([address, opinionData]) => {
+                                                    // Format timestamp if it exists and is valid
+                                                    let formattedTimestamp = '-';
+                                                    if (opinionData && opinionData.timestamp) {
+                                                        const timestamp = Number(opinionData.timestamp);
+                                                        if (!isNaN(timestamp)) {
+                                                            try {
+                                                                formattedTimestamp = new Date(timestamp * 1000).toLocaleString();
+                                                            } catch (e) {
+                                                                formattedTimestamp = 'Invalid Timestamp';
+                                                            }
+                                                        }
+                                                    }
+
+                                                    return `
+                                                        <tr class="hover:bg-gray-100">
+                                                            <td class="px-4 py-2 text-sm font-mono text-gray-600">${address}</td>
+                                                            <td class="px-4 py-2 text-sm font-mono text-gray-600">${opinionData ? opinionData.opinion_cid || '-' : '-'}</td>
+                                                            <td class="px-4 py-2 text-sm text-gray-600">${formattedTimestamp}</td>
+                                                        </tr>
+                                                    `;
+                                                }).join('')}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>`;
+                        });
+                        
+                        // Add raw JSON view (hidden by default)
+                        opinionsHtml += `
+                            </div>
+                            <div id="opinions-raw-view" class="hidden">
+                                <pre class="text-sm font-mono bg-gray-50 p-4 rounded-lg whitespace-pre-wrap overflow-x-auto">
 ${JSON.stringify(data.opinions, null, 2)}
                                 </pre>
                             </div>
                         `;
+                        
+                        opinionsSection.innerHTML = opinionsHtml;
                         issuesList.appendChild(opinionsSection);
                     }
 
@@ -269,6 +331,18 @@ ${JSON.stringify(data.opinions, null, 2)}
             const errorDiv = document.getElementById('error');
             errorDiv.textContent = message;
             errorDiv.classList.remove('hidden');
+        }
+
+        function toggleOpinionsView() {
+            const tableView = document.getElementById('opinions-table-view');
+            const rawView = document.getElementById('opinions-raw-view');
+            if (tableView.classList.contains('hidden')) {
+                tableView.classList.remove('hidden');
+                rawView.classList.add('hidden');
+            } else {
+                tableView.classList.add('hidden');
+                rawView.classList.remove('hidden');
+            }
         }
     </script>
 </body>
