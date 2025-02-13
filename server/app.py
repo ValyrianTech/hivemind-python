@@ -5,6 +5,7 @@ import sys
 import os
 import queue
 import atexit
+import asyncio
 
 # Add parent directory to Python path to find hivemind package
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -94,167 +95,100 @@ async def fetch_state(request: IPFSHashRequest):
             raise HTTPException(status_code=400, detail="IPFS hash is required")
             
         logger.info(f"Attempting to load state from IPFS with CID: {ipfs_hash}")
+
+        # Load the state in a thread
+        state = await asyncio.to_thread(lambda: HivemindState(cid=ipfs_hash))
         
-        from ipfs_dict_chain.IPFS import connect, get_json, IPFSError
-        import asyncio
-        try:
-            # Run the blocking IPFS operations in a thread pool
-            loop = asyncio.get_event_loop()
+        # Get basic info that doesn't require IPFS calls
+        basic_info = {
+            'hivemind_id': state.hivemind_id,
+            'num_options': len(state.options),
+            'num_opinions': len(state.opinions[0]) if state.opinions else 0,
+            'is_final': state.final
+        }
+        
+        # Load issue details asynchronously
+        if state.hivemind_id:
+            issue = await asyncio.to_thread(lambda: HivemindIssue(cid=state.hivemind_id))
+            basic_info['issue'] = {
+                'name': issue.name or 'Unnamed Issue',
+                'description': issue.description or 'No description available',
+                'tags': issue.tags or [],
+                'questions': issue.questions or [],
+                'answer_type': issue.answer_type or 'Unknown',
+                'constraints': issue.constraints,
+                'restrictions': issue.restrictions
+            }
+            logger.info(f"Loaded issue details for {state.hivemind_id}")
+        
+        # Load options asynchronously
+        options = []
+        for option_hash in state.options:
             try:
-                await loop.run_in_executor(None, lambda: connect('127.0.0.1', 5001))
-                logger.info("Successfully connected to IPFS daemon")
-                
-                # Get the raw state data
-                raw_data = await loop.run_in_executor(None, lambda: get_json(cid=ipfs_hash))
-                logger.info(f"Successfully read raw data from IPFS")
-                logger.info(f"Raw data: {raw_data}")
-                
-                if not isinstance(raw_data, dict):
-                    raise HTTPException(status_code=400, detail="Invalid data format")
-                
-                # Create HivemindState object
-                state = HivemindState()
-                state.__dict__.update(raw_data)
-                
-                # First get the issue data from IPFS
-                issue_cid = raw_data.get('hivemind_id')
-                if issue_cid:
-                    try:
-                        issue_data = await loop.run_in_executor(None, lambda: get_json(cid=issue_cid))
-                        logger.info(f"Successfully fetched issue data: {issue_data}")
-                        issue = HivemindIssue()
-                        issue.__dict__.update(issue_data)
-                        
-                        issue_info = {
-                            'name': issue.name or 'Unnamed Issue',
-                            'description': issue.description or 'No description available',
-                            'tags': issue.tags or [],
-                            'questions': issue.questions or [],
-                            'answer_type': issue.answer_type or 'Unknown',
-                            'constraints': issue.constraints,
-                            'restrictions': issue.restrictions,
-                            'hivemind_id': issue_cid
-                        }
-                    except Exception as e:
-                        logger.error(f"Failed to fetch issue data: {str(e)}")
-                        issue_info = {
-                            'name': 'Unnamed Issue',
-                            'description': 'Failed to load issue data',
-                            'tags': [],
-                            'questions': [],
-                            'answer_type': 'Unknown',
-                            'constraints': None,
-                            'restrictions': None,
-                            'hivemind_id': issue_cid
-                        }
-                else:
-                    issue_info = {
-                        'name': 'Unnamed Issue',
-                        'description': 'No issue ID available',
-                        'tags': [],
-                        'questions': [],
-                        'answer_type': 'Unknown',
-                        'constraints': None,
-                        'restrictions': None,
-                        'hivemind_id': None
-                    }
-
-                # Extract options and opinions
-                options = []
-                for option_cid in raw_data.get('options', []):
-                    try:
-                        option_data = await loop.run_in_executor(None, lambda: get_json(cid=option_cid))
-                        option = {
-                            'cid': option_cid,
-                            'value': option_data.get('value', 'N/A'),
-                            'text': option_data.get('text', 'Unnamed Option')
-                        }
-                        options.append(option)
-                    except Exception as e:
-                        logger.error(f"Failed to fetch option data for {option_cid}: {str(e)}")
-                        options.append({
-                            'cid': option_cid,
-                            'value': 'Failed to load',
-                            'text': 'Failed to load option data'
-                        })
-
-                opinions = raw_data.get('opinions', [])
-                total_opinions = len(opinions[0]) if opinions and len(opinions) > 0 else 0
-
-                # Load full opinion data using HivemindOpinion
-                full_opinions = []
-                for question_opinions in opinions:
-                    question_data = {}
-                    for address, opinion_info in question_opinions.items():
-                        try:
-                            opinion = HivemindOpinion()
-                            # Run the opinion loading in the same event loop
-                            opinion_data = await loop.run_in_executor(None, lambda: get_json(cid=opinion_info['opinion_cid']))
-                            opinion.__dict__.update(opinion_data)
-                            logger.info(f"Loaded opinion data for {address}: {opinion.__dict__}")
-                            
-                            # Extract ranking based on the data format
-                            ranking = None
-                            if hasattr(opinion, 'ranking'):
-                                if isinstance(opinion.ranking, list):
-                                    # Legacy format where ranking is directly a list
-                                    ranking = opinion.ranking
-                                elif isinstance(opinion.ranking, dict):
-                                    # Dict format with fixed/auto_high/auto_low
-                                    if 'fixed' in opinion.ranking:
-                                        ranking = opinion.ranking['fixed']
-                                elif hasattr(opinion.ranking, 'fixed') and opinion.ranking.fixed:
-                                    # Ranking object with fixed ranking
-                                    ranking = opinion.ranking.fixed
-                                    
-                            logger.info(f"Extracted ranking for {address}: {ranking}")
-                            question_data[address] = {
-                                'opinion_cid': opinion_info['opinion_cid'],
-                                'timestamp': opinion_info['timestamp'],
-                                'ranking': ranking
-                            }
-                        except Exception as e:
-                            logger.error(f"Failed to load opinion data for {address}: {str(e)}")
-                            question_data[address] = {
-                                'opinion_cid': opinion_info['opinion_cid'],
-                                'timestamp': opinion_info['timestamp'],
-                                'ranking': None
-                            }
-                    full_opinions.append(question_data)
-
-                logger.info(f"Extracted issue info: {issue_info}")
-
-                return {
-                    'issue': issue_info,
-                    'options': options,
-                    'total_opinions': total_opinions,
-                    'opinions': full_opinions,
-                    'hivemind_id': raw_data.get('hivemind_id'),
-                    'previous_cid': raw_data.get('previous_cid')
-                }
-                
+                option = await asyncio.to_thread(lambda h=option_hash: HivemindOption(cid=h))
+                options.append({
+                    'cid': option_hash,
+                    'value': option.value if hasattr(option, 'value') else None,
+                    'text': option.text if hasattr(option, 'text') else None
+                })
+                logger.info(f"Loaded option {option_hash}")
             except Exception as e:
-                logger.error(f"Failed to read data from IPFS: {str(e)}")
-                raise HTTPException(
-                    status_code=500,
-                    detail=f"Failed to read data from IPFS: {str(e)}"
-                )
-                
-        except Exception as e:
-            logger.error(f"Error connecting to IPFS: {str(e)}")
-            raise HTTPException(
-                status_code=500,
-                detail=f"Failed to connect to IPFS: {str(e)}"
-            )
-            
-    except HTTPException:
-        raise
+                logger.error(f"Failed to load option {option_hash}: {str(e)}")
+                options.append({
+                    'cid': option_hash,
+                    'value': None,
+                    'text': f"Failed to load: {str(e)}"
+                })
+        
+        # Add options to response
+        basic_info['options'] = options
+        
+        # Load opinions asynchronously
+        full_opinions = []
+        for question_index, question_opinions in enumerate(state.opinions):
+            question_data = {}
+            for address, opinion_info in question_opinions.items():
+                try:
+                    # Load opinion data in a thread
+                    opinion = await asyncio.to_thread(lambda cid=opinion_info['opinion_cid']: HivemindOpinion(cid=cid))
+                    
+                    # Extract ranking based on the data format
+                    ranking = None
+                    if hasattr(opinion, 'ranking'):
+                        if isinstance(opinion.ranking, list):
+                            ranking = opinion.ranking
+                        elif isinstance(opinion.ranking, dict):
+                            ranking = opinion.ranking.get('fixed')
+                        elif hasattr(opinion.ranking, 'fixed'):
+                            ranking = opinion.ranking.fixed
+                    
+                    logger.info(f"Loaded opinion for {address} in question {question_index}")
+                    question_data[address] = {
+                        'opinion_cid': opinion_info['opinion_cid'],
+                        'timestamp': opinion_info['timestamp'],
+                        'ranking': ranking
+                    }
+                except Exception as e:
+                    logger.error(f"Failed to load opinion for {address} in question {question_index}: {str(e)}")
+                    question_data[address] = {
+                        'opinion_cid': opinion_info['opinion_cid'],
+                        'timestamp': opinion_info['timestamp'],
+                        'ranking': None,
+                        'error': str(e)
+                    }
+            full_opinions.append(question_data)
+        
+        # Add opinions to response
+        basic_info['opinions'] = full_opinions
+        basic_info['total_opinions'] = len(state.opinions[0]) if state.opinions else 0
+        basic_info['previous_cid'] = state.previous_cid
+        
+        logger.info(f"Completed loading state info with {len(options)} options and {basic_info['total_opinions']} opinions")
+        return basic_info
+
     except Exception as e:
-        logger.exception("Error processing request")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Internal server error: {str(e)}"
-        )
+        logger.exception(f"Error processing request: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/test_ipfs")
 async def test_ipfs():
