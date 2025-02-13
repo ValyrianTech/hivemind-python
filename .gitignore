@@ -34,3 +34,4 @@ coverage.xml
 # Log files
 logs/
 *.log
+*_stats.csv
