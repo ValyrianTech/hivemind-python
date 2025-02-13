@@ -175,11 +175,12 @@ class HivemindState(IPFSDictChain):
         super(HivemindState, self).load(cid=cid)
         self._hivemind_issue = HivemindIssue(cid=self.hivemind_id)
         
-        # Initialize opinions list with empty dictionaries for each question
-        if hasattr(self._hivemind_issue, 'questions'):
-            self.opinions = [{} for _ in range(len(self._hivemind_issue.questions))]
-        if not self.opinions:  # Ensure at least one empty dict even if no questions
-            self.opinions = [{}]
+        # Only initialize opinions if they don't exist
+        if not hasattr(self, 'opinions') or self.opinions is None:
+            if hasattr(self._hivemind_issue, 'questions'):
+                self.opinions = [{} for _ in range(len(self._hivemind_issue.questions))]
+            else:
+                self.opinions = [{}]
 
     def add_option(self, timestamp: int, option_hash: str, address: Optional[str] = None, signature: Optional[str] = None) -> None:
         """Add an option to the hivemind state.
