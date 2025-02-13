@@ -6,6 +6,9 @@ import os
 import queue
 import atexit
 import asyncio
+import time
+from datetime import datetime
+import csv
 
 # Add parent directory to Python path to find hivemind package
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -24,7 +27,72 @@ from hivemind.state import HivemindOption, HivemindOpinion, HivemindState
 from hivemind.issue import HivemindIssue
 from hivemind.option import HivemindOption
 
-# Set up logging with queue handler
+class StateLoadingStats:
+    def __init__(self):
+        self.timestamp = datetime.now().isoformat()
+        self.start_time = time.time()
+        self.state_cid = None
+        self.state_load_time = 0
+        self.options_load_time = 0
+        self.opinions_load_time = 0
+        self.calculation_time = 0
+        self.total_time = 0
+        self.num_questions = 0
+        self.num_options = 0
+        self.num_opinions = 0
+
+    def to_dict(self):
+        return {
+            "timestamp": self.timestamp,
+            "state_cid": self.state_cid,
+            "state_load_time": round(self.state_load_time, 3),
+            "options_load_time": round(self.options_load_time, 3),
+            "opinions_load_time": round(self.opinions_load_time, 3),
+            "calculation_time": round(self.calculation_time, 3),
+            "total_time": round(self.total_time, 3),
+            "num_questions": self.num_questions,
+            "num_options": self.num_options,
+            "num_opinions": self.num_opinions
+        }
+
+def log_state_stats(stats: StateLoadingStats):
+    """Log state loading statistics in a structured format."""
+    stats_dict = stats.to_dict()
+    logger.info("State Loading Statistics:")
+    logger.info(f"  Timestamp: {stats_dict['timestamp']}")
+    logger.info(f"  State CID: {stats_dict['state_cid']}")
+    logger.info(f"  State Load Time: {stats_dict['state_load_time']}s")
+    logger.info(f"  Options Load Time: {stats_dict['options_load_time']}s")
+    logger.info(f"  Opinions Load Time: {stats_dict['opinions_load_time']}s")
+    logger.info(f"  Calculation Time: {stats_dict['calculation_time']}s")
+    logger.info(f"  Total Time: {stats_dict['total_time']}s")
+    logger.info(f"  Number of Questions: {stats_dict['num_questions']}")
+    logger.info(f"  Number of Options: {stats_dict['num_options']}")
+    logger.info(f"  Number of Opinions: {stats_dict['num_opinions']}")
+
+def log_stats_to_csv(stats: StateLoadingStats):
+    """Write state loading statistics to CSV file."""
+    stats_dict = stats.to_dict()
+    csv_path = 'logs/state_loading_stats.csv'
+    
+    try:
+        with open(csv_path, 'a', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                stats_dict['timestamp'],
+                stats_dict['state_cid'],
+                stats_dict['state_load_time'],
+                stats_dict['options_load_time'],
+                stats_dict['opinions_load_time'],
+                stats_dict['calculation_time'],
+                stats_dict['total_time'],
+                stats_dict['num_questions'],
+                stats_dict['num_options'],
+                stats_dict['num_opinions']
+            ])
+    except Exception as e:
+        logger.error(f"Failed to write stats to CSV: {str(e)}")
+
 def setup_logging():
     # Create log directory if it doesn't exist
     if not os.path.exists('logs'):
@@ -62,6 +130,24 @@ def setup_logging():
     )
     listener.start()
     
+    # Create CSV file with headers if it doesn't exist
+    csv_path = 'logs/state_loading_stats.csv'
+    if not os.path.exists(csv_path):
+        with open(csv_path, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                'timestamp',
+                'state_cid',
+                'state_load_time',
+                'options_load_time',
+                'opinions_load_time',
+                'calculation_time',
+                'total_time',
+                'num_questions',
+                'num_options',
+                'num_opinions'
+            ])
+    
     # Register cleanup on exit
     atexit.register(listener.stop)
     
@@ -89,15 +175,20 @@ async def index(request: Request):
 
 @app.post("/fetch_state")
 async def fetch_state(request: IPFSHashRequest):
+    stats = StateLoadingStats()
+    
     try:
         ipfs_hash = request.ipfs_hash
         if not ipfs_hash:
             raise HTTPException(status_code=400, detail="IPFS hash is required")
-            
+        
+        stats.state_cid = ipfs_hash
         logger.info(f"Attempting to load state from IPFS with CID: {ipfs_hash}")
 
         # Load the state in a thread
+        state_start = time.time()
         state = await asyncio.to_thread(lambda: HivemindState(cid=ipfs_hash))
+        stats.state_load_time = time.time() - state_start
         
         # Get basic info that doesn't require IPFS calls
         basic_info = {
@@ -106,6 +197,9 @@ async def fetch_state(request: IPFSHashRequest):
             'num_opinions': len(state.opinions[0]) if state.opinions else 0,
             'is_final': state.final
         }
+        
+        stats.num_options = basic_info['num_options']
+        stats.num_opinions = basic_info['num_opinions']
         
         # Load issue details asynchronously
         if state.hivemind_id:
@@ -119,9 +213,11 @@ async def fetch_state(request: IPFSHashRequest):
                 'constraints': issue.constraints,
                 'restrictions': issue.restrictions
             }
+            stats.num_questions = len(issue.questions) if issue.questions else 0
             logger.info(f"Loaded issue details for {state.hivemind_id}")
         
         # Load options asynchronously
+        options_start = time.time()
         options = []
         for option_hash in state.options:
             try:
@@ -139,11 +235,13 @@ async def fetch_state(request: IPFSHashRequest):
                     'value': None,
                     'text': f"Failed to load: {str(e)}"
                 })
+        stats.options_load_time = time.time() - options_start
         
         # Add options to response
         basic_info['options'] = options
         
         # Load opinions asynchronously
+        opinions_start = time.time()
         full_opinions = []
         for question_index, question_opinions in enumerate(state.opinions):
             question_data = {}
@@ -177,6 +275,7 @@ async def fetch_state(request: IPFSHashRequest):
                         'error': str(e)
                     }
             full_opinions.append(question_data)
+        stats.opinions_load_time = time.time() - opinions_start
         
         # Add opinions to response
         basic_info['opinions'] = full_opinions
@@ -184,6 +283,7 @@ async def fetch_state(request: IPFSHashRequest):
         basic_info['previous_cid'] = state.previous_cid
         
         # Calculate results for each question
+        calculation_start = time.time()
         results = []
         for question_index in range(len(state.opinions)):
             try:
@@ -216,14 +316,24 @@ async def fetch_state(request: IPFSHashRequest):
             except Exception as e:
                 logger.error(f"Failed to calculate results for question {question_index}: {str(e)}")
                 results.append([])
-                
+        stats.calculation_time = time.time() - calculation_start
+        
+        # Calculate total time
+        stats.total_time = time.time() - stats.start_time
+        
+        # Log the final statistics
+        log_state_stats(stats)
+        log_stats_to_csv(stats)
+        
+        # Add statistics to response
+        basic_info['stats'] = stats.to_dict()
         basic_info['results'] = results
         
         logger.info(f"Completed loading state info with {len(options)} options and {basic_info['total_opinions']} opinions")
         return basic_info
 
     except Exception as e:
-        logger.exception(f"Error processing request: {str(e)}")
+        logger.error(f"Error processing state {ipfs_hash}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/test_ipfs")
