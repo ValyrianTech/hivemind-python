@@ -183,6 +183,42 @@ async def fetch_state(request: IPFSHashRequest):
         basic_info['total_opinions'] = len(state.opinions[0]) if state.opinions else 0
         basic_info['previous_cid'] = state.previous_cid
         
+        # Calculate results for each question
+        results = []
+        for question_index in range(len(state.opinions)):
+            try:
+                logger.info(f"Calculating results for question {question_index}...")
+                question_results = await asyncio.to_thread(lambda: state.calculate_results(question_index=question_index))
+                sorted_options = await asyncio.to_thread(lambda: state.get_sorted_options(question_index=question_index))
+                
+                logger.info(f"Raw question results: {question_results}")
+                logger.info(f"Sorted options: {[opt.cid() for opt in sorted_options]}")
+                
+                # Format results for the frontend
+                formatted_results = []
+                for option in sorted_options:
+                    # Remove '/ipfs/' prefix if present when looking up the score
+                    cid = option.cid()
+                    if cid.startswith('/ipfs/'):
+                        cid = cid[6:]  # Remove '/ipfs/' prefix
+                    score = question_results.get(cid, {}).get('score', 0)
+                    if score is None:
+                        score = 0
+                    logger.info(f"Option {option.cid()} - CID for lookup: {cid}, Score: {score}")
+                    formatted_results.append({
+                        'cid': option.cid(),
+                        'value': option.value if hasattr(option, 'value') else None,
+                        'text': option.text if hasattr(option, 'text') else str(option.value),
+                        'score': round(score * 100, 2)  # Convert to percentage and round to 2 decimal places
+                    })
+                    logger.info(f"Formatted result: {formatted_results[-1]}")
+                results.append(formatted_results)
+            except Exception as e:
+                logger.error(f"Failed to calculate results for question {question_index}: {str(e)}")
+                results.append([])
+                
+        basic_info['results'] = results
+        
         logger.info(f"Completed loading state info with {len(options)} options and {basic_info['total_opinions']} opinions")
         return basic_info
 

@@ -184,13 +184,15 @@
                             <div class="md:col-span-2 bg-gray-50 rounded-lg p-4">
                                 <p class="font-medium text-gray-700">Tags</p>
                                 ${tags.length > 0 ? `
-                                    <div class="flex flex-wrap gap-2 mt-2">
+                                    <div class="flex flex-wrap gap-2 mt-1">
                                         ${tags.map(tag => `
-                                            <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">${tag}</span>
+                                            <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                                                ${tag}
+                                            </span>
                                         `).join('')}
                                     </div>
                                 ` : `
-                                    <p class="text-gray-500 mt-1 italic">No tags</p>
+                                    <p class="text-gray-500 mt-1 italic">No tags available</p>
                                 `}
                             </div>
                             <div class="bg-gray-50 rounded-lg p-4">
@@ -216,6 +218,61 @@
                         </div>
                     `;
                     issuesList.appendChild(issueInfoSection);
+
+                    // Display results section
+                    const resultsSection = document.createElement('div');
+                    resultsSection.className = 'bg-white rounded-lg shadow-md p-6 mb-6';
+                    
+                    const results = data.results || [];
+                    const resultsContent = results.map((questionResults, questionIndex) => {
+                        const question = questions[questionIndex] || `Question ${questionIndex + 1}`;
+                        
+                        if (!questionResults || questionResults.length === 0) {
+                            return `
+                                <div class="mb-6 last:mb-0">
+                                    <h3 class="text-lg font-semibold text-gray-800 mb-2">${question}</h3>
+                                    <p class="text-gray-500 italic">No results available</p>
+                                </div>
+                            `;
+                        }
+                        
+                        // Sort results by score in descending order
+                        const sortedResults = [...questionResults].sort((a, b) => b.score - a.score);
+                        
+                        return `
+                            <div class="mb-6 last:mb-0">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-2">${question}</h3>
+                                <div class="space-y-4">
+                                    ${sortedResults.map((result, index) => {
+                                        const scorePercentage = Math.round(result.score * 100);
+                                        return `
+                                            <div class="bg-gray-50 rounded-lg p-4">
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <span class="font-medium text-gray-700">
+                                                        ${result.text || result.value || 'Unnamed Option'}
+                                                    </span>
+                                                    <span class="text-sm font-medium ${index === 0 ? 'text-green-600' : 'text-gray-600'}">
+                                                        Score: ${result.score || 0}%
+                                                    </span>
+                                                </div>
+                                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                                    <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${result.score || 0}%"></div>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                    
+                    resultsSection.innerHTML = `
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-2xl font-semibold text-gray-800">Results</h2>
+                        </div>
+                        ${resultsContent}
+                    `;
+                    issuesList.appendChild(resultsSection);
 
                     // Display options
                     const optionsSection = document.createElement('div');
