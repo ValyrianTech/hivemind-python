@@ -457,7 +457,6 @@ class TestHivemindState:
         assert address in state.participants
         assert state.participants[address].get('name') == name
 
-    @pytest.mark.skip(reason="Needs real Bitcoin signatures")
     def test_options_per_address_limit(self, state: HivemindState) -> None:
         """Test the options_per_address restriction.
         
@@ -500,20 +499,20 @@ class TestHivemindState:
 
         # Both options should succeed
         message1 = '%s%s' % (timestamp, option1_hash)
-        signature1 = sign_message(message1, MOCK_PRIVATE_KEY_1)
-        state.add_option(timestamp, option1_hash, MOCK_ADDRESS_1, signature1)
+        signature1 = sign_message(message1, private_key1)
+        state.add_option(timestamp, option1_hash, address1, signature1)
 
         message2 = '%s%s' % (timestamp, option2_hash)
-        signature2 = sign_message(message2, MOCK_PRIVATE_KEY_1)
-        state.add_option(timestamp, option2_hash, MOCK_ADDRESS_1, signature2)
+        signature2 = sign_message(message2, private_key1)
+        state.add_option(timestamp, option2_hash, address1, signature2)
 
         # Third option should fail
         option3_hash = create_option("option3 from addr1")
         message3 = '%s%s' % (timestamp, option3_hash)
-        signature3 = sign_message(message3, MOCK_PRIVATE_KEY_1)
+        signature3 = sign_message(message3, private_key1)
         with pytest.raises(Exception) as exc_info:
-            state.add_option(timestamp, option3_hash, MOCK_ADDRESS_1, signature3)
-        assert 'Address has reached the maximum number of options' in str(exc_info.value)
+            state.add_option(timestamp, option3_hash, address1, signature3)
+        assert 'already added too many options' in str(exc_info.value)
 
         # Test address 2 has independent limit
         option4_hash = create_option("option1 from addr2")
@@ -521,20 +520,20 @@ class TestHivemindState:
 
         # Both options should succeed for address 2
         message4 = '%s%s' % (timestamp, option4_hash)
-        signature4 = sign_message(message4, MOCK_PRIVATE_KEY_2)
-        state.add_option(timestamp, option4_hash, MOCK_ADDRESS_2, signature4)
+        signature4 = sign_message(message4, private_key2)
+        state.add_option(timestamp, option4_hash, address2, signature4)
 
         message5 = '%s%s' % (timestamp, option5_hash)
-        signature5 = sign_message(message5, MOCK_PRIVATE_KEY_2)
-        state.add_option(timestamp, option5_hash, MOCK_ADDRESS_2, signature5)
+        signature5 = sign_message(message5, private_key2)
+        state.add_option(timestamp, option5_hash, address2, signature5)
 
         # Third option should fail for address 2
         option6_hash = create_option("option3 from addr2")
         message6 = '%s%s' % (timestamp, option6_hash)
-        signature6 = sign_message(message6, MOCK_PRIVATE_KEY_2)
+        signature6 = sign_message(message6, private_key2)
         with pytest.raises(Exception) as exc_info:
-            state.add_option(timestamp, option6_hash, MOCK_ADDRESS_2, signature6)
-        assert 'Address has reached the maximum number of options' in str(exc_info.value)
+            state.add_option(timestamp, option6_hash, address2, signature6)
+        assert 'already added too many options' in str(exc_info.value)
 
     def test_option_error_handling(self):
         """Test error handling when adding invalid options."""
