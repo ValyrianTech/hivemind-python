@@ -12,6 +12,7 @@ The Hivemind Protocol is a revolutionary approach to decentralized decision-maki
 - Immutable IPFS-based data storage
 - Cryptographic verification using Bitcoin signed messages
 - Flexible voting mechanisms and constraints
+- Advanced consensus calculation
 
 ### Key Features
 
@@ -24,43 +25,66 @@ The Hivemind Protocol is a revolutionary approach to decentralized decision-maki
 2. **Advanced Voting Mechanisms**
    - Condorcet-style ranked choice voting
    - Multiple ranking strategies (fixed, auto-high, auto-low)
-   - Support for various answer types (String, Integer, Float)
-   - Weighted voting capabilities
+   - Support for various answer types (Boolean, String, Integer, Float)
+   - Weighted voting with contribution calculation
    - Custom voting restrictions and rules
+   - Predefined options for common types
 
 3. **Secure & Verifiable**
    - Bitcoin-style message signing for vote verification
    - Immutable voting history
    - Cryptographic proof of participation
    - Tamper-evident design
+   - Comprehensive validation checks
+
+4. **Flexible Consensus**
+   - Single-winner and ranked consensus types
+   - Advanced tie-breaking mechanisms
+   - State management with reset and exclude options
+   - Dynamic result recalculation
+
+## System Architecture
+
+The protocol's architecture is documented through four comprehensive diagrams in the `diagrams/` directory:
+
+1. **Class Diagram** (`class_diagram.md`): Core components and their relationships
+2. **Component Diagram** (`component_diagram.md`): System-level architecture and interactions
+3. **State Diagram** (`state_diagram.md`): State transitions and validation flows
+4. **Voting Sequence** (`voting_sequence.md`): Detailed voting process flow
 
 ## How It Works
 
 ### 1. Issue Creation
 An issue represents a decision to be made. It can contain:
-- Multiple questions
-- Answer type constraints (String/Integer/Float)
+- Multiple questions with indices
+- Answer type constraints (Boolean/String/Integer/Float)
 - Participation rules
 - Custom validation rules
+- Predefined options for common types
 
 ```python
 issue = HivemindIssue()
 issue.name = "Protocol Upgrade"
 issue.add_question("Should we implement EIP-1559?")
-issue.answer_type = "String"
+issue.answer_type = "Boolean"  # Will auto-create Yes/No options
 ```
 
 ### 2. Option Submission
-Participants can submit options as potential answers:
-- Each option is stored on IPFS
-- Options are validated against issue constraints
-- Options require cryptographic signatures
-- Options can be added dynamically
+Options can be predefined or submitted dynamically:
+- Automatic options for Boolean types (Yes/No)
+- Predefined choices for common scenarios
+- Dynamic option submission with validation
+- Complex type validation support
+- Signature and timestamp verification
 
 ```python
+# Dynamic option
 option = HivemindOption()
 option.set_hivemind_issue(issue.cid)
-option.set("Yes, implement EIP-1559")
+option.set("Custom implementation approach")
+
+# With signature
+option.sign(private_key)
 ```
 
 ### 3. Opinion Formation
@@ -84,29 +108,38 @@ Participants express preferences through three ranking methods:
 
 ### 4. State Management
 The protocol maintains state through:
-- Option tracking
-- Opinion collection
-- Signature verification
-- Result calculation
-- State transitions
+- IPFS connectivity management
+- Option and opinion tracking
+- Comprehensive validation
+- Contribution calculation
+- Multiple state transitions
 
 ```python
 state = HivemindState()
 state.set_hivemind_issue(issue.cid)
 state.add_option(timestamp, option.cid, voter_address, signature)
 state.add_opinion(timestamp, opinion.cid, signature, voter_address)
+
+# State transitions
+state.finalize()  # Lock the state
+state.reset()     # Clear opinions
+state.exclude()   # Exclude options and recalculate
 ```
 
 ### 5. Result Calculation
-Results are calculated using Condorcet method:
-1. Pairwise comparison of all options
-2. Preference matrix creation
-3. Winner determination
-4. Tie resolution
+Results are calculated through multiple steps:
+1. Weight calculation for voters
+2. Contribution calculation
+3. Ranking aggregation
+4. Consensus determination
+   - Single consensus for clear winners
+   - Ranked consensus for preference order
+5. Tie resolution if needed
 
 ```python
 results = state.calculate_results()
-winner = state.consensus()
+consensus = state.calculate_consensus()
+winner = consensus.get_winner()
 ```
 
 ## Examples
@@ -151,7 +184,8 @@ issue = hivemind.HivemindIssue("My voting issue")
 issue.set_constraints({
     'min_value': 0,
     'max_value': 100,
-    'specs': {'type': 'Integer'}
+    'specs': {'type': 'Integer'},
+    'complex_validation': {'custom_rule': 'value % 2 == 0'}  # Even numbers only
 })
 ```
 
@@ -160,7 +194,8 @@ issue.set_constraints({
 issue.set_restrictions({
     'min_participants': 5,
     'allowed_addresses': ['addr1', 'addr2'],
-    'min_weight': 10
+    'min_weight': 10,
+    'min_contribution': 5
 })
 ```
 
@@ -169,6 +204,15 @@ issue.set_restrictions({
 option1.set(75)  # Integer value
 option2.set(25)  # Integer value
 opinion.ranking.set_auto_high(option1.cid)  # Will rank options by proximity to 75
+```
+
+### Consensus Configuration
+```python
+state.set_consensus_config({
+    'type': 'ranked',  # or 'single'
+    'tie_breaker': 'timestamp',  # or 'random'
+    'min_consensus': 0.66  # 66% agreement required
+})
 ```
 
 ## Use Cases
@@ -191,6 +235,12 @@ opinion.ranking.set_auto_high(option1.cid)  # Will rank options by proximity to 
 ## Documentation
 
 Full documentation is available at [https://valyriantech.github.io/hivemind-python/](https://valyriantech.github.io/hivemind-python/)
+
+The system architecture is documented through comprehensive diagrams in the `diagrams/` directory:
+- `class_diagram.md`: Core components and their relationships
+- `component_diagram.md`: System-level architecture
+- `state_diagram.md`: State transitions and validation
+- `voting_sequence.md`: Detailed process flow
 
 ## License
 
