@@ -134,7 +134,6 @@ class TestHivemindState:
         assert True in option_values
         assert False in option_values
 
-    @pytest.mark.skip(reason="Needs real Bitcoin signatures")
     def test_add_predefined_choice_options(self, state: HivemindState) -> None:
         """Test adding predefined choice options"""
         # Create issue with choices
