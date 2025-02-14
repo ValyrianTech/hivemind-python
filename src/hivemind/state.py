@@ -196,7 +196,7 @@ class HivemindState(IPFSDictChain):
         :raises Exception: If the option is invalid or restrictions are not met
         """
         if self.final is True:
-            return
+            raise Exception('Can not add option: hivemind issue is finalized')
 
         if not isinstance(self._hivemind_issue, HivemindIssue) or address is None or signature is None:
             return
