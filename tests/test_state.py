@@ -981,24 +981,14 @@ class TestHivemindState:
             with pytest.raises(Exception):
                 state.load("QmValidButIncorrectData")
 
-    @pytest.mark.skip(reason="Test needs to be reworked to match implementation")
     def test_participant_management(self, state: HivemindState) -> None:
         """Test participant management functions"""
-        # Setup basic state
-        issue = HivemindIssue()
-        issue.name = 'Test Participant Management'
-        issue.add_question('Test Question?')
-        issue.description = 'Test participant management'
-        issue.answer_type = 'String'
-        issue.constraints = {}
-        issue.restrictions = {}
-        state.set_hivemind_issue(issue.save())
-
         # Generate key pair for testing
         private_key, address = generate_bitcoin_keypair()
         timestamp = int(time.time())
 
-        # Test adding participant with name
+        # Test 1: Basic participant management
+        # Add participant with name
         name = "Test User"
         message = f"{timestamp}{name}"
         signature = sign_message(message, private_key)
@@ -1006,29 +996,44 @@ class TestHivemindState:
         
         assert address in state.participants
         assert state.participants[address]['name'] == name
+        assert name in state.signatures[address]
+        assert signature in state.signatures[address][name]
+        assert state.signatures[address][name][signature] == timestamp
 
-        # Test participant restrictions
-        issue = HivemindIssue()
-        issue.name = 'Test Participant Management'
-        issue.add_question('Test Question?')
-        issue.description = 'Test participant management'
-        issue.answer_type = 'String'
-        issue.constraints = {}
-        issue.restrictions = {
-            "max_participants": 1,
-            address: {"weight": 1.0}
-        }
-        issue_hash = issue.save()
-        state.set_hivemind_issue(issue_hash)
-
-        # Try adding another participant
-        private_key2, address2 = generate_bitcoin_keypair()
-        name2 = "Test User 2"
-        message2 = f"{timestamp}{name2}"
-        signature2 = sign_message(message2, private_key2)
+        # Test 2: Update participant name
+        new_name = "Updated User"
+        new_timestamp = timestamp + 1
+        new_message = f"{new_timestamp}{new_name}"
+        new_signature = sign_message(new_message, private_key)
+        state.update_participant_name(new_timestamp, new_name, address, signature=new_signature)
         
-        with pytest.raises(Exception):
-            state.update_participant_name(timestamp, name2, address2, signature2)
+        assert state.participants[address]['name'] == new_name
+        assert new_name in state.signatures[address]
+        assert new_signature in state.signatures[address][new_name]
+        assert state.signatures[address][new_name][new_signature] == new_timestamp
+
+        # Test 3: Reject old timestamp for same name
+        old_timestamp = timestamp - 1
+        old_message = f"{old_timestamp}{name}"  # Try to update the same name with older timestamp
+        old_signature = sign_message(old_message, private_key)
+        with pytest.raises(Exception) as exc_info:
+            state.update_participant_name(old_timestamp, name, address, signature=old_signature)
+        assert "Invalid timestamp" in str(exc_info.value)
+        assert state.participants[address]['name'] == new_name  # Name should not change
+
+        # Test 4: Allow old timestamp for different name
+        different_name = "Different Name"
+        old_message = f"{old_timestamp}{different_name}"
+        old_signature = sign_message(old_message, private_key)
+        # This should work since it's a different name message
+        state.update_participant_name(old_timestamp, different_name, address, signature=old_signature)
+        assert state.participants[address]['name'] == different_name
+
+        # Test 5: Invalid signature
+        invalid_signature = "invalid_signature"
+        with pytest.raises(Exception) as exc_info:
+            state.update_participant_name(timestamp, name, address, signature=invalid_signature)
+        assert "Invalid signature" in str(exc_info.value)
 
     @pytest.mark.skip(reason="Test needs to be reworked to match implementation")
     def test_consensus_edge_cases(self, state: HivemindState) -> None:
