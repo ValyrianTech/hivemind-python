@@ -293,6 +293,7 @@ class TestHivemindState:
     @pytest.mark.skip(reason="Needs to be updated to use real Bitcoin signatures and addresses")
     def test_calculate_results(self, state: HivemindState) -> None:
         """Test calculating results"""
+        # Create issue
         issue = HivemindIssue()
         issue.name = 'Test Hivemind'
         issue.add_question('What is your favorite color?')
@@ -306,13 +307,44 @@ class TestHivemindState:
             {'value': 'green', 'text': 'Green'}
         ]})
         state.set_hivemind_issue(issue.save())
-        options = state.add_predefined_options()
         
+        # Add options
+        options = state.add_predefined_options()
+        option_hashes = list(options.keys())
+        
+        # Generate key pairs for testing
+        private_key1, address1 = generate_bitcoin_keypair()
+        private_key2, address2 = generate_bitcoin_keypair()
+        timestamp = int(time.time())
+        
+        # Add opinions from different addresses
+        opinion1 = HivemindOpinion()
+        opinion1.hivemind_id = issue.save()
+        opinion1.ranking.set_fixed(option_hashes)  # First address prefers red > blue > green
+        opinion1_hash = opinion1.save()
+        
+        message1 = '%s%s' % (timestamp, opinion1_hash)
+        signature1 = sign_message(message1, private_key1)
+        state.add_opinion(timestamp, opinion1_hash, signature1, address1)
+        
+        # Second address prefers blue > green > red
+        opinion2 = HivemindOpinion()
+        opinion2.hivemind_id = issue.save()
+        opinion2.ranking.set_fixed([option_hashes[1], option_hashes[2], option_hashes[0]])
+        opinion2_hash = opinion2.save()
+        
+        message2 = '%s%s' % (timestamp, opinion2_hash)
+        signature2 = sign_message(message2, private_key2)
+        state.add_opinion(timestamp, opinion2_hash, signature2, address2)
+        
+        # Calculate results
         results = state.calculate_results()
-        assert len(results) == len(options)
-        for option_hash in options:
-            assert 'win' in results[option_hash]
-            assert 'loss' in results[option_hash]
+        
+        # Verify results structure
+        for option_hash in option_hashes:
+            assert option_hash in results
+            assert 'wins' in results[option_hash]
+            assert 'losses' in results[option_hash]
             assert 'unknown' in results[option_hash]
             assert 'score' in results[option_hash]
 
@@ -367,17 +399,26 @@ class TestHivemindState:
 
     def test_update_participant_name(self, state: HivemindState) -> None:
         """Test updating participant names"""
-        address = MOCK_ADDRESS_1
+        # Generate key pair for testing
+        private_key, address = generate_bitcoin_keypair()
         name = 'Alice'
         timestamp = int(time.time())
+        
+        # Create message and sign it
+        message = f"{timestamp}{name}"
+        signature = sign_message(message, private_key)
         
         # Test with invalid signature
         with pytest.raises(Exception) as exc_info:
             state.update_participant_name(timestamp, name, address, 'fake_sig')
         assert 'Invalid signature' in str(exc_info.value)
         
-        # Verify participant not added
-        assert address not in state.participants
+        # Test with valid signature
+        state.update_participant_name(timestamp, name, address, signature)
+        
+        # Verify participant was added with correct name
+        assert address in state.participants
+        assert state.participants[address].get('name') == name
 
     @pytest.mark.skip(reason="Needs real Bitcoin signatures")
     def test_options_per_address_limit(self, state: HivemindState) -> None:
