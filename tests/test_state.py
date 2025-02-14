@@ -14,6 +14,10 @@ from typing import Dict, Any, Tuple
 MOCK_ADDRESS_1 = '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'  # Genesis block address
 MOCK_ADDRESS_2 = '12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX'  # Another valid address
 
+# Mock private keys for testing
+MOCK_PRIVATE_KEY_1 = CBitcoinSecret.from_secret_bytes(b'\x00' * 32)
+MOCK_PRIVATE_KEY_2 = CBitcoinSecret.from_secret_bytes(b'\x01' * 32)
+
 # Mock signatures (these will be replaced with real signatures)
 MOCK_SIGNATURE_VALID = 'valid_sig'
 MOCK_SIGNATURE_INVALID = 'invalid_sig'
@@ -227,9 +231,10 @@ class TestHivemindState:
         state.add_option(timestamp, option_hash, address1, signature)
         assert option_hash in state.options
 
-    @pytest.mark.skip(reason="Needs real Bitcoin signatures")
+    @pytest.mark.skip(reason="Needs to be updated to use real Bitcoin signatures and addresses")
     def test_add_opinion(self, state: HivemindState) -> None:
         """Test adding opinions"""
+        # Create issue
         issue = HivemindIssue()
         issue.name = 'Test Hivemind'
         issue.add_question('What is your favorite color?')
@@ -242,23 +247,52 @@ class TestHivemindState:
             {'value': 'blue', 'text': 'Blue'},
             {'value': 'green', 'text': 'Green'}
         ]})
-        state.set_hivemind_issue(issue.save())
-        state.add_predefined_options()
+        issue_hash = issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Generate key pairs for testing
+        private_key1, address1 = generate_bitcoin_keypair()
+        private_key2, address2 = generate_bitcoin_keypair()
+        timestamp = int(time.time())
+        
+        # Add options first
+        option_hashes = []
+        for choice in issue.constraints['choices']:
+            option = HivemindOption()
+            option.set_hivemind_issue(issue_hash)
+            option.set(value=choice['value'])
+            option.text = choice['text']
+            option_hash = option.save()
+            option_hashes.append(option_hash)
+            
+            # Sign and add option
+            message = '%s%s' % (timestamp, option_hash)
+            signature = sign_message(message, private_key1)
+            state.add_option(timestamp, option_hash, address1, signature)
         
         # Create an opinion
         opinion = HivemindOpinion()
-        opinion.ranking.set_fixed(state.options[:2])  # Rank first two options
+        opinion.hivemind_id = issue_hash
+        opinion.ranking.set_fixed(option_hashes)  # Rank all options
         opinion_hash = opinion.save()
         
-        # Test adding opinion with invalid signature
-        timestamp = int(time.time())
+        # Test with invalid signature
         with pytest.raises(Exception) as exc_info:
-            state.add_opinion(timestamp, opinion_hash, 'fake_sig', MOCK_ADDRESS_1)
+            state.add_opinion(timestamp, opinion_hash, 'invalid_sig', address1)
         assert 'Signature is invalid' in str(exc_info.value)
+        
+        # Test with valid signature
+        message = '%s%s' % (timestamp, opinion_hash)
+        signature = sign_message(message, private_key1)
+        state.add_opinion(timestamp, opinion_hash, signature, address1)
+        
+        # Verify opinion was added
+        assert opinion_hash in state.opinions
+        assert address1 in state.participants
 
-    @pytest.mark.skip(reason="Needs real Bitcoin signatures")
+    @pytest.mark.skip(reason="Needs to be updated to use real Bitcoin signatures and addresses")
     def test_calculate_results(self, state: HivemindState) -> None:
-        """Test calculating voting results"""
+        """Test calculating results"""
         issue = HivemindIssue()
         issue.name = 'Test Hivemind'
         issue.add_question('What is your favorite color?')
@@ -282,7 +316,7 @@ class TestHivemindState:
             assert 'unknown' in results[option_hash]
             assert 'score' in results[option_hash]
 
-    @pytest.mark.skip(reason="Needs real Bitcoin signatures")
+    @pytest.mark.skip(reason="Needs to be updated to use real Bitcoin signatures and addresses")
     def test_select_consensus_modes(self, state: HivemindState) -> None:
         """Test different consensus selection modes"""
         # Create issue with selection mode
@@ -347,11 +381,11 @@ class TestHivemindState:
 
     @pytest.mark.skip(reason="Needs real Bitcoin signatures")
     def test_options_per_address_limit(self, state: HivemindState) -> None:
-        """Test enforcement of options_per_address restriction.
+        """Test the options_per_address restriction.
         
-        This test verifies that:
-        1. An address can add up to the maximum allowed options
-        2. Adding more than the allowed number fails
+        Tests:
+        1. Options can be added up to the limit
+        2. Options beyond the limit are rejected
         3. Different addresses have independent limits
         4. The limit persists across multiple operations
         """
@@ -378,30 +412,44 @@ class TestHivemindState:
         # Test address 1 can add up to limit
         option1_hash = create_option("option1 from addr1")
         option2_hash = create_option("option2 from addr1")
-        
+
         # Both options should succeed
-        state.add_option(timestamp, option1_hash, MOCK_ADDRESS_1, 'valid_sig')
-        state.add_option(timestamp, option2_hash, MOCK_ADDRESS_1, 'valid_sig')
+        message1 = '%s%s' % (timestamp, option1_hash)
+        signature1 = sign_message(message1, MOCK_PRIVATE_KEY_1)
+        state.add_option(timestamp, option1_hash, MOCK_ADDRESS_1, signature1)
 
-        # Third option should fail for address 1
+        message2 = '%s%s' % (timestamp, option2_hash)
+        signature2 = sign_message(message2, MOCK_PRIVATE_KEY_1)
+        state.add_option(timestamp, option2_hash, MOCK_ADDRESS_1, signature2)
+
+        # Third option should fail
         option3_hash = create_option("option3 from addr1")
+        message3 = '%s%s' % (timestamp, option3_hash)
+        signature3 = sign_message(message3, MOCK_PRIVATE_KEY_1)
         with pytest.raises(Exception) as exc_info:
-            state.add_option(timestamp, option3_hash, MOCK_ADDRESS_1, 'valid_sig')
-        assert 'already added too many options' in str(exc_info.value)
+            state.add_option(timestamp, option3_hash, MOCK_ADDRESS_1, signature3)
+        assert 'Address has reached the maximum number of options' in str(exc_info.value)
 
-        # Address 2 should still be able to add options
+        # Test address 2 has independent limit
         option4_hash = create_option("option1 from addr2")
         option5_hash = create_option("option2 from addr2")
-        
+
         # Both options should succeed for address 2
-        state.add_option(timestamp, option4_hash, MOCK_ADDRESS_2, 'valid_sig')
-        state.add_option(timestamp, option5_hash, MOCK_ADDRESS_2, 'valid_sig')
+        message4 = '%s%s' % (timestamp, option4_hash)
+        signature4 = sign_message(message4, MOCK_PRIVATE_KEY_2)
+        state.add_option(timestamp, option4_hash, MOCK_ADDRESS_2, signature4)
+
+        message5 = '%s%s' % (timestamp, option5_hash)
+        signature5 = sign_message(message5, MOCK_PRIVATE_KEY_2)
+        state.add_option(timestamp, option5_hash, MOCK_ADDRESS_2, signature5)
 
         # Third option should fail for address 2
         option6_hash = create_option("option3 from addr2")
+        message6 = '%s%s' % (timestamp, option6_hash)
+        signature6 = sign_message(message6, MOCK_PRIVATE_KEY_2)
         with pytest.raises(Exception) as exc_info:
-            state.add_option(timestamp, option6_hash, MOCK_ADDRESS_2, 'valid_sig')
-        assert 'already added too many options' in str(exc_info.value)
+            state.add_option(timestamp, option6_hash, MOCK_ADDRESS_2, signature6)
+        assert 'Address has reached the maximum number of options' in str(exc_info.value)
 
     def test_option_error_handling(self):
         """Test error handling when adding invalid options."""
