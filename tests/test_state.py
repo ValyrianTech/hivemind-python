@@ -178,37 +178,54 @@ class TestHivemindState:
         assert 'blue' in option_values
         assert 'green' in option_values
 
-    @pytest.mark.skip(reason="Needs real Bitcoin signatures")
     def test_add_option_with_restrictions(self, state: HivemindState) -> None:
         """Test adding options with address restrictions"""
+        # Create issue with restrictions
         issue = HivemindIssue()
         issue.name = 'Test Restricted Hivemind'
         issue.add_question('What is your opinion?')
         issue.description = 'Restricted voting'
         issue.answer_type = 'String'
         issue.restrictions = {}  # Initialize restrictions
+        
+        # Generate two key pairs for testing
+        private_key1, address1 = generate_bitcoin_keypair()
+        private_key2, address2 = generate_bitcoin_keypair()
+        private_key3, address3 = generate_bitcoin_keypair()
+        
+        # Set restrictions to only allow address1 and address2
         issue.set_restrictions({
-            'addresses': [MOCK_ADDRESS_1, MOCK_ADDRESS_2],
+            'addresses': [address1, address2],
             'options_per_address': 2
         })
-        state.set_hivemind_issue(issue.save())
+        issue_hash = issue.save()
+        state.set_hivemind_issue(issue_hash)
         
         # Create a valid option
         option = HivemindOption()
-        option.set_hivemind_issue(issue.save())
+        option.set_hivemind_issue(issue_hash)
         option.set('test option')
         option_hash = option.save()
         
-        # Test with unauthorized address
         timestamp = int(time.time())
+        
+        # Test with unauthorized address (address3)
+        message = f"{timestamp}{option_hash}"
+        signature = sign_message(message, private_key3)
         with pytest.raises(Exception) as exc_info:
-            state.add_option(timestamp, option_hash, '0x789', 'valid_sig')
+            state.add_option(timestamp, option_hash, address3, signature)
         assert 'address restrictions' in str(exc_info.value)
         
         # Test with authorized address but invalid signature
         with pytest.raises(Exception) as exc_info:
-            state.add_option(timestamp, option_hash, MOCK_ADDRESS_1, 'fake_sig')
+            state.add_option(timestamp, option_hash, address1, 'invalid_sig')
         assert 'Signature is not valid' in str(exc_info.value)
+        
+        # Test with authorized address and valid signature
+        message = f"{timestamp}{option_hash}"
+        signature = sign_message(message, private_key1)
+        state.add_option(timestamp, option_hash, address1, signature)
+        assert option_hash in state.options
 
     @pytest.mark.skip(reason="Needs real Bitcoin signatures")
     def test_add_opinion(self, state: HivemindState) -> None:
