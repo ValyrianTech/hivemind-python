@@ -234,8 +234,14 @@ class HivemindState(IPFSDictChain):
         :return: List of option CIDs
         :rtype: List[str]
         """
-        option_cids = [option_cid for option_cid in self.signatures.get('options', {}) if address in self.signatures.get('options', {})[option_cid]]
-        return option_cids
+        # Track which options were added by this address by checking signatures
+        participant_options = []
+        if address in self.signatures:
+            for option_hash in self.options:
+                # Check if this address has signed this option
+                if option_hash in self.signatures[address]:
+                    participant_options.append(option_hash)
+        return participant_options
 
     def add_opinion(self, timestamp: int, opinion_hash: str, signature: str, address: str) -> None:
         """Add an opinion to the hivemind state.

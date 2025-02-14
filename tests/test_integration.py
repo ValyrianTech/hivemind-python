@@ -147,9 +147,10 @@ def test_full_hivemind_workflow() -> None:
     
     # Set restrictions using random Bitcoin addresses
     voter_keys: List[Tuple[CBitcoinSecret, str]] = [generate_bitcoin_keypair() for _ in range(2)]
+    options_per_address: int = 11  # Increased to match the number of options
     restrictions: Dict[str, Union[List[str], int]] = {
         'addresses': [addr for _, addr in voter_keys],
-        'options_per_address': 10
+        'options_per_address': options_per_address
     }
     print('Generated voter keys and setting restrictions:')
     print(f'- Allowed addresses: {restrictions["addresses"]}')

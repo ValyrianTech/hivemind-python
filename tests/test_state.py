@@ -286,3 +286,50 @@ class TestHivemindState:
         
         # Verify participant not added
         assert address not in state.participants
+
+    def test_options_per_address_limit(self, state: HivemindState, restricted_issue_hash: str) -> None:
+        """Test enforcement of options_per_address restriction.
+        
+        This test verifies that:
+        1. An address can add up to the maximum allowed options
+        2. Adding more than the allowed number fails
+        3. Different addresses have independent limits
+        4. The limit persists across multiple operations
+        """
+        state.set_hivemind_issue(restricted_issue_hash)  # Issue has options_per_address = 2
+        timestamp = int(time.time())
+
+        # Create base option template
+        def create_option(content: str) -> str:
+            option = HivemindOption()
+            option.set_hivemind_issue(restricted_issue_hash)
+            option.set(content)
+            return option.save()
+
+        # Test address 1 can add up to limit
+        option1_hash = create_option("option1 from addr1")
+        option2_hash = create_option("option2 from addr1")
+        
+        # Both options should succeed
+        state.add_option(timestamp, option1_hash, MOCK_ADDRESS_1, 'valid_sig')
+        state.add_option(timestamp, option2_hash, MOCK_ADDRESS_1, 'valid_sig')
+
+        # Third option should fail for address 1
+        option3_hash = create_option("option3 from addr1")
+        with pytest.raises(Exception) as exc_info:
+            state.add_option(timestamp, option3_hash, MOCK_ADDRESS_1, 'valid_sig')
+        assert 'already added too many options' in str(exc_info.value)
+
+        # Address 2 should still be able to add options
+        option4_hash = create_option("option1 from addr2")
+        option5_hash = create_option("option2 from addr2")
+        
+        # Both options should succeed for address 2
+        state.add_option(timestamp, option4_hash, MOCK_ADDRESS_2, 'valid_sig')
+        state.add_option(timestamp, option5_hash, MOCK_ADDRESS_2, 'valid_sig')
+
+        # Third option should fail for address 2
+        option6_hash = create_option("option3 from addr2")
+        with pytest.raises(Exception) as exc_info:
+            state.add_option(timestamp, option6_hash, MOCK_ADDRESS_2, 'valid_sig')
+        assert 'already added too many options' in str(exc_info.value)
