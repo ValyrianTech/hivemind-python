@@ -1,17 +1,22 @@
-from typing import Dict, Any
-import pytest
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import time
 from unittest.mock import patch, Mock
 from hivemind import HivemindState, HivemindIssue, HivemindOption, HivemindOpinion
 from ipfs_dict_chain.IPFS import connect, IPFSError
+from bitcoin.wallet import CBitcoinSecret, P2PKHBitcoinAddress
+from bitcoin.signmessage import BitcoinMessage, SignMessage
+import random
+import pytest
+from typing import Dict, Any
 
 # Mock addresses for testing (valid Bitcoin addresses)
 MOCK_ADDRESS_1 = '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'  # Genesis block address
-MOCK_ADDRESS_2 = '12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX'  # Another early Bitcoin address
+MOCK_ADDRESS_2 = '12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX'  # Another valid address
 
-# Mock signatures (these would normally be base64-encoded signatures)
-MOCK_SIGNATURE_VALID = 'valid_signature'
-MOCK_SIGNATURE_INVALID = 'fake_sig'
+# Mock signatures (these will be replaced with real signatures)
+MOCK_SIGNATURE_VALID = 'valid_sig'
+MOCK_SIGNATURE_INVALID = 'invalid_sig'
 
 @pytest.fixture(autouse=True)
 def mock_verify():
@@ -28,7 +33,45 @@ def mock_verify():
 # Mock verify_message function
 def mock_verify_message(message: str, address: str, signature: str) -> bool:
     """Mock implementation of verify_message for testing"""
-    return signature != MOCK_SIGNATURE_INVALID  # Any signature except 'fake_sig' is valid
+    return signature != MOCK_SIGNATURE_INVALID  # Any signature except 'invalid_sig' is valid
+
+
+@pytest.fixture(scope="module")
+def ipfs_connection():
+    """Ensure IPFS connection is available for tests."""
+    try:
+        connect()
+    except IPFSError as e:
+        pytest.skip(f"IPFS connection failed: {str(e)}")
+
+
+def generate_bitcoin_keypair():
+    """Generate a random Bitcoin private key and its corresponding address.
+    
+    Returns:
+        Tuple[CBitcoinSecret, str]: (private_key, address) pair where address is in base58 format
+    """
+    # Generate a random private key
+    entropy = random.getrandbits(256).to_bytes(32, byteorder='big')
+    private_key = CBitcoinSecret.from_secret_bytes(entropy)
+    
+    # Get the corresponding public address
+    address = str(P2PKHBitcoinAddress.from_pubkey(private_key.pub))
+    
+    return private_key, address
+
+
+def sign_message(message: str, private_key: CBitcoinSecret) -> str:
+    """Sign a message with a Bitcoin private key.
+    
+    Args:
+        message: The message to sign
+        private_key: Bitcoin private key
+        
+    Returns:
+        str: The signature in base64 format
+    """
+    return SignMessage(key=private_key, message=BitcoinMessage(message)).decode()
 
 
 @pytest.fixture(scope="module")
@@ -84,15 +127,6 @@ def restricted_issue_hash() -> str:
 @pytest.fixture
 def state() -> HivemindState:
     return HivemindState()
-
-
-@pytest.fixture(scope="module", autouse=True)
-def setup_ipfs():
-    """Setup IPFS connection for all tests"""
-    try:
-        connect(host='127.0.0.1', port=5001)
-    except IPFSError as e:
-        pytest.skip(f"IPFS connection failed: {str(e)}")
 
 
 @pytest.mark.unit
@@ -333,3 +367,58 @@ class TestHivemindState:
         with pytest.raises(Exception) as exc_info:
             state.add_option(timestamp, option6_hash, MOCK_ADDRESS_2, 'valid_sig')
         assert 'already added too many options' in str(exc_info.value)
+
+    def test_option_error_handling(self):
+        """Test error handling when adding invalid options."""
+        # Create new state and issue
+        state = HivemindState()
+        issue = HivemindIssue()
+        issue.name = "Test Issue"
+        issue.add_question("Test Question")
+        issue_hash = issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Generate Bitcoin keypair for testing
+        private_key, address = generate_bitcoin_keypair()
+        timestamp = int(time.time())
+        
+        # Test adding invalid option hash
+        invalid_hash = "invalid_hash"
+        message = BitcoinMessage(f"{timestamp}{invalid_hash}")
+        signature = SignMessage(private_key, message).decode()
+        
+        with pytest.raises(ValueError, match="Invalid CID value"):
+            state.add_option(
+                timestamp=timestamp,
+                option_hash=invalid_hash,
+                address=address,
+                signature=signature
+            )
+        
+        # Test adding duplicate option
+        option = HivemindOption()
+        option.value = "red"
+        option_hash = option.save()
+        
+        # Add first time should succeed
+        message = BitcoinMessage(f"{timestamp}{option_hash}")
+        signature = SignMessage(private_key, message).decode()
+        
+        state.add_option(
+            timestamp=timestamp,
+            option_hash=option_hash,
+            address=address,
+            signature=signature
+        )
+        
+        # Add same option again should fail
+        message = BitcoinMessage(f"{timestamp}{option_hash}")
+        signature = SignMessage(private_key, message).decode()
+        
+        with pytest.raises(Exception, match="Option already exists"):
+            state.add_option(
+                timestamp=timestamp,
+                option_hash=option_hash,
+                address=address,
+                signature=signature
+            )
