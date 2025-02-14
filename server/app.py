@@ -311,7 +311,15 @@ async def fetch_state(request: IPFSHashRequest):
                         'text': option.text if hasattr(option, 'text') else str(option.value),
                         'score': round(score * 100, 2)  # Convert to percentage and round to 2 decimal places
                     })
-                    logger.info(f"Formatted result: {formatted_results[-1]}")
+                    
+                # Calculate contribution scores
+                contributions = await asyncio.to_thread(lambda: state.contributions(results=question_results, question_index=question_index))
+                
+                # Add contribution scores to opinions
+                for address in full_opinions[question_index]:
+                    contribution = contributions.get(address, 0)
+                    full_opinions[question_index][address]['contribution_score'] = round(contribution * 100, 2)
+                    
                 results.append(formatted_results)
             except Exception as e:
                 logger.error(f"Failed to calculate results for question {question_index}: {str(e)}")

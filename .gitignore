@@ -35,3 +35,5 @@ coverage.xml
 logs/
 *.log
 *_stats.csv
+
+.idea/
