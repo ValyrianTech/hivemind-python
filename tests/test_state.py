@@ -348,7 +348,6 @@ class TestHivemindState:
             assert 'unknown' in results[option_hash]
             assert 'score' in results[option_hash]
 
-    @pytest.mark.skip(reason="Needs to be updated to use real Bitcoin signatures and addresses")
     def test_select_consensus_modes(self, state: HivemindState) -> None:
         """Test different consensus selection modes"""
         # Create issue with selection mode
@@ -362,12 +361,20 @@ class TestHivemindState:
         # Setup state
         state.set_hivemind_issue(issue_hash)
         
-        # Add an option
+        # Generate a key pair for signing
+        private_key, address = generate_bitcoin_keypair()
+        timestamp = int(time.time())
+        
+        # Add an option with proper signature
         option = HivemindOption()
         option.set_hivemind_issue(issue_hash)
         option.set('test')
         option_hash = option.save()
-        state.options.append(option_hash)
+        
+        # Sign and add the option
+        message = f"{timestamp}{option_hash}"
+        signature = sign_message(message, private_key)
+        state.add_option(timestamp, option_hash, address, signature)
         
         # Select consensus
         state.select_consensus()
@@ -436,8 +443,15 @@ class TestHivemindState:
         issue.description = 'Restricted voting'
         issue.answer_type = 'String'
         issue.restrictions = {}  # Initialize restrictions
+        
+        # Generate two key pairs for testing
+        private_key1, address1 = generate_bitcoin_keypair()
+        private_key2, address2 = generate_bitcoin_keypair()
+        private_key3, address3 = generate_bitcoin_keypair()
+        
+        # Set restrictions to only allow address1 and address2
         issue.set_restrictions({
-            'addresses': [MOCK_ADDRESS_1, MOCK_ADDRESS_2],
+            'addresses': [address1, address2],
             'options_per_address': 2
         })
         state.set_hivemind_issue(issue.save())  # Issue has options_per_address = 2

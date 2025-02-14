@@ -585,7 +585,7 @@ class HivemindState(IPFSDictChain):
         :rtype: List[str]
         """
         # Get the option hash with highest consensus for each question
-        selection = [self.get_options(question_index=question_index)[0].cid() for question_index in range(len(self._hivemind_issue.questions))]
+        selection = [self.get_sorted_options(question_index=question_index)[0].cid() for question_index in range(len(self._hivemind_issue.questions))]
         self.selected.append(selection)
 
         if self._hivemind_issue.on_selection is None:
