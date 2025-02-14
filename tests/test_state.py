@@ -349,7 +349,7 @@ class TestHivemindState:
         opinion1.question_index = 0
         opinion1.ranking.set_fixed(option_hashes)  # First address prefers red > blue > green
         opinion1.ranking = opinion1.ranking.get()  # Get serializable representation
-        opinion1_hash = opinion1.save()
+        opinion1_hash = opinion1.save()  # Save will use the data we just set
         
         message1 = '%s%s' % (timestamp, opinion1_hash)
         signature1 = sign_message(message1, private_key1)
@@ -733,3 +733,109 @@ class TestHivemindState:
         assert isinstance(new_state.opinions, list)
         assert len(new_state.opinions) == 1
         assert new_state.opinions[0] == {}
+
+    def test_add_predefined_options_boolean(self, state: HivemindState) -> None:
+        """Test adding predefined boolean options"""
+        # Setup basic issue with boolean type
+        issue = HivemindIssue()
+        issue.name = "Test Boolean Issue"
+        issue.add_question("Yes or No?")
+        issue.description = "A simple yes/no question"
+        issue.tags = ["test", "boolean"]
+        issue.answer_type = "Bool"
+        issue.constraints = {}  # Initialize constraints
+        issue.restrictions = {}  # Initialize restrictions
+        issue.set_constraints({
+            "true_value": "Yes",
+            "false_value": "No"
+        })
+        issue_hash = issue.save()
+        state.set_hivemind_issue(issue_hash)
+
+        # Add predefined options
+        options = state.add_predefined_options()
+
+        # Should have exactly 2 options (true and false)
+        assert len(options) == 2
+        assert len(state.options) == 2
+
+        # Check the options were created correctly
+        option_values = []
+        option_texts = []
+        for option_hash in state.options:
+            option = HivemindOption(cid=option_hash)
+            option_values.append(option.value)
+            option_texts.append(option.text)
+
+        # Should have True and False values
+        assert True in option_values
+        assert False in option_values
+        # Should have correct display texts
+        assert "Yes" in option_texts
+        assert "No" in option_texts
+
+    def test_add_predefined_options_choices(self, state: HivemindState) -> None:
+        """Test adding predefined choice options"""
+        # Setup basic issue with choices
+        issue = HivemindIssue()
+        issue.name = "Test Choice Issue"
+        issue.add_question("What's your favorite color?")
+        issue.description = "Choose your favorite color"
+        issue.tags = ["test", "color"]
+        issue.answer_type = "String"
+        issue.constraints = {}  # Initialize constraints
+        issue.restrictions = {}  # Initialize restrictions
+        issue.set_constraints({
+            "choices": [
+                {"value": "red", "text": "Red"},
+                {"value": "blue", "text": "Blue"},
+                {"value": "green", "text": "Green"}
+            ]
+        })
+        issue_hash = issue.save()
+        state.set_hivemind_issue(issue_hash)
+
+        # Add predefined options
+        options = state.add_predefined_options()
+
+        # Should have exactly 3 options
+        assert len(options) == 3
+        assert len(state.options) == 3
+
+        # Check the options were created correctly
+        option_values = []
+        option_texts = []
+        for option_hash in state.options:
+            option = HivemindOption(cid=option_hash)
+            option_values.append(option.value)
+            option_texts.append(option.text)
+
+        # Should have all color values
+        assert "red" in option_values
+        assert "blue" in option_values
+        assert "green" in option_values
+        # Should have correct display texts
+        assert "Red" in option_texts
+        assert "Blue" in option_texts
+        assert "Green" in option_texts
+
+    def test_add_predefined_options_no_constraints(self, state: HivemindState) -> None:
+        """Test adding predefined options with no constraints"""
+        # Setup basic issue without constraints
+        issue = HivemindIssue()
+        issue.name = "Test Issue"
+        issue.add_question("Question without constraints?")
+        issue.description = "A question with no predefined options"
+        issue.tags = ["test", "open"]
+        issue.answer_type = "String"  # Use String instead of Text
+        issue.constraints = {}  # Initialize constraints
+        issue.restrictions = {}  # Initialize restrictions
+        issue_hash = issue.save()
+        state.set_hivemind_issue(issue_hash)
+
+        # Add predefined options
+        options = state.add_predefined_options()
+
+        # Should have no options since there are no constraints
+        assert len(options) == 0
+        assert len(state.options) == 0
