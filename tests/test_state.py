@@ -1035,7 +1035,6 @@ class TestHivemindState:
             state.update_participant_name(timestamp, name, address, signature=invalid_signature)
         assert "Invalid signature" in str(exc_info.value)
 
-    @pytest.mark.skip(reason="Test needs to be reworked to match implementation")
     def test_consensus_edge_cases(self, state: HivemindState) -> None:
         """Test edge cases in consensus calculation"""
         issue = HivemindIssue()

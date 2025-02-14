@@ -455,13 +455,13 @@ class HivemindState(IPFSDictChain):
         """
         results = self.calculate_results(question_index=question_index)
 
-        sorted_options = self.get_options(question_index=question_index)
+        sorted_options = self.get_sorted_options(question_index=question_index)
         if len(sorted_options) == 0:
             return None
         elif len(sorted_options) == 1:
             return sorted_options[0].value
         # Make sure the consensus is not tied between the first two options
-        elif len(sorted_options) >= 2 and results[sorted_options[0].cid()]['score'] > results[sorted_options[1].cid()]['score']:
+        elif len(sorted_options) >= 2 and results[sorted_options[0].cid().replace('/ipfs/', '')]['score'] > results[sorted_options[1].cid().replace('/ipfs/', '')]['score']:
             return sorted_options[0].value
         else:
             return None
@@ -474,7 +474,7 @@ class HivemindState(IPFSDictChain):
         :return: List of consensus values
         :rtype: List[Any]
         """
-        return [option.value for option in self.get_options(question_index=question_index)]
+        return [option.value for option in self.get_sorted_options(question_index=question_index)]
 
     def get_consensus(self, question_index: int = 0, consensus_type: str = 'Single') -> Any:
         """Get the consensus of the hivemind.
