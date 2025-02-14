@@ -2,6 +2,7 @@ from typing import List
 import pytest
 import logging
 from hivemind import HivemindOpinion, HivemindOption, HivemindIssue, HivemindState
+from hivemind.ranking import Ranking
 from ipfs_dict_chain.IPFS import connect, IPFSError
 
 
@@ -227,3 +228,107 @@ class TestHivemindOpinion:
         # So: 6, 5, 7, 4, 8
         expected_order = [option_cids[2], option_cids[0], option_cids[3], option_cids[4], option_cids[1]]
         assert ranked_options == expected_order
+
+    def test_load_none_ranking(self):
+        """Test loading an opinion with None ranking"""
+        opinion = HivemindOpinion()
+        opinion.hivemind_id = None
+        opinion.question_index = 0
+        opinion.ranking = None
+        cid = opinion.save()
+        
+        # Create a new opinion and load it
+        loaded_opinion = HivemindOpinion()
+        loaded_opinion.load(cid)
+        
+        assert isinstance(loaded_opinion.ranking, Ranking)
+        # Set empty fixed ranking
+        loaded_opinion.ranking.set_fixed([])
+        assert loaded_opinion.ranking.get() == []
+
+    def test_load_legacy_list_ranking(self):
+        """Test loading an opinion with legacy list ranking format"""
+        opinion = HivemindOpinion()
+        # Create test options
+        option = HivemindOption()
+        option.value = "Test Option"
+        option_cid = option.save()
+        
+        # Create a dict with list ranking to simulate legacy format
+        opinion.hivemind_id = None
+        opinion.question_index = 0
+        opinion.ranking = [option_cid]  # Legacy format used direct list
+        cid = opinion.save()
+        
+        # Create a new opinion and load it
+        loaded_opinion = HivemindOpinion()
+        loaded_opinion.load(cid)
+        
+        assert isinstance(loaded_opinion.ranking, Ranking)
+        assert loaded_opinion.ranking.get() == [option_cid]
+
+    def test_load_dict_ranking_auto_high(self):
+        """Test loading an opinion with dict ranking using auto_high"""
+        opinion = HivemindOpinion()
+        # Create test option
+        option = HivemindOption()
+        option.value = 5
+        option_cid = option.save()
+        
+        # Create a dict with auto_high ranking
+        opinion.hivemind_id = None
+        opinion.question_index = 0
+        opinion.ranking = {'auto_high': option_cid}
+        cid = opinion.save()
+        
+        # Create a new opinion and load it
+        loaded_opinion = HivemindOpinion()
+        loaded_opinion.load(cid)
+        
+        assert isinstance(loaded_opinion.ranking, Ranking)
+        # Set auto high ranking and verify
+        loaded_opinion.ranking.set_auto_high(option_cid)
+        assert loaded_opinion.ranking.type == 'auto_high'
+        assert loaded_opinion.ranking.get([option]) == [option_cid]
+
+    def test_load_dict_ranking_auto_low(self):
+        """Test loading an opinion with dict ranking using auto_low"""
+        opinion = HivemindOpinion()
+        # Create test option
+        option = HivemindOption()
+        option.value = 5
+        option_cid = option.save()
+        
+        # Create a dict with auto_low ranking
+        opinion.hivemind_id = None
+        opinion.question_index = 0
+        opinion.ranking = {'auto_low': option_cid}
+        cid = opinion.save()
+        
+        # Create a new opinion and load it
+        loaded_opinion = HivemindOpinion()
+        loaded_opinion.load(cid)
+        
+        assert isinstance(loaded_opinion.ranking, Ranking)
+        # Set auto low ranking and verify
+        loaded_opinion.ranking.set_auto_low(option_cid)
+        assert loaded_opinion.ranking.type == 'auto_low'
+        assert loaded_opinion.ranking.get([option]) == [option_cid]
+
+    def test_load_dict_ranking_empty(self):
+        """Test loading an opinion with empty dict ranking"""
+        opinion = HivemindOpinion()
+        # Create a dict with empty ranking dict
+        opinion.hivemind_id = None
+        opinion.question_index = 0
+        opinion.ranking = {}  # Empty dict with no recognized keys
+        cid = opinion.save()
+        
+        # Create a new opinion and load it
+        loaded_opinion = HivemindOpinion()
+        loaded_opinion.load(cid)
+        
+        assert isinstance(loaded_opinion.ranking, Ranking)
+        # Set empty fixed ranking
+        loaded_opinion.ranking.set_fixed([])
+        assert loaded_opinion.ranking.get() == []
