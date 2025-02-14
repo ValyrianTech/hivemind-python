@@ -75,6 +75,7 @@ class TestHivemindState:
         issue.tags = ['color', 'preference']
         issue.answer_type = 'String'
         issue.constraints = {}  # Initialize constraints
+        issue.restrictions = {}  # Initialize restrictions
         issue.set_constraints({'choices': [
             {'value': 'red', 'text': 'Red'},
             {'value': 'blue', 'text': 'Blue'},
@@ -94,6 +95,7 @@ class TestHivemindState:
         issue.description = 'Yes/No question'
         issue.answer_type = 'Bool'
         issue.constraints = {}  # Initialize constraints
+        issue.restrictions = {}  # Initialize restrictions
         issue.set_constraints({
             'true_value': 'Yes',
             'false_value': 'No'
@@ -148,6 +150,7 @@ class TestHivemindState:
         issue.tags = ['color', 'preference']
         issue.answer_type = 'String'
         issue.constraints = {}  # Initialize constraints
+        issue.restrictions = {}  # Initialize restrictions
         issue.set_constraints({'choices': [
             {'value': 'red', 'text': 'Red'},
             {'value': 'blue', 'text': 'Blue'},
@@ -241,6 +244,7 @@ class TestHivemindState:
         issue.tags = ['color', 'preference']
         issue.answer_type = 'String'
         issue.constraints = {}  # Initialize constraints
+        issue.restrictions = {}  # Initialize restrictions
         issue.set_constraints({'choices': [
             {'value': 'red', 'text': 'Red'},
             {'value': 'blue', 'text': 'Blue'},
@@ -273,10 +277,8 @@ class TestHivemindState:
         opinion = HivemindOpinion()
         opinion.hivemind_id = issue_hash
         opinion.question_index = 0
-        opinion.ranking.set_fixed([option_hashes[0]])  # Just rank the first option for simplicity
-        opinion_data = opinion.get()  # Get serializable representation
-        for key, value in opinion_data.items():
-            opinion[key] = value  # Set the data in the IPFSDict
+        opinion.ranking.set_fixed(option_hashes)  # First address prefers red > blue > green
+        opinion.ranking = opinion.ranking.get()  # Get serializable representation
         opinion_hash = opinion.save()  # Save will use the data we just set
         
         # Initialize participants dictionary and add participant
@@ -297,7 +299,6 @@ class TestHivemindState:
         assert state.opinions[0][address1]['opinion_cid'] == opinion_hash  # First question's opinions
         assert address1 in state.participants
 
-    @pytest.mark.skip(reason="Needs to be updated to use real Bitcoin signatures and addresses")
     def test_calculate_results(self, state: HivemindState) -> None:
         """Test calculating results"""
         # Create issue
@@ -308,26 +309,46 @@ class TestHivemindState:
         issue.tags = ['color', 'preference']
         issue.answer_type = 'String'
         issue.constraints = {}  # Initialize constraints
+        issue.restrictions = {}  # Initialize restrictions
         issue.set_constraints({'choices': [
             {'value': 'red', 'text': 'Red'},
             {'value': 'blue', 'text': 'Blue'},
             {'value': 'green', 'text': 'Green'}
         ]})
-        state.set_hivemind_issue(issue.save())
-        
-        # Add options
-        options = state.add_predefined_options()
-        option_hashes = list(options.keys())
+        issue_hash = issue.save()
+        state.set_hivemind_issue(issue_hash)
         
         # Generate key pairs for testing
         private_key1, address1 = generate_bitcoin_keypair()
         private_key2, address2 = generate_bitcoin_keypair()
         timestamp = int(time.time())
         
+        # Initialize participants
+        state.participants = {}
+        state.participants[address1] = {'name': 'User 1', 'timestamp': timestamp}
+        state.participants[address2] = {'name': 'User 2', 'timestamp': timestamp}
+        
+        # Add options manually
+        option_hashes = []
+        for choice in issue.constraints['choices']:
+            option = HivemindOption()
+            option.set_hivemind_issue(issue_hash)
+            option.set(value=choice['value'])
+            option.text = choice['text']
+            option_hash = option.save()
+            option_hashes.append(option_hash)
+            
+            # Sign and add option
+            message = f"{timestamp}{option_hash}"
+            signature = sign_message(message, private_key1)
+            state.add_option(timestamp, option_hash, address1, signature)
+        
         # Add opinions from different addresses
         opinion1 = HivemindOpinion()
-        opinion1.hivemind_id = issue.save()
+        opinion1.hivemind_id = issue_hash
+        opinion1.question_index = 0
         opinion1.ranking.set_fixed(option_hashes)  # First address prefers red > blue > green
+        opinion1.ranking = opinion1.ranking.get()  # Get serializable representation
         opinion1_hash = opinion1.save()
         
         message1 = '%s%s' % (timestamp, opinion1_hash)
@@ -336,8 +357,10 @@ class TestHivemindState:
         
         # Second address prefers blue > green > red
         opinion2 = HivemindOpinion()
-        opinion2.hivemind_id = issue.save()
+        opinion2.hivemind_id = issue_hash
+        opinion2.question_index = 0
         opinion2.ranking.set_fixed([option_hashes[1], option_hashes[2], option_hashes[0]])
+        opinion2.ranking = opinion2.ranking.get()  # Get serializable representation
         opinion2_hash = opinion2.save()
         
         message2 = '%s%s' % (timestamp, opinion2_hash)
@@ -350,8 +373,8 @@ class TestHivemindState:
         # Verify results structure
         for option_hash in option_hashes:
             assert option_hash in results
-            assert 'wins' in results[option_hash]
-            assert 'losses' in results[option_hash]
+            assert 'win' in results[option_hash]
+            assert 'loss' in results[option_hash]
             assert 'unknown' in results[option_hash]
             assert 'score' in results[option_hash]
 
