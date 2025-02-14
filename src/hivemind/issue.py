@@ -93,18 +93,11 @@ class HivemindIssue(IPFSDict):
             if constraint_type in constraints and not isinstance(constraints[constraint_type], list):
                 raise Exception('Value of constraint %s must be a list' % constraint_type)
 
-        for constraint_type in ['SIL', 'LAL']:
-            if constraint_type in constraints and not (valid_address(constraints[constraint_type]) or valid_bech32_address(constraints[constraint_type])):
-                raise Exception('Value of constraint %s must be a valid address' % constraint_type)
-
-        if 'LAL' in constraints and 'xpub' not in constraints:
-            raise Exception('Constraints that include a LAL must also have a xpub specified!')
-
         for constraint_type in ['block_height']:
             if constraint_type in constraints and not isinstance(constraints[constraint_type], int):
                 raise Exception('Value of constraint %s must be a integer' % constraint_type)
 
-        if all([key in ['min_length', 'max_length', 'min_value', 'max_value', 'decimals', 'regex', 'true_value', 'false_value', 'specs', 'choices', 'SIL', 'LAL', 'xpub', 'block_height'] for key in constraints.keys()]):
+        if all([key in ['min_length', 'max_length', 'min_value', 'max_value', 'decimals', 'regex', 'true_value', 'false_value', 'specs', 'choices', 'block_height'] for key in constraints.keys()]):
             self.constraints = constraints
         else:
             raise Exception('constraints contain an invalid key: %s' % constraints)
@@ -128,8 +121,8 @@ class HivemindIssue(IPFSDict):
                 raise Exception('addresses in restrictions must be a list, got %s instead' % type(restrictions['addresses']))
 
             for address in restrictions['addresses']:
-                if not (valid_address(address=address) or valid_bech32_address(address=address)):
-                    raise Exception('Address %s in restrictions is not valid!' % address)
+                if not isinstance(address, str):
+                    raise Exception('Address %s in restrictions is not a string!' % address)
 
         if 'options_per_address' in restrictions:
             if not isinstance(restrictions['options_per_address'], int) or restrictions['options_per_address'] < 1:
