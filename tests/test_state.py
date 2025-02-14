@@ -839,3 +839,130 @@ class TestHivemindState:
         # Should have no options since there are no constraints
         assert len(options) == 0
         assert len(state.options) == 0
+
+    def test_consensus_methods(self, state: HivemindState) -> None:
+        """Test consensus and ranked_consensus methods"""
+        # Setup basic issue with choices
+        issue = HivemindIssue()
+        issue.name = "Test Consensus"
+        issue.add_question("What's your favorite color?")
+        issue.description = "Choose your favorite color"
+        issue.tags = ["test", "color"]
+        issue.answer_type = "String"
+        issue.constraints = {}  # Initialize constraints
+        issue.restrictions = {}  # Initialize restrictions
+        issue.set_constraints({
+            "choices": [
+                {"value": "red", "text": "Red"},
+                {"value": "blue", "text": "Blue"},
+                {"value": "green", "text": "Green"}
+            ]
+        })
+        issue_hash = issue.save()
+        state.set_hivemind_issue(issue_hash)
+
+        # Add predefined options
+        options = state.add_predefined_options()
+        option_hashes = list(options.keys())
+
+        # Generate key pairs for multiple participants
+        private_key1, address1 = generate_bitcoin_keypair()
+        private_key2, address2 = generate_bitcoin_keypair()
+        private_key3, address3 = generate_bitcoin_keypair()
+
+        timestamp = int(time.time())
+
+        # First participant prefers red > blue > green
+        opinion1 = HivemindOpinion()
+        opinion1.hivemind_id = issue_hash
+        opinion1.question_index = 0
+        opinion1.ranking.set_fixed(option_hashes)  # First address prefers red > blue > green
+        opinion1.ranking = opinion1.ranking.get()
+        opinion1_hash = opinion1.save()
+        
+        message1 = f"{timestamp}{opinion1_hash}"
+        signature1 = sign_message(message1, private_key1)
+        state.add_opinion(timestamp, opinion1_hash, signature1, address1)
+
+        # Second participant prefers blue > red > green
+        opinion2 = HivemindOpinion()
+        opinion2.hivemind_id = issue_hash
+        opinion2.question_index = 0
+        opinion2.ranking.set_fixed([option_hashes[1], option_hashes[0], option_hashes[2]])  # blue > red > green
+        opinion2.ranking = opinion2.ranking.get()
+        opinion2_hash = opinion2.save()
+        
+        message2 = f"{timestamp}{opinion2_hash}"
+        signature2 = sign_message(message2, private_key2)
+        state.add_opinion(timestamp, opinion2_hash, signature2, address2)
+
+        # Third participant prefers red > green > blue
+        opinion3 = HivemindOpinion()
+        opinion3.hivemind_id = issue_hash
+        opinion3.question_index = 0
+        opinion3.ranking.set_fixed([option_hashes[0], option_hashes[2], option_hashes[1]])  # red > green > blue
+        opinion3.ranking = opinion3.ranking.get()
+        opinion3_hash = opinion3.save()
+        
+        message3 = f"{timestamp}{opinion3_hash}"
+        signature3 = sign_message(message3, private_key3)
+        state.add_opinion(timestamp, opinion3_hash, signature3, address3)
+
+        # Test consensus method
+        sorted_options = state.get_sorted_options()
+        assert len(sorted_options) > 0
+        consensus_value = sorted_options[0].value
+        assert consensus_value == "red"  # Red should win as it's preferred by 2 out of 3 participants
+
+        # Test ranked_consensus method using get_sorted_options
+        sorted_options = state.get_sorted_options()
+        ranked_values = [option.value for option in sorted_options]
+        assert len(ranked_values) == 3
+        # Order should be: red (2 votes) > blue (1 vote) > green (0 votes)
+        assert ranked_values[0] == "red"
+        assert ranked_values[1] == "blue"
+        assert ranked_values[2] == "green"
+
+        # Test contributions method
+        results = state.calculate_results()
+        contributions = state.contributions(results)
+        
+        # All participants should have contributed since they all voted
+        assert len(contributions) == 3
+        assert address1 in contributions
+        assert address2 in contributions
+        assert address3 in contributions
+        
+        # Contributions should be positive for all participants
+        assert all(value > 0 for value in contributions.values())
+
+    def test_consensus_no_opinions(self, state: HivemindState) -> None:
+        """Test consensus methods when there are no opinions"""
+        # Setup basic issue
+        issue = HivemindIssue()
+        issue.name = "Test No Opinions"
+        issue.add_question("Question?")
+        issue.description = "A test question"
+        issue.tags = ["test"]
+        issue.answer_type = "String"
+        issue.constraints = {}
+        issue.restrictions = {}
+        issue_hash = issue.save()
+        state.set_hivemind_issue(issue_hash)
+
+        # Add predefined options
+        state.add_predefined_options()
+
+        # Test consensus with no opinions
+        sorted_options = state.get_sorted_options()
+        assert len(sorted_options) == 0
+
+        # Test ranked_consensus with no opinions
+        sorted_options = state.get_sorted_options()
+        ranked_values = [option.value for option in sorted_options]
+        assert len(ranked_values) == 0
+
+        # Test contributions with no opinions
+        results = state.calculate_results()
+        contributions = state.contributions(results)
+        assert len(contributions) == 0
