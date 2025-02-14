@@ -422,3 +422,11 @@ class TestHivemindState:
                 address=address,
                 signature=signature
             )
+
+    def test_invalid_state_loading(self):
+        """Test that loading an invalid state CID raises appropriate errors."""
+        # Test with invalid CID
+        with pytest.raises(Exception):
+            HivemindState(cid="invalid_cid")
+            
+
