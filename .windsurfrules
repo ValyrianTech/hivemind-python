@@ -1,5 +1,5 @@
 # Project
-Hivemind-python is a python package implementing the Hivemind Protocol, a Condorcet-style Ranked Choice Voting System that stores all data on IPFS.
+Hivemind-python is a python package implementing the Hivemind Protocol, a Condorcet-style Ranked Choice Voting System that stores all data on IPFS and uses Bitcoin-signed messages for verification.
 
 # Requirements
 ipfs-dict-chain >= 1.0.9
@@ -17,49 +17,81 @@ pytest-cov >= 4.0.0
   - Use a testdriven development (TDD) approach
   - Use the following command to run tests: python -m pytest
   - Always use 'python -m' versions of commands where possible
-  - When tests fail, you should never change the original code without my permission, only change the test code itself.
   - Use PowerShell syntax for your commands, like using ; instead of &&
 
 # Project Structure
 /
-  - LICENSE: Software license terms and conditions
-  - README.md: Project overview, installation and usage instructions
-  - pytest.ini: Configuration file for pytest testing framework
-  - requirements.txt: List of Python package dependencies
-  - setup.py: Package installation and distribution configuration
+├── LICENSE                 # Software license terms and conditions
+├── README.md              # Project overview, installation and usage instructions
+├── pytest.ini            # Configuration file for pytest testing framework
+├── requirements.txt      # List of Python package dependencies
+├── setup.py              # Package installation and distribution configuration
+│
+├── diagrams/             # System architecture and design diagrams
+│   ├── class_diagram.md      # UML class diagram showing system architecture
+│   ├── component_diagram.md  # System component relationships and interactions
+│   ├── state_diagram.md      # State transitions in the voting system
+│   └── voting_sequence.md    # Sequence diagram of the voting process
+│
+├── docs/                 # Documentation directory
+│   └── source/          # Sphinx documentation source files
+│       ├── conf.py           # Sphinx documentation configuration
+│       ├── index.rst         # Main documentation landing page
+│       └── modules/          # Module-specific documentation
+│           ├── issue.rst         # Documentation for voting issues module
+│           ├── opinion.rst       # Documentation for voter opinions module
+│           ├── option.rst        # Documentation for voting options module
+│           ├── ranking.rst       # Documentation for ranking algorithms
+│           ├── state.rst         # Documentation for system state management
+│           └── validators.rst    # Documentation for input validation utilities
+│
+├── examples/            # Example implementations and usage
+│   ├── README.md           # Examples documentation and usage guide
+│   ├── basic_voting.py     # Basic voting system example
+│   ├── advanced_features.py # Advanced usage examples
+│   └── protocol_upgrade.py # Protocol upgrade demonstration
+│
+├── server/              # Server implementation
+│   ├── app.py              # Main server application
+│   ├── requirements.txt    # Server-specific dependencies
+│   ├── static/            # Static files for the server
+│   ├── templates/         # HTML templates
+│   └── logs/              # Server logs directory
+│
+├── src/hivemind/        # Main package source code
+│   ├── __init__.py          # Package initialization and public API exports
+│   ├── issue.py            # Implementation of voting issues and questions
+│   ├── opinion.py          # Handling of voter opinions and preferences
+│   ├── option.py           # Management of voting options and choices
+│   ├── ranking.py          # Condorcet-style ranking algorithm implementation
+│   ├── state.py            # IPFS-based state management system
+│   └── validators.py       # Input validation and data verification
+│
+└── tests/               # Test suite directory
+    ├── conftest.py         # Pytest fixtures and shared test configurations
+    ├── test_ipfs.py        # Tests for IPFS integration functionality
+    ├── test_issue.py       # Tests for voting issues implementation
+    ├── test_opinion.py     # Tests for opinion handling
+    ├── test_option.py      # Tests for voting options management
+    ├── test_ranking.py     # Tests for ranking algorithm
+    ├── test_integration.py # Integration tests
+    └── test_state.py       # Tests for state management system
 
-/diagrams/
-  - class_diagram.md: UML class diagram showing system architecture
-  - component_diagram.md: System component relationships and interactions
-  - state_diagram.md: State transitions in the voting system
-  - voting_sequence.md: Sequence diagram of the voting process
+# Tech Stack
+- Python 3.10
+- Pytest
+- Sphinx
+- FastAPI
+- uvicorn
+- Jinja2
+- IPFS
+- ipfs-dict-chain
+- python-bitcoinlib
+- pytest-cov
 
-/docs/
-  /source/
-    - conf.py: Sphinx documentation configuration
-    - index.rst: Main documentation landing page
-    /modules/
-      - issue.rst: Documentation for voting issues module
-      - opinion.rst: Documentation for voter opinions module
-      - option.rst: Documentation for voting options module
-      - ranking.rst: Documentation for ranking algorithms
-      - state.rst: Documentation for system state management
-      - validators.rst: Documentation for input validation utilities
+# Ipfs-dict-chain
+This package provides a Python interface to the ipfs-dict-chain library, which allows for easy management of key-value pairs on IPFS.
+It provides 2 main classes: 
+- IPFSDict: A Dict object with additional methods for working with IPFS, like .load(cid) and .save()
+- IPFSDictChain : Same as IPFSDict, but also tracks changes by storing the previous CID.
 
-/src/hivemind/
-  - __init__.py: Package initialization and public API exports
-  - issue.py: Implementation of voting issues and questions
-  - opinion.py: Handling of voter opinions and preferences
-  - option.py: Management of voting options and choices
-  - ranking.py: Condorcet-style ranking algorithm implementation
-  - state.py: IPFS-based state management system
-  - validators.py: Input validation and data verification
-
-/tests/
-  - conftest.py: Pytest fixtures and shared test configurations
-  - test_ipfs.py: Tests for IPFS integration functionality
-  - test_issue.py: Tests for voting issues implementation
-  - test_opinion.py: Tests for opinion handling
-  - test_option.py: Tests for voting options management
-  - test_ranking.py: Tests for ranking algorithm
-  - test_state.py: Tests for state management system
