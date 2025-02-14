@@ -595,3 +595,141 @@ class TestHivemindState:
         # Test with invalid CID
         with pytest.raises(Exception):
             HivemindState(cid="invalid_cid")
+
+    def test_verify_message_error_handling(self) -> None:
+        """Test error handling in verify_message function"""
+        from hivemind.state import verify_message
+        
+        # Generate a real key pair
+        private_key, address = generate_bitcoin_keypair()
+        
+        # Test with invalid signature format
+        assert not verify_message("test message", address, "invalid_sig")
+        
+        # Test with invalid address
+        assert not verify_message("test message", "invalid_address", sign_message("test message", private_key))
+        
+        # Test with None/invalid values
+        assert not verify_message(None, address, sign_message("test message", private_key))
+        assert not verify_message("test message", None, sign_message("test message", private_key))
+        assert not verify_message("test message", address, None)
+
+    def test_add_option_error_handling(self, state: HivemindState) -> None:
+        """Test error handling in add_option"""
+        # Generate key pairs
+        private_key, address = generate_bitcoin_keypair()
+        
+        # Setup basic issue with restrictions
+        issue = HivemindIssue()
+        issue.name = "Test Issue"
+        issue.add_question("Test Question?")
+        issue.restrictions = {
+            "addresses": [address],  # List of allowed addresses
+            "options_per_address": 1  # Max options per address
+        }
+        issue_hash = issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Test adding option when state is final
+        state.final = True
+        timestamp = int(time.time())
+        option = HivemindOption()
+        option.set_hivemind_issue(issue_hash)
+        option_hash = option.save()
+        
+        # Sign the option
+        message = f"{timestamp}{option_hash}"
+        signature = sign_message(message, private_key)
+        
+        # Try to add when final
+        state.add_option(timestamp, option_hash, address, signature)
+        assert option_hash not in state.options
+        
+        # Reset final state and test adding option with invalid signature
+        state.final = False
+        invalid_signature = "invalid_signature"
+        with pytest.raises(Exception):
+            state.add_option(timestamp, option_hash, address, invalid_signature)
+
+    def test_add_opinion_error_handling(self, state: HivemindState) -> None:
+        """Test error handling in add_opinion"""
+        # Generate key pairs
+        private_key, address = generate_bitcoin_keypair()
+        
+        # Setup basic issue
+        issue = HivemindIssue()
+        issue.name = "Test Issue"
+        issue.add_question("Test Question?")
+        issue_hash = issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Add some options first
+        option1 = HivemindOption()
+        option1.set_hivemind_issue(issue_hash)
+        option1.set(value="option1")
+        option1_hash = option1.save()
+        
+        option2 = HivemindOption()
+        option2.set_hivemind_issue(issue_hash)
+        option2.set(value="option2")
+        option2_hash = option2.save()
+        
+        # Create and save opinion
+        timestamp = int(time.time())
+        opinion = HivemindOpinion()
+        opinion.hivemind_id = issue_hash
+        opinion.question_index = 0
+        opinion.ranking.set_fixed([option1_hash, option2_hash])  # Use set_fixed instead of add
+        opinion.ranking = opinion.ranking.get()  # Get serializable representation
+        opinion_hash = opinion.save()  # Save will use the data we just set
+        
+        # Test adding opinion when state is final
+        state.final = True
+        signature = sign_message(f"{timestamp}{opinion_hash}", private_key)
+        state.add_opinion(timestamp, opinion_hash, signature, address)
+        assert address not in state.opinions[0]
+
+        # Reset final state and test adding opinion with invalid signature
+        state.final = False
+        invalid_signature = "invalid_signature"
+        with pytest.raises(Exception):
+            state.add_opinion(timestamp, opinion_hash, invalid_signature, address)
+
+    def test_calculate_results_error_handling(self, state: HivemindState) -> None:
+        """Test error handling in calculate_results"""
+        # Setup basic issue
+        issue = HivemindIssue()
+        issue.name = "Test Issue"
+        issue.add_question("Test Question?")
+        issue_hash = issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Test with invalid question index
+        with pytest.raises(IndexError):
+            state.calculate_results(question_index=999)
+        
+        # Test with no options
+        results = state.calculate_results()
+        assert results == {}
+
+    def test_load_error_handling(self, state: HivemindState) -> None:
+        """Test error handling in load method"""
+        # Create a basic issue first
+        issue = HivemindIssue()
+        issue.name = "Test Issue"
+        issue.add_question("Test Question?")
+        issue_hash = issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Save current state
+        state_hash = state.save()
+        
+        # Create new state and load
+        new_state = HivemindState()
+        new_state.opinions = None
+        new_state.load(state_hash)
+        
+        # Verify opinions are properly initialized
+        assert isinstance(new_state.opinions, list)
+        assert len(new_state.opinions) == 1
+        assert new_state.opinions[0] == {}
