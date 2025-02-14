@@ -228,21 +228,49 @@ def test_full_hivemind_workflow() -> None:
         log_substep(f'Processing opinions for Question {question_index + 1}')
         print(f'Question: {hivemind_issue.questions[question_index]}')
 
-        n_opinions: int = 20
-        # Generate a set of opinion givers with their keys
-        opinion_keys: List[Tuple[CBitcoinSecret, str]] = [generate_bitcoin_keypair() for _ in range(n_opinions)]
-        print(f'Generated {n_opinions} unique opinion giver keys')
+        # Test that unauthorized address is rejected
+        unauthorized_key, unauthorized_address = generate_bitcoin_keypair()
+        unauthorized_opinion = HivemindOpinion()
+        unauthorized_opinion.hivemind_id = hivemind_state.hivemind_id
+        unauthorized_opinion.set_question_index(question_index)
+        ranked_choice = hivemind_state.options.copy()
+        random.shuffle(ranked_choice)
+        unauthorized_opinion.ranking.set_fixed(ranked_choice)
+        unauthorized_opinion.ranking = unauthorized_opinion.ranking.get()
+        unauthorized_opinion_hash = unauthorized_opinion.save()
+        
+        timestamp = int(time.time())
+        message = '%s%s' % (timestamp, unauthorized_opinion.cid())
+        signature = sign_message(message, unauthorized_key)
+        
+        print('\nTesting unauthorized opinion rejection:')
+        print(f'- Unauthorized address: {unauthorized_address}')
+        try:
+            hivemind_state.add_opinion(
+                timestamp=timestamp,
+                opinion_hash=unauthorized_opinion.cid(),
+                signature=signature,
+                address=unauthorized_address
+            )
+            assert False, "Should have rejected unauthorized address"
+        except Exception as e:
+            print(f'Successfully rejected unauthorized address: {str(e)}')
+            assert 'not allowed to add opinions' in str(e)
+
+        # Now add valid opinions from authorized addresses
+        n_opinions = len(voter_keys)  # Use only the authorized addresses
+        print(f'\nAdding {n_opinions} opinions from authorized addresses')
 
         for i in range(n_opinions):
-            private_key, address = opinion_keys[i]
+            private_key, address = voter_keys[i]
             opinion = HivemindOpinion()
             opinion.hivemind_id = hivemind_state.hivemind_id
             opinion.set_question_index(question_index)
-            ranked_choice: List[str] = hivemind_state.options.copy()
+            ranked_choice = hivemind_state.options.copy()
             random.shuffle(ranked_choice)
             opinion.ranking.set_fixed(ranked_choice)
             opinion.ranking = opinion.ranking.get()
-            opinion_hash: str = opinion.save()
+            opinion_hash = opinion.save()
             
             print(f'\nProcessing opinion {i+1}/{n_opinions}:')
             print(f'- Address: {address}')
@@ -279,7 +307,7 @@ def test_full_hivemind_workflow() -> None:
             print(f'- {addr}: {score}')
         
         # Verify all opinion givers have contribution scores
-        assert all(addr in contributions for _, addr in opinion_keys)
+        assert all(addr in contributions for _, addr in voter_keys)
         
         print('\nFinal rankings:')
         sorted_options: List[HivemindOption] = hivemind_state.get_sorted_options(question_index=question_index)

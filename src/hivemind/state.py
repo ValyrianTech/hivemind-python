@@ -257,6 +257,11 @@ class HivemindState(IPFSDictChain):
         if not verify_message(address=address, message='%s%s' % (timestamp, opinion_hash), signature=signature):
             raise Exception('Signature is invalid')
 
+        # Check address restrictions
+        if self._hivemind_issue.restrictions is not None and 'addresses' in self._hivemind_issue.restrictions:
+            if address not in self._hivemind_issue.restrictions['addresses']:
+                raise Exception('Can not add opinion: there are address restrictions on this hivemind issue and address %s is not allowed to add opinions' % address)
+
         if isinstance(opinion, HivemindOpinion) and not any(option_hash not in self.options for option_hash in opinion.ranking.get(options=self.get_options())):
             try:
                 self.add_signature(address=address, timestamp=timestamp, message=opinion_hash, signature=signature)
