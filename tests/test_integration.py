@@ -217,6 +217,32 @@ def test_full_hivemind_workflow() -> None:
     assert len(hivemind_state.options) == len(option_values)
     assert all(opt_hash in hivemind_state.options for opt_hash in option_hashes.values())
 
+    # Verify options_per_address restriction
+    print('\nVerifying options_per_address restriction:')
+    proposer_options = hivemind_state.options_by_participant(proposer_address)
+    print(f'- Options added by {proposer_address}: {len(proposer_options)}')
+    assert len(proposer_options) == options_per_address, f"Expected {options_per_address} options for {proposer_address}, got {len(proposer_options)}"
+    
+    # Try to add one more option (should fail)
+    extra_option = HivemindOption()
+    extra_option.set_hivemind_issue(hivemind_issue_hash)
+    extra_option._answer_type = option_type  # Set the answer type to match others
+    extra_option.set(11)  # Use next integer in sequence
+    extra_option.text = "Eleven"  # Add descriptive text
+    extra_option_hash = extra_option.save()
+    
+    timestamp = int(time.time())
+    message = '%s%s' % (timestamp, extra_option.cid())
+    signature = sign_message(message, proposer_key)
+    
+    print('\nTesting options_per_address limit:')
+    try:
+        hivemind_state.add_option(timestamp, extra_option_hash, proposer_address, signature)
+        assert False, "Should have rejected option due to options_per_address limit"
+    except Exception as e:
+        print(f'Successfully rejected extra option: {str(e)}')
+        assert 'already added too many options' in str(e)
+
     hivemind_state_hash: str = hivemind_state.save()
     print(f'\nUpdated state saved')
     print(f'  - New state hash: {hivemind_state_hash}')
