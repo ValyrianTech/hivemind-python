@@ -14,70 +14,87 @@ classDiagram
     
     class HivemindIssue {
         +List[str] questions
-        +str name
+        +Optional[str] name
         +str description
         +List[str] tags
         +str answer_type
         +Optional[Dict[str, Union[str, int, float, list]]] constraints
         +Optional[Dict[str, Union[List[str], int]]] restrictions
-        +str on_selection
+        +Optional[str] on_selection
         +add_question(question: str) None
         +set_constraints(constraints: Dict) None
         +set_restrictions(restrictions: Dict) None
         +valid() bool
-        +info() Dict
+        +info() str
+        +save() str
     }
     
     class HivemindOption {
-        +Union[str, int, float] value
+        +Optional[Union[str, bool, int, float, Dict[str, Any]]] value
         +str text
         +str hivemind_id
+        +Optional[HivemindIssue] _hivemind_issue
+        +str _answer_type
         +set_hivemind_issue(hivemind_issue_hash: str) None
+        +set(value: Union[str, bool, int, float, Dict[str, Any]]) None
         +is_valid_string_option() bool
         +is_valid_float_option() bool
         +is_valid_integer_option() bool
-        +is_valid_address_option() bool
+        +is_valid_bool_option() bool
         +is_valid_hivemind_option() bool
-        +info() Dict
+        +is_valid_complex_option() bool
+        +is_valid_address_option() bool
+        +info() str
         +valid() bool
+        +cid() Optional[str]
+        +load(cid: str) None
     }
     
     class HivemindOpinion {
-        +str hivemind_id
+        +Optional[str] hivemind_id
         +int question_index
         +Ranking ranking
         +set_question_index(question_index: int) None
-        +get() Dict
-        +info() Dict
+        +get() Dict[str, Any]
+        +info() str
         +valid() bool
+        +load(cid: str) None
     }
     
     class Ranking {
-        +List[str] fixed
-        +str auto
-        +str type
+        +Optional[List[str]] fixed
+        +Optional[str] auto
+        +Optional[str] type
         +set_fixed(ranked_choice: List[str]) None
         +set_auto_high(choice: str) None
         +set_auto_low(choice: str) None
-        +get(options: List[str]) List[str]
+        +get(options: Optional[List[HivemindOption]]) List[str]
+        +to_dict() dict
         +valid() bool
     }
     
     class HivemindState {
-        +str hivemind_id
+        +Optional[str] hivemind_id
+        +Optional[HivemindIssue] _hivemind_issue
         +List[str] options
-        +List[str] opinions
+        +List[Dict[str, Any]] opinions
         +Dict[str, str] signatures
-        +Dict[str, float] participants
+        +Dict[str, Any] participants
         +List[str] selected
         +bool final
-        +add_option(timestamp: int, option_hash: str, address: str, signature: str) None
-        +add_opinion(timestamp: int, opinion_hash: str, address: str, signature: str) None
-        +calculate_results(question_index: int) Dict[str, float]
+        +add_option(timestamp: int, option_hash: str, address: Optional[str], signature: Optional[str]) None
+        +add_opinion(timestamp: int, opinion_hash: str, signature: str, address: str) None
+        +calculate_results(question_index: int) Dict[str, Dict[str, float]]
         +get_weight(opinionator: str) float
         +get_opinion(opinionator: str, question_index: int) Optional[Dict]
         +valid() bool
-        +info() Dict
+        +info() str
+        +add_predefined_options() Dict[str, Dict[str, Any]]
+        +options_by_participant(address: str) List[str]
+        +get_consensus(question_index: int, consensus_type: str) Any
+        +contributions(results: Dict[str, Dict[str, float]], question_index: int) Dict[str, float]
+        +update_participant_name(timestamp: int, name: str, address: str, signature: str) None
+        +select_consensus() List[str]
     }
 
     class validators {
@@ -85,6 +102,7 @@ classDiagram
         +valid_address(address: str, testnet: bool) bool
         +valid_bech32_address(address: str, testnet: bool) bool
         +bech32_decode(bech: str) Tuple[Optional[str], Optional[list]]
+        +verify_message(message: str, address: str, signature: str) bool
     }
     
     IPFSDict <|-- HivemindIssue
@@ -93,6 +111,7 @@ classDiagram
     IPFSDictChain <|-- HivemindState
     HivemindOpinion *-- Ranking
     HivemindOption --> HivemindIssue : references
+    HivemindState --> HivemindIssue : contains
     HivemindState ..> validators : uses
     HivemindOption ..> validators : uses
     HivemindOpinion ..> validators : uses
