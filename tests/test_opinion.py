@@ -332,3 +332,40 @@ class TestHivemindOpinion:
         # Set empty fixed ranking
         loaded_opinion.ranking.set_fixed([])
         assert loaded_opinion.ranking.get() == []
+
+    def test_info_with_options(self):
+        """Test info() method with actual options in the ranking"""
+        # Create a test option
+        test_option = HivemindOption()
+        test_option.value = "Test Option"
+        option_cid = test_option.save()
+
+        # Create an opinion with this option
+        opinion = HivemindOpinion()
+        opinion.ranking.set_fixed([option_cid])
+        
+        # Get the info string
+        info_str = opinion.info()
+        assert "1: Test Option" in info_str
+
+    def test_load_dict_ranking_auto_low_with_value(self):
+        """Test loading an opinion with dict ranking using auto_low with an actual value"""
+        # Create a test option to use as auto_low target
+        test_option = HivemindOption()
+        test_option.value = "Test Option"
+        option_cid = test_option.save()
+
+        opinion = HivemindOpinion()
+        # Create a dict with auto_low ranking using the option CID
+        opinion.hivemind_id = None
+        opinion.question_index = 0
+        opinion.ranking = {'auto_low': option_cid}  # Using option CID instead of number
+        cid = opinion.save()
+        
+        # Create a new opinion and load it
+        loaded_opinion = HivemindOpinion()
+        loaded_opinion.load(cid)
+        
+        # Verify the ranking was loaded correctly
+        assert isinstance(loaded_opinion.ranking, Ranking)
+        assert loaded_opinion.ranking.to_dict()['auto_low'] == option_cid
