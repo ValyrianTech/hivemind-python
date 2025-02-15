@@ -198,17 +198,24 @@ class HivemindState(IPFSDictChain):
         if self.final is True:
             raise Exception('Can not add option: hivemind issue is finalized')
 
-        if not isinstance(self._hivemind_issue, HivemindIssue) or address is None or signature is None:
+        if not isinstance(self._hivemind_issue, HivemindIssue):
             return
 
-        if not verify_message(message='%s%s' % (timestamp, option_hash), address=address, signature=signature):
-            raise Exception('Can not add option: Signature is not valid')
+        # Check for address restrictions
+        has_address_restrictions = (self._hivemind_issue.restrictions is not None and 
+                                  'addresses' in self._hivemind_issue.restrictions)
 
-        if self._hivemind_issue.restrictions is not None and 'addresses' in self._hivemind_issue.restrictions:
-            if address not in self._hivemind_issue.restrictions['addresses']:
-                raise Exception('Can not add option: there are address restrictions on this hivemind issue and address %s is not allowed to add options' % address)
-            elif address is None or signature is None:
+        # If we have address restrictions, require address and signature
+        if has_address_restrictions:
+            if address is None or signature is None:
                 raise Exception('Can not add option: no address or signature given')
+            elif address not in self._hivemind_issue.restrictions['addresses']:
+                raise Exception('Can not add option: there are address restrictions on this hivemind issue and address %s is not allowed to add options' % address)
+
+        # If address and signature are provided, verify the signature regardless of restrictions
+        if address is not None and signature is not None:
+            if not verify_message(message='%s%s' % (timestamp, option_hash), address=address, signature=signature):
+                raise Exception('Can not add option: Signature is not valid')
 
         if self._hivemind_issue.restrictions is not None and 'options_per_address' in self._hivemind_issue.restrictions:
             number_of_options = len(self.options_by_participant(address=address))

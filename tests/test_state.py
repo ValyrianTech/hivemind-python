@@ -255,6 +255,10 @@ class TestHivemindStateOptions:
         option.set('test option')
         option_hash = option.save()
         
+        # Test adding option without address/signature when restrictions are enabled
+        with pytest.raises(Exception, match='Can not add option: no address or signature given'):
+            state.add_option(timestamp, option_hash)
+        
         message = f"{timestamp}{option_hash}"
         signature = sign_message(message, private_key3)
         with pytest.raises(Exception, match='address restrictions'):
@@ -1147,9 +1151,8 @@ class TestHivemindStateExcludeSelectionMode:
         options = []
         for value, text in [("red", "Red"), ("blue", "Blue")]:
             option_hash = TestHelper.create_and_sign_option(state, issue_hash, value, text, private_key, address, timestamp)
-            state.add_option(timestamp, option_hash, address)
             options.append(option_hash)
-
+        
         # Create and add an opinion ranking red > blue
         opinion = HivemindOpinion()
         opinion.hivemind_id = issue_hash
