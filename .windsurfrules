@@ -14,10 +14,11 @@ pytest-cov >= 4.0.0
   - Use type hints and annotations
   - Use Sphinx for documentation
   - Update README.md as needed
-  - Use a testdriven development (TDD) approach
+  - Use a testdriven development (TDD) approach, only add one test at a time and ask to commit after every successful test
   - Use the following command to run tests: python -m pytest
   - Always use 'python -m' versions of commands where possible
   - Use PowerShell syntax for your commands, like using ; instead of &&
+  - VERY IMPORTANT: if a test fails, DO NOT CHANGE THE CORE CODE!! If you believe it is a bug you must first explain why to me!
 
 # Project Structure
 /
