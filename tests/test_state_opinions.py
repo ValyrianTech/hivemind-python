@@ -207,3 +207,24 @@ class TestHivemindStateOpinions:
         assert "Opinions" in info
         assert "========" in info
         assert f"Timestamp: {timestamp}" in info
+
+    def test_load_state_opinions_none(self, basic_issue: HivemindIssue) -> None:
+        """Test loading state with opinions attribute set to None."""
+        # First test loading state with questions
+        issue_hash = basic_issue.save()
+        
+        # Create a new state and set the issue
+        state = HivemindState()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Set opinions to None
+        state.opinions = None
+        state_hash = state.save()
+        
+        # Load state in a new instance
+        loaded_state = HivemindState()
+        loaded_state.load(state_hash)
+        
+        # Verify opinions list was initialized correctly
+        assert len(loaded_state.opinions) == len(basic_issue.questions)
+        assert all(isinstance(opinions, dict) for opinions in loaded_state.opinions)
