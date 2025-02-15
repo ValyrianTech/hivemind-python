@@ -302,7 +302,7 @@ class HivemindState(IPFSDictChain):
         :rtype: Optional[HivemindOpinion]
         """
         opinion = None
-        if opinionator in self.opinions[question_index]:
+        if question_index < len(self.opinions) and opinionator in self.opinions[question_index]:
             opinion = HivemindOpinion(cid=self.opinions[question_index][opinionator]['opinion_cid'])
 
         return opinion

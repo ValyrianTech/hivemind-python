@@ -119,6 +119,56 @@ class TestHivemindStateOpinions:
         with pytest.raises(Exception, match='Opinion is invalid'):
             state.add_opinion(new_timestamp, invalid_opinion_hash, signature, address)
 
+    def test_get_opinion(self, state: HivemindState, basic_issue: HivemindIssue, test_keypair) -> None:
+        """Test getting opinions for a participant."""
+        private_key, address = test_keypair
+        issue_hash = basic_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Add options first
+        options = []
+        for i in range(3):
+            option = HivemindOption()
+            option.set_hivemind_issue(issue_hash)
+            option.set(f"Option {i+1}")
+            option_hash = option.save()
+            options.append(option_hash)
+            
+            # Sign and add option
+            timestamp = int(time.time())
+            message = f"{timestamp}{option_hash}"
+            signature = sign_message(message, private_key)
+            state.add_option(timestamp, option_hash, address, signature)
+        
+        # Test getting opinion when none exists
+        assert state.get_opinion(address) is None
+        assert state.get_opinion(address, question_index=0) is None
+        
+        # Create and add an opinion
+        opinion = HivemindOpinion()
+        opinion.hivemind_id = issue_hash
+        opinion.question_index = 0
+        opinion.ranking.set_fixed(options)
+        opinion.ranking = opinion.ranking.get()
+        opinion_hash = opinion.save()
+        
+        # Add the opinion
+        timestamp = int(time.time())
+        message = f"{timestamp}{opinion_hash}"
+        signature = sign_message(message, private_key)
+        state.add_opinion(timestamp, opinion_hash, signature, address)
+        
+        # Initialize participants dictionary
+        state.participants[address] = {'name': 'Test User', 'timestamp': timestamp}
+        
+        # Test getting the opinion after it's added
+        retrieved_opinion = state.get_opinion(address)
+        assert retrieved_opinion is not None
+        assert retrieved_opinion.cid().split('/')[-1] == opinion_hash
+        
+        # Test getting opinion for non-existent question index
+        assert state.get_opinion(address, question_index=1) is None
+
     def test_opinions_info(self, state: HivemindState, basic_issue: HivemindIssue, test_keypair) -> None:
         """Test the opinions_info method."""
         private_key, address = test_keypair
