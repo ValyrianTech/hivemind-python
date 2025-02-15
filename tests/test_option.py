@@ -525,6 +525,191 @@ class TestHivemindOption:
         info = option.info()
         assert "Value: None" in info
 
+    def test_valid_image_option(self, issue: HivemindIssue, option: HivemindOption) -> None:
+        """Test validation of image option"""
+        issue.answer_type = 'Image'
+        option._answer_type = 'Image'
+
+        # Valid IPFS hash for an image
+        option.value = "QmT78zSuBmuS4z925WZfrqQ1qHaJ56DQaTfyMUF7F8ff5o"
+        assert option.valid() is True
+
+        # Invalid type (not a string)
+        option.value = 42
+        assert option.valid() is False
+
+    def test_valid_video_option(self, issue: HivemindIssue, option: HivemindOption) -> None:
+        """Test validation of video option"""
+        issue.answer_type = 'Video'
+        option._answer_type = 'Video'
+
+        # Valid IPFS hash for a video
+        option.value = "QmT78zSuBmuS4z925WZfrqQ1qHaJ56DQaTfyMUF7F8ff5o"
+        assert option.valid() is True
+
+        # Invalid type (not a string)
+        option.value = 42
+        assert option.valid() is False
+
+    def test_valid_complex_option(self, issue: HivemindIssue, option: HivemindOption) -> None:
+        """Test validation of complex option"""
+        issue.answer_type = 'Complex'
+        option._answer_type = 'Complex'
+
+        # Set up constraints with required specs
+        issue.constraints = {
+            'specs': {
+                'name': 'string',
+                'age': 'integer'
+            }
+        }
+
+        # Valid complex option with all required specs
+        option.value = {
+            'name': 'John',
+            'age': 30
+        }
+        assert option.valid() is True
+
+        # Missing required spec
+        option.value = {
+            'name': 'John'
+            # missing 'age'
+        }
+        assert option.valid() is False
+
+        # Not a dictionary
+        option.value = 'not a dict'
+        assert option.valid() is False
+
+    def test_valid_hivemind_option(self, issue: HivemindIssue, option: HivemindOption, string_question_hash) -> None:
+        """Test hivemind option validation"""
+        # First create a valid hivemind issue
+        test_issue = HivemindIssue()
+        test_issue.name = "Test Issue"
+        test_issue.add_question("Test Question?")
+        test_issue.answer_type = "String"
+        hivemind_cid = test_issue.save()
+        
+        # Now test the hivemind option
+        issue.answer_type = 'Hivemind'
+        option._answer_type = 'Hivemind'
+        option._hivemind_issue = issue
+        
+        # Test with valid CID
+        option.value = hivemind_cid
+        assert option.valid() is True
+        
+        # Test with invalid CID
+        option.value = "QmInvalidCIDThatDoesNotExist"
+        assert option.valid() is False
+        
+        # Test with wrong type
+        option.value = 123
+        assert option.valid() is False
+
+    def test_valid_complex_option(self, issue: HivemindIssue, option: HivemindOption) -> None:
+        """Test complex option validation"""
+        issue.answer_type = 'Complex'
+        option._answer_type = 'Complex'
+        
+        # Set up complex constraints
+        option._hivemind_issue.constraints = {
+            'specs': {
+                'name': 'String',
+                'age': 'Integer',
+                'score': 'Float'
+            }
+        }
+        
+        # Test valid complex value
+        option.value = {
+            'name': 'John',
+            'age': 30,
+            'score': 85.5
+        }
+        assert option.valid() is True
+        
+        # Test missing field
+        option.value = {
+            'name': 'John',
+            'age': 30
+        }
+        assert option.valid() is False
+        
+        # Test wrong type
+        option.value = {
+            'name': 'John',
+            'age': '30',  # Should be integer
+            'score': 85.5
+        }
+        assert option.valid() is False
+
+    def test_valid_address_option(self, issue: HivemindIssue, option: HivemindOption) -> None:
+        """Test address option validation"""
+        issue.answer_type = 'Address'
+        option._answer_type = 'Address'
+        
+        # Test with valid address format
+        option.value = "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
+        assert option.valid() is True
+        
+        # Test with invalid address
+        option.value = "not_an_address"
+        assert option.valid() is False
+        
+        # Test with wrong type
+        option.value = 123
+        assert option.valid() is False
+
+    def test_info_method_comprehensive(self, option: HivemindOption) -> None:
+        """Test info() method with different value types"""
+        # Test with string
+        option.value = "test"
+        option.text = "description"
+        info = option.info()
+        assert "Value: test" in info
+        assert "Text: description" in info
+        
+        # Test with number
+        option.value = 42
+        info = option.info()
+        assert "Value: 42" in info
+        
+        # Test with boolean
+        option.value = True
+        info = option.info()
+        assert "Value: True" in info
+        
+        # Test with complex
+        option.value = {"name": "test", "value": 42}
+        info = option.info()
+        assert "Value: {'name': 'test', 'value': 42}" in info
+
+    def test_set_method_edge_cases_2(self, option: HivemindOption) -> None:
+        """Test additional edge cases in set()"""
+        # Test with None value for String type
+        option._answer_type = "String"
+        with pytest.raises(Exception):
+            option.set(None)
+        
+        # Test with None value for Integer type
+        option._answer_type = "Integer"
+        with pytest.raises(Exception):
+            option.set(None)
+            
+        # Test with complex object - should raise Exception for invalid type
+        class TestObject:
+            pass
+        with pytest.raises(Exception):
+            option.set(TestObject())
+            
+    def test_info_method_edge_cases(self, option: HivemindOption) -> None:
+        """Test edge cases in info()"""
+        # Test with no value set
+        info = option.info()
+        assert "Value: None" in info
+
     def test_valid_hivemind_option(self, issue: HivemindIssue, option: HivemindOption, string_question_hash) -> None:
         """Test hivemind option validation"""
         # First create a valid hivemind issue
