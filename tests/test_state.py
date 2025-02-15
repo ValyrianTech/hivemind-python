@@ -362,6 +362,28 @@ class TestHivemindStateOpinions:
         # Verify the opinion was not added (state remained unchanged)
         assert state.opinions[0][address]['opinion_cid'] == opinion_hash  # Original opinion still there
 
+        # Test adding opinion with higher question index
+        higher_index_opinion = HivemindOpinion()
+        higher_index_opinion.hivemind_id = issue_hash
+        higher_index_opinion.question_index = 2  # Set a higher question index
+        higher_index_opinion.ranking.set_fixed(options)
+        higher_index_opinion.ranking = higher_index_opinion.ranking.get()
+        higher_index_hash = higher_index_opinion.save()
+
+        # Add the opinion with higher index
+        new_timestamp = timestamp + 2
+        message = f"{new_timestamp}{higher_index_hash}"
+        signature = sign_message(message, private_key)
+        
+        # Reset final flag to allow adding new opinion
+        state.final = False
+        state.add_opinion(new_timestamp, higher_index_hash, signature, address)
+
+        # Verify opinions list was extended and opinion was added
+        assert len(state.opinions) == 3  # Should have lists for indices 0, 1, and 2
+        assert isinstance(state.opinions[1], dict)  # Middle index should be empty dict
+        assert state.opinions[2][address]['opinion_cid'] == higher_index_hash  # New opinion at index 2
+
 @pytest.mark.consensus
 class TestHivemindStateConsensus:
     """Tests for consensus calculation."""
@@ -389,30 +411,23 @@ class TestHivemindStateConsensus:
             state.add_option(timestamp, option_hash, address, signature)
         
         # Add opinions
+        base_timestamp = int(time.time())
         for i in range(3):
             opinion = HivemindOpinion()
             opinion.hivemind_id = issue_hash
             opinion.question_index = 0
-            # Create different rankings for each participant
-            if i == 0:
-                ranking = options  # red > blue > green
-            elif i == 1:
-                ranking = [options[1], options[0], options[2]]  # blue > red > green
-            else:
-                ranking = [options[0], options[2], options[1]]  # red > green > blue
-                
-            opinion.ranking.set_fixed(ranking)
+            opinion.ranking.set_fixed(options)  # First address prefers red > blue > green
             opinion.ranking = opinion.ranking.get()
             opinion_hash = opinion.save()
             
             # Initialize participants dictionary and add participant
-            timestamp = int(time.time())
-            state.participants[address] = {'name': f'Test User {i+1}', 'timestamp': timestamp}
+            current_timestamp = base_timestamp + i  # Ensure unique, increasing timestamps
+            state.participants[address] = {'name': f'Test User {i+1}', 'timestamp': current_timestamp}
             
             # Test with valid signature
-            message = f"{timestamp}{opinion_hash}"
+            message = f"{current_timestamp}{opinion_hash}"
             signature = sign_message(message, private_key)
-            state.add_opinion(timestamp, opinion_hash, signature, address)
+            state.add_opinion(current_timestamp, opinion_hash, signature, address)
         
         # Calculate results
         results = state.calculate_results()
