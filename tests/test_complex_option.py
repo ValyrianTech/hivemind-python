@@ -50,3 +50,26 @@ class TestComplexHivemindOption:
         # Test with correct key for comparison
         option.value = {'required_key': 'some_value'}
         assert option.valid()
+
+    def test_valid_complex_option_no_specs_in_constraints(self, issue: HivemindIssue, option: HivemindOption) -> None:
+        """Test validation of complex option when constraints exist but 'specs' key is missing."""
+        # Set constraints without 'specs' key
+        issue.constraints = {'some_other_key': 'some_value'}
+        
+        # Any dictionary value should be valid since there are no specs
+        option.value = {'any_key': 'any_value'}
+        assert option.valid()
+
+    def test_invalid_complex_option_not_dict(self, issue: HivemindIssue, option: HivemindOption) -> None:
+        """Test validation of complex option when value is not a dictionary."""
+        # Test with string value
+        option.value = "not a dictionary"
+        assert not option.valid()
+
+        # Test with list value
+        option.value = ["also", "not", "a", "dictionary"]
+        assert not option.valid()
+
+        # Test with integer value
+        option.value = 42
+        assert not option.valid()
