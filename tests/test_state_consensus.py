@@ -627,3 +627,51 @@ class TestHivemindStateNullSelectionMode:
         assert state.selected[0][0].replace('/ipfs/', '') == option_hash  # The correct option
         assert not state.final  # Should not be finalized
         assert len(state.opinions) == 1  # Opinions should not be reset
+
+@pytest.mark.consensus
+class TestHivemindStateContributions:
+    """Tests for contributions calculation."""
+    
+    def test_contributions_missing_options(self, state: HivemindState, color_choice_issue: HivemindIssue, test_keypair) -> None:
+        """Test contributions calculation when opinion doesn't rank all options."""
+        private_key, address = test_keypair
+        issue_hash = color_choice_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Add options from constraints
+        options = []
+        for choice in color_choice_issue.constraints['choices']:
+            option = HivemindOption()
+            option.set_hivemind_issue(issue_hash)
+            option.set(choice['value'])
+            option.text = choice['text']
+            option_hash = option.save()
+            options.append(option_hash)
+            
+            # Sign and add option
+            timestamp = int(time.time())
+            message = f"{timestamp}{option_hash}"
+            signature = sign_message(message, private_key)
+            state.add_option(timestamp, option_hash, address, signature)
+        
+        # Create opinion that only ranks first two options
+        opinion = HivemindOpinion()
+        opinion.hivemind_id = issue_hash
+        opinion.question_index = 0
+        opinion.ranking.set_fixed(options[:2])  # Only rank first two options
+        opinion.ranking = opinion.ranking.to_dict()  # Convert ranking to dictionary before saving
+        opinion_hash = opinion.save()
+        
+        # Add opinion
+        timestamp = int(time.time())
+        message = f"{timestamp}{opinion_hash}"
+        signature = sign_message(message, private_key)
+        state.add_opinion(timestamp, opinion_hash, signature, address)
+        
+        # Calculate results and contributions
+        results = state.calculate_results()
+        contributions = state.contributions(results)
+        
+        # Verify contributions were calculated
+        assert address in contributions
+        assert isinstance(contributions[address], float)
