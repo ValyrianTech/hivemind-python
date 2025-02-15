@@ -1150,3 +1150,56 @@ class TestHivemindState:
         # Should not be able to add options when state is final
         with pytest.raises(Exception):
             state.add_option(timestamp, option_hash, address, signature)
+
+    def test_add_opinion_timestamp_validation(self, state: HivemindState) -> None:
+        """Test opinion timestamp validation when adding opinions"""
+        # Create issue
+        issue = HivemindIssue()
+        issue.name = 'Test Hivemind'
+        issue.add_question('Test Question?')
+        issue.description = 'Test description'
+        issue.answer_type = 'String'
+        issue.constraints = {}
+        issue.restrictions = {}
+        issue_hash = issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Generate key pair for testing
+        private_key, address = generate_bitcoin_keypair()
+        timestamp1 = int(time.time())
+        
+        # Add first opinion
+        opinion1 = HivemindOpinion()
+        opinion1.hivemind_id = issue_hash
+        opinion1.question_index = 0
+        opinion1.ranking = []
+        opinion1_hash = opinion1.save()
+        
+        message1 = f"{timestamp1}{opinion1_hash}"
+        signature1 = sign_message(message1, private_key)
+        state.add_opinion(timestamp1, opinion1_hash, signature1, address)
+        
+        # Try to add opinion with older timestamp
+        time.sleep(1)  # Ensure we have a different timestamp
+        opinion2 = HivemindOpinion()
+        opinion2.hivemind_id = issue_hash
+        opinion2.question_index = 0
+        opinion2.ranking = []
+        opinion2_hash = opinion2.save()
+        
+        old_timestamp = timestamp1 - 10
+        message2 = f"{old_timestamp}{opinion2_hash}"
+        signature2 = sign_message(message2, private_key)
+        
+        with pytest.raises(Exception, match='Invalid timestamp'):
+            state.add_opinion(old_timestamp, opinion2_hash, signature2, address)
+        
+        # Add opinion with newer timestamp should succeed
+        new_timestamp = int(time.time())
+        message3 = f"{new_timestamp}{opinion2_hash}"
+        signature3 = sign_message(message3, private_key)
+        state.add_opinion(new_timestamp, opinion2_hash, signature3, address)
+        
+        # Verify the opinion was updated
+        assert state.opinions[0][address]['opinion_cid'] == opinion2_hash
+        assert state.opinions[0][address]['timestamp'] == new_timestamp
