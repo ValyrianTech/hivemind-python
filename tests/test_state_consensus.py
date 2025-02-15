@@ -409,3 +409,71 @@ class TestHivemindStateWeightedConsensus:
         # Test weight for address without restriction (should return default 1.0)
         other_address = "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2"
         assert state.get_weight(other_address) == 1.0
+
+@pytest.mark.consensus
+class TestHivemindStateFinalizeSelectionMode:
+    """Tests for the 'Finalize' selection mode."""
+    
+    def test_select_consensus_finalize(self, state: HivemindState, color_choice_issue: HivemindIssue, test_keypair) -> None:
+        """Test that select_consensus sets final=True when on_selection='Finalize'."""
+        private_key, address = test_keypair
+        
+        # Set on_selection to 'Finalize'
+        color_choice_issue.on_selection = 'Finalize'
+        issue_hash = color_choice_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Add options from constraints
+        options = []
+        for choice in color_choice_issue.constraints['choices']:
+            option = HivemindOption()
+            option.set_hivemind_issue(issue_hash)
+            option.set(choice['value'])
+            option.text = choice['text']
+            option_hash = option.save()
+            options.append(option_hash)
+            
+            # Sign and add option
+            timestamp = int(time.time())
+            message = f"{timestamp}{option_hash}"
+            signature = sign_message(message, private_key)
+            state.add_option(timestamp, option_hash, address, signature)
+        
+        # Add an opinion to ensure we have a consensus
+        opinion = HivemindOpinion()
+        opinion.hivemind_id = issue_hash
+        opinion.question_index = 0
+        opinion.ranking.set_fixed(options)
+        opinion.ranking = opinion.ranking.get()
+        opinion_hash = opinion.save()
+        
+        # Initialize participants dictionary and add participant
+        timestamp = int(time.time())
+        state.participants[address] = {'name': 'Test User', 'timestamp': timestamp}
+        
+        # Add opinion with valid signature
+        message = f"{timestamp}{opinion_hash}"
+        signature = sign_message(message, private_key)
+        state.add_opinion(timestamp, opinion_hash, signature, address)
+        
+        # Verify state is not final before selecting consensus
+        assert not state.final
+        
+        # Select consensus
+        state.select_consensus()
+        
+        # Verify state is now final
+        assert state.final
+        
+        # Verify we can't add new options or opinions
+        new_option = HivemindOption()
+        new_option.set_hivemind_issue(issue_hash)
+        new_option.set(color_choice_issue.constraints['choices'][0]['value'])  # Use 'red' from constraints
+        new_option_hash = new_option.save()
+        
+        timestamp = int(time.time())
+        message = f"{timestamp}{new_option_hash}"
+        signature = sign_message(message, private_key)
+        
+        with pytest.raises(Exception):
+            state.add_option(timestamp, new_option_hash, address, signature)
