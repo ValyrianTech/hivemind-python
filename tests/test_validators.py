@@ -12,12 +12,11 @@ from hivemind.validators import (
 
 def test_bech32_decode_mixed_case():
     """Test bech32_decode with mixed case input."""
-    # This tests line 38 where bech.lower() is called
-    # Using a valid mixed-case Bech32 address that will pass initial validation
-    address = "tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7"
+    # Using an address with inconsistent mixed case that should fail validation
+    address = "tb1qRp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7"
     hrp, data = bech32_decode(address)
-    assert hrp == "tb"
-    assert data is not None
+    assert hrp is None
+    assert data is None
 
 
 def test_bech32_decode_valid():
@@ -29,6 +28,15 @@ def test_bech32_decode_valid():
     assert hrp == "tb"
     assert data is not None
     assert len(data) > 0
+
+
+def test_bech32_decode_non_printable():
+    """Test bech32_decode with non-printable characters."""
+    # Test with a string containing a non-printable character (ASCII 31)
+    address = "tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7\x1f"
+    hrp, data = bech32_decode(address)
+    assert hrp is None
+    assert data is None
 
 
 def test_valid_address_mainnet():
