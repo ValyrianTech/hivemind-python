@@ -935,11 +935,17 @@ class TestHivemindStateErrors:
         valid_option = HivemindOption()
         valid_option.set_hivemind_issue(issue_hash)
         valid_option.set(color_choice_issue.constraints['choices'][0]['value'])  # Use 'red'
+        valid_option.text = color_choice_issue.constraints['choices'][0]['text']
         valid_option_hash = valid_option.save()
         
         invalid_signature = "invalid_signature"
         with pytest.raises(Exception):
             state.add_option(timestamp, valid_option_hash, address, invalid_signature)
+            
+        # Test adding option to finalized issue
+        state.final = True
+        with pytest.raises(Exception, match='Can not add option: hivemind issue is finalized'):
+            state.add_option(timestamp, valid_option_hash, address, signature)
     
     def test_add_opinion_error_handling(self, state: HivemindState, color_choice_issue: HivemindIssue, test_keypair) -> None:
         """Test error handling in add_opinion."""
