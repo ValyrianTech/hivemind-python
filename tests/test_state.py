@@ -409,7 +409,7 @@ class TestHivemindStateRankedConsensus:
             [options[0], options[2], options[1]]  # red > green > blue
         ]
         
-        # Generate different keypairs for each opinion
+        # Generate different key pairs for each opinion
         keypairs = [test_keypair] + [generate_bitcoin_keypair() for _ in range(2)]
         
         for i, (ranking, (voter_key, voter_address)) in enumerate(zip(rankings, keypairs)):
@@ -1080,3 +1080,38 @@ class TestHivemindStateVerification:
         state.add_signature(address, timestamp, test_message, signature)
         assert test_message in state.signatures[address]
         assert signature in state.signatures[address][test_message]
+
+@pytest.mark.consensus
+class TestHivemindStateExcludeSelectionMode:
+    """Tests for the 'Exclude' selection mode."""
+    
+    def test_exclude_selection_mode(self, state: HivemindState, color_choice_issue: HivemindIssue, test_keypair) -> None:
+        """Test the 'Exclude' selection mode."""
+        private_key, address = test_keypair
+        timestamp = int(time.time())
+
+        # Set up issue with 'Exclude' mode
+        color_choice_issue.on_selection = 'Exclude'
+        issue_hash = color_choice_issue.save()
+        state.set_hivemind_issue(issue_hash)
+
+        # Create options
+        options = []
+        for value, text in [("red", "Red"), ("blue", "Blue")]:
+            option_hash = TestHelper.create_and_sign_option(state, issue_hash, value, text, private_key, address, timestamp)
+            state.add_option(timestamp, option_hash, address)
+            options.append(option_hash)
+
+        # Create and add an opinion ranking red > blue
+        opinion = HivemindOpinion()
+        opinion.hivemind_id = issue_hash
+        opinion.question_index = 0
+        opinion.ranking = options
+        opinion_hash = opinion.save()
+        message = f"{timestamp}{opinion_hash}"
+        signature = sign_message(message, private_key)
+        state.add_opinion(timestamp, opinion_hash, signature, address)
+
+        # First selection should be red
+        selection = state.select_consensus()
+        assert selection[0].replace('/ipfs/', '') == options[0]  # Red is selected
