@@ -343,6 +343,24 @@ class TestHivemindStateOpinions:
         # Verify opinion was added
         assert state.opinions[0][address]['opinion_cid'] == opinion_hash  # First question's opinions
         assert address in state.participants
+        
+        # Test adding opinion when state is final
+        state.final = True
+        new_opinion = HivemindOpinion()
+        new_opinion.hivemind_id = issue_hash
+        new_opinion.question_index = 0
+        new_opinion.ranking.set_fixed(options)
+        new_opinion.ranking = new_opinion.ranking.get()
+        new_opinion_hash = new_opinion.save()
+        
+        # Try to add opinion when state is final
+        new_timestamp = timestamp + 1
+        message = f"{new_timestamp}{new_opinion_hash}"
+        signature = sign_message(message, private_key)
+        state.add_opinion(new_timestamp, new_opinion_hash, signature, address)
+        
+        # Verify the opinion was not added (state remained unchanged)
+        assert state.opinions[0][address]['opinion_cid'] == opinion_hash  # Original opinion still there
 
 @pytest.mark.consensus
 class TestHivemindStateConsensus:
@@ -963,7 +981,7 @@ class TestHivemindStateErrors:
         state.final = True
         with pytest.raises(Exception, match='Can not add option: hivemind issue is finalized'):
             state.add_option(timestamp, valid_option_hash, address, signature)
-    
+
     def test_add_opinion_error_handling(self, state: HivemindState, color_choice_issue: HivemindIssue, test_keypair) -> None:
         """Test error handling in add_opinion."""
         private_key, address = test_keypair
