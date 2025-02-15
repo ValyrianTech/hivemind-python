@@ -110,3 +110,24 @@ class TestHivemindStateOptions:
         signature = sign_message(message, private_key1)
         state.add_option(timestamp, option_hash, address1, signature)
         assert option_hash in state.options
+
+    def test_options_info(self, state: HivemindState, color_choice_issue: HivemindIssue) -> None:
+        """Test getting formatted information about all options."""
+        # Setup state with color choice issue
+        issue_hash = color_choice_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Add predefined options
+        state.add_predefined_options()
+        
+        # Get options info
+        info = state.options_info()
+        
+        # Verify the format and content
+        assert info.startswith("Options\n=======")
+        
+        # Verify each option is included
+        for i, option_hash in enumerate(state.options, 1):
+            option = HivemindOption(cid=option_hash)
+            assert f'Option {i}:' in info
+            assert option.info() in info
