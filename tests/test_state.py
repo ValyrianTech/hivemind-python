@@ -160,6 +160,17 @@ class TestHivemindStateInit:
         assert isinstance(state._hivemind_issue, HivemindIssue)
         assert len(state.opinions) == len(state._hivemind_issue.questions)
 
+    def test_hivemind_issue_property(self, state: HivemindState, basic_issue: HivemindIssue) -> None:
+        """Test the hivemind_issue method."""
+        # Initially should be None
+        assert state.hivemind_issue() is None
+        
+        # After setting, should return the issue
+        issue_hash = basic_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        assert state.hivemind_issue() == state._hivemind_issue
+        assert isinstance(state.hivemind_issue(), HivemindIssue)
+
 @pytest.mark.options
 class TestHivemindStateOptions:
     """Tests for option management."""
