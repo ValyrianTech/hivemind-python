@@ -577,3 +577,53 @@ class TestHivemindStateResetSelectionMode:
         # Verify NotImplementedError is raised
         with pytest.raises(NotImplementedError, match='Unknown selection mode: InvalidMode'):
             state.select_consensus()
+
+@pytest.mark.consensus
+class TestHivemindStateNullSelectionMode:
+    """Tests for when on_selection is None."""
+
+    def test_select_consensus_null_selection(self, state: HivemindState, color_choice_issue: HivemindIssue, test_keypair) -> None:
+        """Test that select_consensus works correctly when on_selection is None."""
+        private_key, address = test_keypair
+        
+        # Set on_selection to None
+        color_choice_issue.on_selection = None
+        issue_hash = color_choice_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Add an option
+        option = HivemindOption()
+        option.set_hivemind_issue(issue_hash)
+        option.set("red")
+        option.text = "Red"
+        option_hash = option.save()
+        
+        # Sign and add option
+        timestamp = int(time.time())
+        message = f"{timestamp}{option_hash}"
+        signature = sign_message(message, private_key)
+        state.add_option(timestamp, option_hash, address, signature)
+        
+        # Add an opinion
+        opinion = HivemindOpinion()
+        opinion.hivemind_id = issue_hash
+        opinion.question_index = 0
+        opinion.ranking.set_fixed([option_hash])
+        opinion.ranking = opinion.ranking.get()
+        opinion_hash = opinion.save()
+        
+        # Sign and add opinion
+        timestamp = int(time.time())
+        message = f"{timestamp}{opinion_hash}"
+        signature = sign_message(message, private_key)
+        state.add_opinion(timestamp, opinion_hash, signature, address)
+        
+        # Select consensus
+        state.select_consensus()
+        
+        # Verify the selection was made but no side effects occurred
+        assert len(state.selected) == 1  # One selection should be recorded
+        assert len(state.selected[0]) == 1  # With one option
+        assert state.selected[0][0].replace('/ipfs/', '') == option_hash  # The correct option
+        assert not state.final  # Should not be finalized
+        assert len(state.opinions) == 1  # Opinions should not be reset
