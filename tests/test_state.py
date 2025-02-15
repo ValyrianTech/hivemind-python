@@ -384,6 +384,22 @@ class TestHivemindStateOpinions:
         assert isinstance(state.opinions[1], dict)  # Middle index should be empty dict
         assert state.opinions[2][address]['opinion_cid'] == higher_index_hash  # New opinion at index 2
 
+        # Test adding invalid opinion (with non-existent option)
+        invalid_opinion = HivemindOpinion()
+        invalid_opinion.hivemind_id = issue_hash
+        invalid_opinion.question_index = 0
+        invalid_opinion.ranking.set_fixed(options + ['non_existent_option'])  # Add non-existent option
+        invalid_opinion.ranking = invalid_opinion.ranking.get()
+        invalid_opinion_hash = invalid_opinion.save()
+
+        # Try to add invalid opinion
+        new_timestamp = timestamp + 3
+        message = f"{new_timestamp}{invalid_opinion_hash}"
+        signature = sign_message(message, private_key)
+        
+        with pytest.raises(Exception, match='Opinion is invalid'):
+            state.add_opinion(new_timestamp, invalid_opinion_hash, signature, address)
+
 @pytest.mark.consensus
 class TestHivemindStateConsensus:
     """Tests for consensus calculation."""
