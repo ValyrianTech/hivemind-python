@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import time
-from unittest.mock import patch, Mock
 from hivemind import HivemindState, HivemindIssue, HivemindOption, HivemindOpinion
 from ipfs_dict_chain.IPFS import connect, IPFSError
 from bitcoin.wallet import CBitcoinSecret, P2PKHBitcoinAddress
@@ -9,18 +8,6 @@ from bitcoin.signmessage import BitcoinMessage, SignMessage
 import random
 import pytest
 from typing import Dict, Any, Tuple, List
-
-# Mock addresses for testing (valid Bitcoin addresses)
-MOCK_ADDRESS_1 = '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'  # Genesis block address
-MOCK_ADDRESS_2 = '12c6DSiU4Rq3P4ZxziKxzrL5LmMBrzjrJX'  # Another valid address
-
-# Mock private keys for testing
-MOCK_PRIVATE_KEY_1 = CBitcoinSecret.from_secret_bytes(b'\x00' * 32)
-MOCK_PRIVATE_KEY_2 = CBitcoinSecret.from_secret_bytes(b'\x01' * 32)
-
-# Mock signatures (these will be replaced with real signatures)
-MOCK_SIGNATURE_VALID = 'valid_sig'
-MOCK_SIGNATURE_INVALID = 'invalid_sig'
 
 def generate_bitcoin_keypair() -> Tuple[CBitcoinSecret, str]:
     """Generate a random Bitcoin private key and its corresponding address.
@@ -718,9 +705,11 @@ class TestHivemindStateVerification:
     
     def test_state_verification(self, state: HivemindState, basic_issue: HivemindIssue) -> None:
         """Test state verification functions."""
+        # Set up initial state
         issue = HivemindIssue()
-        issue.name = 'Test Verification'
+        issue.name = 'Test Hivemind'
         issue.add_question('Test Question?')
+        issue.description = 'Test description'
         issue.answer_type = 'String'
         issue.constraints = {}
         issue.restrictions = {}
@@ -731,9 +720,9 @@ class TestHivemindStateVerification:
         private_key, address = generate_bitcoin_keypair()
         timestamp = int(time.time())
 
-        # Test first signature (should succeed)
+        # Test first signature
         message = "test_message"
-        signature = "sig1"  # Actual signature verification is done elsewhere
+        signature = sign_message(message, private_key)
         state.add_signature(address, timestamp, message, signature)
         assert address in state.signatures
         assert message in state.signatures[address]
@@ -746,14 +735,16 @@ class TestHivemindStateVerification:
 
         # Test older timestamp (should fail)
         older_timestamp = timestamp - 1
+        older_signature = sign_message(message, private_key)
         with pytest.raises(Exception, match='Invalid timestamp'):
-            state.add_signature(address, older_timestamp, message, "sig2")
+            state.add_signature(address, older_timestamp, message, older_signature)
         assert 'Invalid timestamp' in str(Exception)
 
         # Test newer timestamp (should succeed)
         newer_timestamp = timestamp + 1
-        state.add_signature(address, newer_timestamp, message, "sig3")
-        assert "sig3" in state.signatures[address][message]
+        newer_signature = sign_message(message, private_key)
+        state.add_signature(address, newer_timestamp, message, newer_signature)
+        assert newer_signature in state.signatures[address][message]
 
         # Test state finalization
         state.final = True
@@ -1008,7 +999,7 @@ class TestHivemindStateSignatures:
     
     def test_add_signature(self, state: HivemindState) -> None:
         """Test adding signatures with timestamp validation."""
-        address = MOCK_ADDRESS_1
+        address = generate_bitcoin_keypair()[1]
         message = 'test_message'
         
         # Add first signature
