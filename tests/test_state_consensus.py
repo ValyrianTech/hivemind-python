@@ -719,3 +719,67 @@ class TestHivemindStateContributions:
         # Verify contributions were calculated
         assert address in contributions
         assert isinstance(contributions[address], float)
+
+@pytest.mark.consensus
+class TestHivemindStateConsensusTie:
+    """Tests for consensus calculation when there is a tie."""
+    
+    def test_consensus_tie(self, state: HivemindState, color_choice_issue: HivemindIssue, test_keypair) -> None:
+        """Test consensus when there is a tie between the top two options."""
+        private_key, address = test_keypair
+        issue_hash = color_choice_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Add options from constraints
+        options = []
+        for choice in color_choice_issue.constraints['choices']:
+            option = HivemindOption()
+            option.set_hivemind_issue(issue_hash)
+            option.set(choice['value'])
+            option.text = choice['text']
+            option_hash = option.save()
+            options.append(option_hash)
+            
+            # Sign and add option
+            timestamp = int(time.time())
+            message = f"{timestamp}{option_hash}"
+            signature = sign_message(message, private_key)
+            state.add_option(timestamp, option_hash, address, signature)
+        
+        # Create two opinions that rank red first and one that ranks blue first
+        # This will create a tie between red and blue
+        rankings = [
+            [options[0], options[1], options[2]],  # red > blue > green
+            [options[1], options[0], options[2]],  # blue > red > green
+        ]
+        
+        # Generate different key pairs for each opinion
+        keypairs = [test_keypair] + [generate_bitcoin_keypair()]
+        
+        # Add the opinions
+        for i, (ranking, (voter_key, voter_address)) in enumerate(zip(rankings, keypairs)):
+            opinion = HivemindOpinion()
+            opinion.hivemind_id = issue_hash
+            opinion.question_index = 0
+            opinion.ranking.set_fixed(ranking)
+            opinion.ranking = opinion.ranking.get()
+            opinion_hash = opinion.save()
+            
+            # Initialize participants dictionary and add participant
+            timestamp = int(time.time())
+            state.participants[voter_address] = {'name': f'Test User {i+1}', 'timestamp': timestamp}
+            
+            # Add opinion with valid signature
+            message = f"{timestamp}{opinion_hash}"
+            signature = sign_message(message, voter_key)
+            state.add_opinion(timestamp, opinion_hash, signature, voter_address)
+        
+        # Get consensus - should be None since there's a tie
+        consensus = state.consensus()
+        assert consensus is None
+        
+        # Verify that the scores are actually tied
+        results = state.calculate_results()
+        sorted_options = state.get_sorted_options()
+        assert len(sorted_options) >= 2
+        assert results[sorted_options[0].cid().replace('/ipfs/', '')]['score'] == results[sorted_options[1].cid().replace('/ipfs/', '')]['score']
