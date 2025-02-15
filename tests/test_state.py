@@ -378,6 +378,44 @@ class TestHivemindState:
             assert 'unknown' in results[option_hash]
             assert 'score' in results[option_hash]
 
+    def test_calculate_results_invalid_question_index(self, state: HivemindState) -> None:
+        """Test calculating results with invalid question index"""
+        # Create issue with multiple questions
+        issue = HivemindIssue()
+        issue.name = 'Test Hivemind'
+        issue.add_question('Question 1?')
+        issue.add_question('Question 2?')
+        issue.description = 'Test description'
+        issue.answer_type = 'String'
+        issue.constraints = {}
+        issue.restrictions = {}
+        issue_hash = issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Generate key pair for testing
+        private_key, address = generate_bitcoin_keypair()
+        timestamp = int(time.time())
+        
+        # Add an option
+        option = HivemindOption()
+        option.set_hivemind_issue(issue_hash)
+        option.set('test option')
+        option_hash = option.save()
+        
+        message = f"{timestamp}{option_hash}"
+        signature = sign_message(message, private_key)
+        state.add_option(timestamp, option_hash, address, signature)
+        
+        # Try to calculate results with invalid question index
+        with pytest.raises(IndexError, match='list index out of range'):
+            state.calculate_results(question_index=999)
+        
+        # Valid question indices should work
+        results0 = state.calculate_results(question_index=0)
+        results1 = state.calculate_results(question_index=1)
+        assert isinstance(results0, dict)
+        assert isinstance(results1, dict)
+
     def test_select_consensus_modes(self, state: HivemindState) -> None:
         """Test different consensus selection modes"""
         # Create issue with selection mode
