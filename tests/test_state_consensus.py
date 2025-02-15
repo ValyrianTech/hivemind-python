@@ -202,6 +202,19 @@ class TestHivemindStateConsensusEdgeCases:
         contributions = state.contributions(results)
         assert len(contributions) == 0
 
+    def test_consensus_no_options(self, state: HivemindState, basic_issue: HivemindIssue) -> None:
+        """Test consensus when there are no options at all."""
+        issue_hash = basic_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Get sorted options to verify it's empty
+        sorted_options = state.get_sorted_options()
+        assert len(sorted_options) == 0
+        
+        # Test consensus with no options
+        consensus = state.consensus()
+        assert consensus is None  # This should hit line 467
+
 @pytest.mark.consensus
 class TestHivemindStateConsensusMethods:
     """Tests for consensus methods."""
@@ -353,7 +366,6 @@ class TestHivemindStateConsensusEdgeCases:
 
         with pytest.raises(NotImplementedError):
             state.get_consensus(consensus_type='Invalid')
-
 
 @pytest.mark.consensus
 class TestHivemindStateExcludeSelectionMode:
@@ -783,3 +795,63 @@ class TestHivemindStateConsensusTie:
         sorted_options = state.get_sorted_options()
         assert len(sorted_options) >= 2
         assert results[sorted_options[0].cid().replace('/ipfs/', '')]['score'] == results[sorted_options[1].cid().replace('/ipfs/', '')]['score']
+
+@pytest.mark.consensus
+class TestHivemindStateSingleOptionConsensus:
+    """Tests for consensus calculation when there is exactly one option with votes."""
+    
+    def test_consensus_single_option(self, state: HivemindState, basic_issue: HivemindIssue, test_keypair) -> None:
+        """Test consensus when there is exactly one option with votes."""
+        private_key, address = test_keypair
+        issue_hash = basic_issue.save()
+        state.set_hivemind_issue(issue_hash)
+
+        # Create and add a single option
+        helper = TestHelper()
+        option_hash = helper.create_and_sign_option(
+            state, issue_hash, "only_option", "Only Option", private_key, address, int(time.time())
+        )
+
+        # Create an opinion ranking the single option
+        timestamp = int(time.time())
+        ranking = [option_hash]
+        helper.create_and_sign_opinion(
+            state, issue_hash, ranking, private_key, address, timestamp
+        )
+
+        # Test consensus with single option
+        consensus = state.consensus()
+        assert consensus == "only_option"  # This should hit line 469
+
+@pytest.mark.consensus
+class TestHivemindStateConsensusAllBranches:
+    """Tests for all branches of the consensus method."""
+    
+    def test_consensus_all_branches(self, state: HivemindState, basic_issue: HivemindIssue, test_keypair) -> None:
+        """Test all branches of the consensus method."""
+        private_key, address = test_keypair
+        issue_hash = basic_issue.save()
+        state.set_hivemind_issue(issue_hash)
+
+        # Test empty state (should hit line 467)
+        assert state.consensus() is None
+        sorted_options = state.get_sorted_options()
+        assert len(sorted_options) == 0
+
+        # Create and add a single option
+        helper = TestHelper()
+        option_hash = helper.create_and_sign_option(
+            state, issue_hash, "test_option", "Test Option", private_key, address, int(time.time())
+        )
+
+        # Add opinion to make the option have votes
+        timestamp = int(time.time())
+        ranking = [option_hash]
+        helper.create_and_sign_opinion(
+            state, issue_hash, ranking, private_key, address, timestamp
+        )
+
+        # Test single option case (should hit line 469)
+        assert state.consensus() == "test_option"
+        sorted_options = state.get_sorted_options()
+        assert len(sorted_options) == 1
