@@ -1259,3 +1259,24 @@ class TestHivemindStateExcludeSelectionMode:
         # First selection should be red
         selection = state.select_consensus()
         assert selection[0].replace('/ipfs/', '') == options[0]  # Red is selected
+
+@pytest.mark.consensus
+class TestHivemindStateWeightedConsensus:
+    """Tests for weighted consensus calculation."""
+    
+    def test_get_weight(self, state: HivemindState, basic_issue: HivemindIssue) -> None:
+        """Test the get_weight method with different weight restrictions."""
+        # Set up issue with weight restrictions
+        test_address = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
+        basic_issue.restrictions = {
+            test_address: {"weight": 2.5}
+        }
+        issue_hash = basic_issue.save()
+        state.set_hivemind_issue(issue_hash)
+
+        # Test weight for address with restriction
+        assert state.get_weight(test_address) == 2.5
+
+        # Test weight for address without restriction (should return default 1.0)
+        other_address = "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2"
+        assert state.get_weight(other_address) == 1.0
