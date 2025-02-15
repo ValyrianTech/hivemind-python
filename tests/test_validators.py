@@ -84,6 +84,16 @@ def test_valid_address_mainnet():
     assert valid_address("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq", testnet=False)
 
 
+def test_valid_address_testnet():
+    """Test valid_address with testnet addresses."""
+    # Legacy testnet address
+    assert valid_address("mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn", testnet=True)
+    # Bech32 testnet address
+    assert valid_address("tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx", testnet=True)
+    # Another valid testnet address
+    assert valid_address("2MzQwSSnBHWHqSAqtTVQ6v47XtaisrJa1Vc", testnet=True)
+
+
 def test_valid_bech32_address_testnet_uppercase():
     """Test valid_bech32_address with uppercase testnet addresses."""
     # This tests line 145 for uppercase testnet Bech32 addresses
