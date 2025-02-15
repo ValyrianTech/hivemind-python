@@ -11,7 +11,66 @@ from .test_state_common import (
 @pytest.mark.state
 class TestHivemindStateManagement:
     """Tests for state management."""
-    pass  # Add state management tests here
+    
+    def test_info(self, state: HivemindState, basic_issue: HivemindIssue, test_keypair) -> None:
+        """Test the info() method output."""
+        # Set up initial state
+        issue_hash = basic_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Add some predefined options
+        basic_issue.answer_type = "String"
+        basic_issue.set_constraints({
+            "choices": [
+                {"value": "option1", "text": "Option 1"},
+                {"value": "option2", "text": "Option 2"}
+            ]
+        })
+        
+        # Add options
+        private_key, address = test_keypair
+        timestamp = int(time.time())
+        
+        helper = TestHelper()
+        option1_hash = helper.create_and_sign_option(
+            state, issue_hash, "option1", "Option 1", 
+            private_key, address, timestamp
+        )
+        option2_hash = helper.create_and_sign_option(
+            state, issue_hash, "option2", "Option 2",
+            private_key, address, timestamp + 1
+        )
+        
+        # Add an opinion
+        ranking = [option1_hash, option2_hash]
+        helper.create_and_sign_opinion(
+            state, issue_hash, ranking,
+            private_key, address, timestamp + 2
+        )
+        
+        # Get the info output
+        info_output = state.info()
+        
+        # Verify all components are present
+        assert "================================================================================" in info_output
+        assert "Hivemind id: " in info_output
+        assert "Hivemind main question: Test Question" in info_output
+        assert "Hivemind description: Test Description" in info_output
+        assert "Hivemind tags: test" in info_output
+        assert "Answer type: String" in info_output
+        assert "Option constraints:" in info_output
+        
+        # Verify options info is included
+        assert "Options\n=======" in info_output
+        assert "Option 1:" in info_output
+        assert "Option 2:" in info_output
+        
+        # Verify opinions and results are included
+        assert "Opinions\n========" in info_output
+        assert "Results:\n========" in info_output
+        
+        # Verify the separator is present at the end of sections
+        assert info_output.count("================================================================================") >= 2
 
 @pytest.mark.state
 class TestHivemindStateVerification:
