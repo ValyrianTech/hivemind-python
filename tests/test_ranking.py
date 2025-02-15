@@ -76,3 +76,86 @@ class TestRanking:
         ranking.set_auto_low(choice)
         ranking_dict: Dict[str, Any] = ranking.to_dict()
         assert ranking_dict == {'auto_low': choice}
+
+    def test_set_fixed_invalid_items(self, ranking: Ranking) -> None:
+        """Test setting fixed ranking with invalid items"""
+        choices = ['option1', 2, 'option3']  # 2 is not a string
+        with pytest.raises(Exception) as exc_info:
+            ranking.set_fixed(choices)
+        assert 'Invalid ranked choice' in str(exc_info.value)
+
+    def test_set_auto_high_invalid_choice(self, ranking: Ranking) -> None:
+        """Test setting auto high ranking with invalid choice"""
+        choice = 123  # Not a string
+        with pytest.raises(Exception) as exc_info:
+            ranking.set_auto_high(choice)
+        assert 'Invalid choice for auto ranking' in str(exc_info.value)
+
+    def test_set_auto_low_invalid_choice(self, ranking: Ranking) -> None:
+        """Test setting auto low ranking with invalid choice"""
+        choice = 123  # Not a string
+        with pytest.raises(Exception) as exc_info:
+            ranking.set_auto_low(choice)
+        assert 'Invalid choice for auto ranking' in str(exc_info.value)
+
+    def test_get_auto_ranking_invalid_options(self, ranking: Ranking) -> None:
+        """Test getting auto ranking with invalid options"""
+        ranking.set_auto_high('preferred_option')
+        invalid_options = ['not_an_option_object']
+        with pytest.raises(Exception) as exc_info:
+            ranking.get(invalid_options)
+        assert 'Invalid list of options given for auto ranking' in str(exc_info.value)
+
+    def test_get_auto_high_ranking(self, ranking: Ranking) -> None:
+        """Test getting auto high ranking with valid options"""
+        from hivemind import HivemindOption
+        
+        # Create test options with different values
+        options = []
+        for val in [10, 20, 30, 40]:
+            opt = HivemindOption()
+            opt.value = val
+            opt.save()  # Save to IPFS to get CID
+            options.append(opt)
+        
+        # Set preferred value in the middle
+        preferred = HivemindOption()
+        preferred.value = 25
+        preferred.save()  # Save to IPFS to get CID
+        ranking.set_auto_high(preferred.cid())
+        
+        # Get ranked options
+        ranked_cids = ranking.get(options)
+        
+        # Verify the order - should be ordered by distance to 25, with higher values preferred when equally distant
+        # Expected order: 30 (diff=5), 20 (diff=5), 40 (diff=15), 10 (diff=15)
+        expected_values = [30, 20, 40, 10]
+        actual_values = [next(opt.value for opt in options if opt.cid() == cid) for cid in ranked_cids]
+        assert actual_values == expected_values
+
+    def test_get_auto_low_ranking(self, ranking: Ranking) -> None:
+        """Test getting auto low ranking with valid options"""
+        from hivemind import HivemindOption
+        
+        # Create test options with different values
+        options = []
+        for val in [10, 20, 30, 40]:
+            opt = HivemindOption()
+            opt.value = val
+            opt.save()  # Save to IPFS to get CID
+            options.append(opt)
+        
+        # Set preferred value in the middle
+        preferred = HivemindOption()
+        preferred.value = 25
+        preferred.save()  # Save to IPFS to get CID
+        ranking.set_auto_low(preferred.cid())
+        
+        # Get ranked options
+        ranked_cids = ranking.get(options)
+        
+        # Verify the order - should be ordered by distance to 25, with lower values preferred
+        # Expected order: 20 (diff=5), 30 (diff=5), 10 (diff=15), 40 (diff=15)
+        expected_values = [20, 30, 10, 40]
+        actual_values = [next(opt.value for opt in options if opt.cid() == cid) for cid in ranked_cids]
+        assert actual_values == expected_values
