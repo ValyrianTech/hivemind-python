@@ -119,3 +119,41 @@ class TestHivemindStateOpinions:
         with pytest.raises(Exception, match='Opinion is invalid'):
             state.add_opinion(new_timestamp, invalid_opinion_hash, signature, address)
 
+    def test_opinions_info(self, state: HivemindState, basic_issue: HivemindIssue, test_keypair) -> None:
+        """Test the opinions_info method."""
+        private_key, address = test_keypair
+        issue_hash = basic_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Add an option first
+        option = HivemindOption()
+        option.set_hivemind_issue(issue_hash)
+        option.set("Test Option")
+        option_hash = option.save()
+        
+        # Sign and add option
+        timestamp = int(time.time())
+        message = f"{timestamp}{option_hash}"
+        signature = sign_message(message, private_key)
+        state.add_option(timestamp, option_hash, address, signature)
+        
+        # Create and add an opinion
+        opinion = HivemindOpinion()
+        opinion.hivemind_id = issue_hash
+        opinion.question_index = 0
+        opinion.ranking.set_fixed([option_hash])
+        opinion.ranking = opinion.ranking.get()
+        opinion_hash = opinion.save()
+        
+        # Add the opinion to the state
+        message = f"{timestamp}{opinion_hash}"
+        signature = sign_message(message, private_key)
+        state.add_opinion(timestamp, opinion_hash, signature, address)
+        
+        # Get the opinions info
+        info = state.opinions_info()
+        
+        # Verify the output format
+        assert "Opinions" in info
+        assert "========" in info
+        assert f"Timestamp: {timestamp}" in info
