@@ -913,6 +913,14 @@ class TestHivemindStateErrors:
     def test_add_option_error_handling(self, state: HivemindState, color_choice_issue: HivemindIssue, test_keypair) -> None:
         """Test error handling in add_option."""
         private_key, address = test_keypair
+        
+        # Test adding option without setting hivemind issue
+        timestamp = int(time.time())
+        option_hash = "some_option_hash"
+        # Should return silently without error when no hivemind issue is set
+        state.add_option(timestamp, option_hash, address, "some_signature")
+        
+        # Now set up the issue for remaining tests
         issue_hash = color_choice_issue.save()
         state.set_hivemind_issue(issue_hash)
         
