@@ -950,6 +950,15 @@ class TestHivemindStateErrors:
         with pytest.raises(Exception):
             state.add_option(timestamp, valid_option_hash, address, invalid_signature)
             
+        # Test adding duplicate option
+        # First add a valid option
+        valid_signature = sign_message(f"{timestamp}{valid_option_hash}", private_key)
+        state.add_option(timestamp, valid_option_hash, address, valid_signature)
+        
+        # Try to add the same option again
+        with pytest.raises(Exception, match="Option already exists"):
+            state.add_option(timestamp, valid_option_hash, address, valid_signature)
+            
         # Test adding option to finalized issue
         state.final = True
         with pytest.raises(Exception, match='Can not add option: hivemind issue is finalized'):
