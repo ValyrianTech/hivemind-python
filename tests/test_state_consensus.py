@@ -389,6 +389,50 @@ class TestHivemindStateExcludeSelectionMode:
         selection = state.select_consensus()
         assert selection[0].replace('/ipfs/', '') == options[0]  # Red is selected
 
+    def test_results_info_excluded_options(self, state: HivemindState, color_choice_issue: HivemindIssue, test_keypair) -> None:
+        """Test results_info method when some options are excluded."""
+        private_key, address = test_keypair
+        
+        # Set up issue with 'Exclude' selection mode
+        color_choice_issue.on_selection = 'Exclude'
+        issue_hash = color_choice_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Add options from constraints
+        options = []
+        option_values = []
+        for choice in color_choice_issue.constraints['choices']:
+            option = HivemindOption()
+            option.set_hivemind_issue(issue_hash)
+            option.set(choice['value'])
+            option.text = choice['text']
+            option_hash = option.save()
+            options.append(option_hash)
+            option_values.append(choice['value'])
+            
+            # Sign and add option
+            timestamp = int(time.time())
+            message = f"{timestamp}{option_hash}"
+            signature = sign_message(message, private_key)
+            state.add_option(timestamp, option_hash, address, signature)
+        
+        # Mark first option as selected to exclude it
+        state.selected = [[options[0]]]
+        
+        # Create results dict that includes the excluded option
+        results = {
+            options[0]: {'score': 0.8, 'win': 2, 'loss': 0, 'unknown': 0},  # Excluded option
+            options[1]: {'score': 0.6, 'win': 1, 'loss': 1, 'unknown': 0},  # Available option
+        }
+        
+        # Get results info
+        info = state.results_info(results)
+        
+        # Verify the first option value is not in the results info
+        assert option_values[0] not in info
+        # Verify the second option value is in the results info
+        assert option_values[1] in info
+
 @pytest.mark.consensus
 class TestHivemindStateWeightedConsensus:
     """Tests for weighted consensus calculation."""
