@@ -74,6 +74,60 @@ class TestHivemindStateConsensus:
         assert red_option.value == 'red'
         assert results[options[0]]['score'] > results[options[1]]['score']
 
+    def test_get_score(self, state: HivemindState, color_choice_issue: HivemindIssue, test_keypair) -> None:
+        """Test getting score for a specific option."""
+        private_key, address = test_keypair
+        issue_hash = color_choice_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Add options from constraints
+        options = []
+        for choice in color_choice_issue.constraints['choices']:
+            option = HivemindOption()
+            option.set_hivemind_issue(issue_hash)
+            option.set(choice['value'])
+            option.text = choice['text']
+            option_hash = option.save()
+            options.append(option_hash)
+            
+            # Sign and add option
+            timestamp = int(time.time())
+            message = f"{timestamp}{option_hash}"
+            signature = sign_message(message, private_key)
+            state.add_option(timestamp, option_hash, address, signature)
+        
+        # Add an opinion that ranks red > blue > green
+        opinion = HivemindOpinion()
+        opinion.hivemind_id = issue_hash
+        opinion.question_index = 0
+        opinion.ranking.set_fixed(options)
+        opinion.ranking = opinion.ranking.get()
+        opinion_hash = opinion.save()
+        
+        # Add the opinion to the state
+        timestamp = int(time.time())
+        state.participants[address] = {'name': 'Test User', 'timestamp': timestamp}
+        message = f"{timestamp}{opinion_hash}"
+        signature = sign_message(message, private_key)
+        state.add_opinion(timestamp, opinion_hash, signature, address)
+        
+        # Get score for each option and verify they are valid
+        for option_hash in options:
+            score = state.get_score(option_hash)
+            assert isinstance(score, float)
+            assert 0 <= score <= 1  # Scores should be normalized between 0 and 1
+        
+        # Verify first option (red) has highest score
+        red_score = state.get_score(options[0])
+        blue_score = state.get_score(options[1])
+        green_score = state.get_score(options[2])
+        assert red_score > blue_score
+        assert blue_score > green_score
+
+        # Test with question_index parameter
+        red_score_q0 = state.get_score(options[0], question_index=0)
+        assert red_score_q0 == red_score  # Should be same as default question_index=0
+
 @pytest.mark.consensus
 class TestHivemindStateRankedConsensus:
     """Tests for ranked consensus calculation."""
