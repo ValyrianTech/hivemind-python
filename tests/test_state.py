@@ -171,6 +171,26 @@ class TestHivemindStateInit:
         assert state.hivemind_issue() == state._hivemind_issue
         assert isinstance(state.hivemind_issue(), HivemindIssue)
 
+    def test_load_with_existing_issue(self, state: HivemindState, basic_issue: HivemindIssue) -> None:
+        """Test loading a state with an existing issue that has questions."""
+        # Create and save a state with an issue that has multiple questions
+        basic_issue.add_question("Second Question")  # Now has 2 questions
+        issue_hash = basic_issue.save()
+        
+        # Create and save initial state
+        initial_state = HivemindState()
+        initial_state.set_hivemind_issue(issue_hash)
+        state_hash = initial_state.save()
+        
+        # Load the state in a new instance
+        loaded_state = HivemindState()
+        loaded_state.load(state_hash)
+        
+        # Verify opinions are initialized correctly for all questions
+        assert len(loaded_state.opinions) == len(basic_issue.questions)
+        assert all(isinstance(opinions, dict) for opinions in loaded_state.opinions)
+        assert all(len(opinions) == 0 for opinions in loaded_state.opinions)
+
 @pytest.mark.options
 class TestHivemindStateOptions:
     """Tests for option management."""
@@ -368,6 +388,7 @@ class TestHivemindStateConsensus:
             opinion_hash = opinion.save()
             
             # Initialize participants dictionary and add participant
+            timestamp = int(time.time())
             state.participants[address] = {'name': f'Test User {i+1}', 'timestamp': timestamp}
             
             # Test with valid signature
