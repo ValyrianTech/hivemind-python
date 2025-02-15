@@ -226,12 +226,8 @@ class HivemindState(IPFSDictChain):
         if isinstance(option, HivemindOption) and option.valid():
             if option_hash in self.options:
                 raise Exception("Option already exists")
-            # Signature is already verified, but it is possible an old signature is re-used
-            try:
-                self.add_signature(address=address, timestamp=timestamp, message=option_hash, signature=signature)
-            except Exception as ex:
-                raise Exception('Invalid signature: %s' % ex)
-
+            # Add the signature and option
+            self.add_signature(address=address, timestamp=timestamp, message=option_hash, signature=signature)
             self.options.append(option_hash)
 
     def options_by_participant(self, address: str) -> List[str]:
