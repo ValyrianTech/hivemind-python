@@ -368,3 +368,9 @@ class TestHivemindIssue:
         with pytest.raises(Exception) as exc_info:
             hivemind_issue.valid()
         assert "There must be at least 1 question" in str(exc_info.value)
+
+    def test_set_constraints_invalid_choices_type(self, issue: HivemindIssue) -> None:
+        """Test setting constraints with invalid choices type"""
+        with pytest.raises(Exception) as exc_info:
+            issue.set_constraints({'choices': 'not a list'})
+        assert 'Value of constraint choices must be a list' in str(exc_info.value)
