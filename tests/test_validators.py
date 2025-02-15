@@ -39,6 +39,40 @@ def test_bech32_decode_non_printable():
     assert data is None
 
 
+def test_bech32_decode_invalid_lengths():
+    """Test bech32_decode with invalid length inputs."""
+    # Test with string too short (no '1' separator)
+    assert bech32_decode("tooshort") == (None, None)
+    
+    # Test with string where position of '1' is too early
+    assert bech32_decode("1toolate") == (None, None)
+    
+    # Test with string that's too long (>90 chars)
+    long_address = "bc1" + "q" * 88  # 91 characters total
+    assert bech32_decode(long_address) == (None, None)
+    
+    # Test with string where data part is too short after '1'
+    assert bech32_decode("bc1short") == (None, None)
+
+
+def test_bech32_decode_invalid_charset():
+    """Test bech32_decode with invalid characters after separator."""
+    # Test with invalid characters after the separator
+    assert bech32_decode("bc1!nvalid") == (None, None)
+    assert bech32_decode("bc1inv@lid") == (None, None)
+    
+    # Test with valid HRP but invalid data characters
+    assert bech32_decode("bc1123456") == (None, None)
+
+
+def test_bech32_decode_invalid_checksum():
+    """Test bech32_decode with invalid checksum."""
+    # Take a valid address and modify the last character to make checksum invalid
+    valid_addr = "tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sl5k7"
+    invalid_addr = valid_addr[:-1] + ('p' if valid_addr[-1] != 'p' else 'q')
+    assert bech32_decode(invalid_addr) == (None, None)
+
+
 def test_valid_address_mainnet():
     """Test valid_address with mainnet addresses."""
     # This tests line 118 for mainnet addresses
