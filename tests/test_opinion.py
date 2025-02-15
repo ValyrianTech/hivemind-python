@@ -333,6 +333,29 @@ class TestHivemindOpinion:
         loaded_opinion.ranking.set_fixed([])
         assert loaded_opinion.ranking.get() == []
 
+    def test_load_dict_ranking_fixed(self):
+        """Test loading an opinion with dict ranking using fixed ranking"""
+        opinion = HivemindOpinion()
+        
+        # Create test option
+        option = HivemindOption()
+        option.value = "Test Option"
+        option_cid = option.save()
+        
+        # Create a dict with fixed ranking
+        opinion.hivemind_id = None
+        opinion.question_index = 0
+        opinion.ranking = {'fixed': [option_cid]}  # Set as dict with fixed ranking
+        opinion_cid = opinion.save()
+        
+        # Create a new opinion and load it
+        loaded_opinion = HivemindOpinion()
+        loaded_opinion.load(opinion_cid)
+        
+        assert isinstance(loaded_opinion.ranking, Ranking)
+        assert loaded_opinion.ranking.type == 'fixed'
+        assert loaded_opinion.ranking.get() == [option_cid]
+
     def test_info_with_options(self):
         """Test info() method with actual options in the ranking"""
         # Create a test option
