@@ -441,6 +441,43 @@ class TestHivemindStateRankedConsensus:
         # Green should be last (0 first-place votes)
         assert sorted_options[2].value == 'green'
 
+    def test_compare_edge_cases(self, state: HivemindState, basic_issue: HivemindIssue, test_keypair) -> None:
+        """Test edge cases in option comparison where options are not in the ranking."""
+        from hivemind.state import compare
+        
+        private_key, address = test_keypair
+        issue_hash = basic_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Create three options
+        helper = TestHelper()
+        first_hash = helper.create_and_sign_option(
+            state, issue_hash, "first", "First Option", private_key, address, int(time.time())
+        )
+        second_hash = helper.create_and_sign_option(
+            state, issue_hash, "second", "Second Option", private_key, address, int(time.time())
+        )
+        unranked_hash = helper.create_and_sign_option(
+            state, issue_hash, "unranked", "Unranked Option", private_key, address, int(time.time())
+        )
+        
+        # Create an opinion ranking only first and second
+        timestamp = int(time.time())
+        ranking = [first_hash, second_hash]  # Explicitly not including unranked
+        opinion_hash = helper.create_and_sign_opinion(
+            state, issue_hash, ranking, private_key, address, timestamp
+        )
+        
+        # Test comparing ranked vs unranked option
+        assert compare(first_hash, unranked_hash, opinion_hash) == first_hash  # ranked wins
+        assert compare(unranked_hash, second_hash, opinion_hash) == second_hash  # ranked wins
+        
+        # Test comparing two unranked options
+        another_unranked = helper.create_and_sign_option(
+            state, issue_hash, "another", "Another Unranked", private_key, address, int(time.time())
+        )
+        assert compare(unranked_hash, another_unranked, opinion_hash) is None  # neither wins
+
 @pytest.mark.participants
 class TestHivemindStateParticipants:
     """Tests for participant management."""
