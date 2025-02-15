@@ -909,3 +909,57 @@ class TestHivemindStateConsensusAllBranches:
         assert state.consensus() == "test_option"
         sorted_options = state.get_sorted_options()
         assert len(sorted_options) == 1
+
+@pytest.mark.consensus
+class TestHivemindStateIncomparableOptions:
+    """Tests for consensus calculation when options are incomparable."""
+    
+    def test_consensus_incomparable_options(self, state: HivemindState, color_choice_issue: HivemindIssue, test_keypair) -> None:
+        """Test consensus calculation when options are incomparable (neither preferred over the other)."""
+        private_key, address = test_keypair
+        issue_hash = color_choice_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Add options from constraints
+        options = []
+        for choice in color_choice_issue.constraints['choices']:
+            option = HivemindOption()
+            option.set_hivemind_issue(issue_hash)
+            option.set(choice['value'])
+            option.text = choice['text']
+            option_hash = option.save()
+            options.append(option_hash)
+            
+            # Sign and add option
+            timestamp = int(time.time())
+            message = f"{timestamp}{option_hash}"
+            signature = sign_message(message, private_key)
+            state.add_option(timestamp, option_hash, address, signature)
+        
+        # Create an opinion that only ranks one option
+        opinion = HivemindOpinion()
+        opinion.hivemind_id = issue_hash
+        opinion.question_index = 0
+        # Only include the first option in the ranking
+        opinion.ranking.set_fixed([options[0]])
+        opinion.ranking = opinion.ranking.get()
+        opinion_hash = opinion.save()
+        
+        # Add the opinion
+        timestamp = int(time.time())
+        state.participants[address] = {'name': 'Test User', 'timestamp': timestamp}
+        message = f"{timestamp}{opinion_hash}"
+        signature = sign_message(message, private_key)
+        state.add_opinion(timestamp, opinion_hash, signature, address)
+        
+        # Calculate results
+        results = state.calculate_results()
+        
+        # Verify that options not in the ranking have 'unknown' scores
+        # When comparing options[1] and options[2], neither should be preferred
+        assert results[options[1]]['unknown'] > 0
+        assert results[options[2]]['unknown'] > 0
+        
+        # The first option should have some wins but no unknowns
+        assert results[options[0]]['win'] > 0
+        assert results[options[0]]['unknown'] == 0
