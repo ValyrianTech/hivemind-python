@@ -29,7 +29,7 @@ jobs:
         sudo bash install.sh
         ipfs init
         ipfs daemon &
-        sleep 5  # Give IPFS daemon time to start
+        sleep 5  # Wait for IPFS daemon to initialize and start accepting connections
     
     - name: Install dependencies
       run: |
