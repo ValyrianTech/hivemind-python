@@ -223,8 +223,9 @@ class HivemindState(IPFSDictChain):
         if isinstance(option, HivemindOption) and option.valid():
             if option_hash in self.options:
                 raise Exception("Option already exists")
-            # Add the signature and option
-            self.add_signature(address=address, timestamp=timestamp, message=option_hash, signature=signature)
+            # Only add signature if both address and signature are provided
+            if address is not None and signature is not None:
+                self.add_signature(address=address, timestamp=timestamp, message=option_hash, signature=signature)
             self.options.append(option_hash)
 
     def options_by_participant(self, address: str) -> List[str]:
@@ -309,7 +310,7 @@ class HivemindState(IPFSDictChain):
         :rtype: float
         """
         weight = 1.0
-        if opinionator in self._hivemind_issue.restrictions and 'weight' in self._hivemind_issue.restrictions[opinionator]:
+        if self._hivemind_issue.restrictions is not None and opinionator in self._hivemind_issue.restrictions and 'weight' in self._hivemind_issue.restrictions[opinionator]:
             weight = self._hivemind_issue.restrictions[opinionator]['weight']
 
         return weight

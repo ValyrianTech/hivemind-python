@@ -80,3 +80,36 @@ class TestHivemindStateRestrictions:
         signature6 = sign_message(message6, private_key2)
         with pytest.raises(Exception, match='already added too many options'):
             state.add_option(timestamp, option6_hash, address2, signature6)
+
+    def test_get_weight_none_restrictions(self, state: HivemindState, basic_issue: HivemindIssue) -> None:
+        """Test that get_weight handles None restrictions correctly.
+        
+        This verifies the fix for a bug where get_weight would fail when trying to
+        access restrictions that were None.
+        """
+        # Set up issue with no restrictions
+        basic_issue.restrictions = None
+        issue_hash = basic_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Should return default weight of 1.0 without error
+        weight = state.get_weight("test_address")
+        assert weight == 1.0
+        
+        # Set empty restrictions
+        basic_issue.restrictions = {}
+        issue_hash = basic_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Should still return default weight
+        weight = state.get_weight("test_address")
+        assert weight == 1.0
+        
+        # Set restrictions but without weights
+        basic_issue.restrictions = {"addresses": ["test_address"]}
+        issue_hash = basic_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Should still return default weight
+        weight = state.get_weight("test_address")
+        assert weight == 1.0

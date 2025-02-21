@@ -11,11 +11,6 @@ from .test_state_common import (
 @pytest.mark.signatures
 class TestHivemindStateSignatures:
     """Tests for signature management."""
-    pass  # Add signature management tests here
-
-@pytest.mark.signatures
-class TestHivemindStateSignatures:
-    """Tests for signature management."""
     
     def test_add_signature(self, state: HivemindState) -> None:
         """Test adding signatures with timestamp validation."""
@@ -38,3 +33,38 @@ class TestHivemindStateSignatures:
         timestamp3 = timestamp1 + 1
         state.add_signature(address, timestamp3, message, 'sig3')
         assert 'sig3' in state.signatures[address][message]
+
+    def test_no_null_signatures(self, state: HivemindState, basic_issue: HivemindIssue) -> None:
+        """Test that adding options without signatures doesn't create null entries.
+        
+        This verifies the fix for a bug where adding options without signatures
+        would create entries with null keys in the signatures dictionary.
+        """
+        # Set up issue
+        issue_hash = basic_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        timestamp = int(time.time())
+        
+        # Create and add first option without signature
+        option1 = HivemindOption()
+        option1.set_hivemind_issue(issue_hash)
+        option1.set("test option 1")
+        option1_hash = option1.save()
+        
+        # Add option without address or signature
+        state.add_option(timestamp, option1_hash)
+        
+        # Verify no null entries were created
+        assert None not in state.signatures
+        assert len(state.signatures) == 0
+        
+        # Create and add second option with just address but no signature
+        option2 = HivemindOption()
+        option2.set_hivemind_issue(issue_hash)
+        option2.set("test option 2")
+        option2_hash = option2.save()
+        state.add_option(timestamp, option2_hash, address="test_address")
+        
+        # Verify still no null entries
+        assert None not in state.signatures
+        assert len(state.signatures) == 0
