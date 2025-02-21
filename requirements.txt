@@ -1,4 +1,4 @@
-ipfs-dict-chain>=1.0.9
+ipfs-dict-chain>=1.1.0
 pytest>=7.0.0
 pytest-cov>=4.0.0
 python-bitcoinlib>=0.12.2

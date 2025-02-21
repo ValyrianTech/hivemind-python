@@ -26,7 +26,7 @@ setup(
     ],
     python_requires=">=3.10",
     install_requires=[
-        "ipfs-dict-chain>=1.0.9",
+        "ipfs-dict-chain>=1.1.0",
         "python-bitcoinlib>=0.12.2",
     ],
     extras_require={
