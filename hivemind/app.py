@@ -190,6 +190,10 @@ class StateHashUpdate(BaseModel):
     description: str
     num_options: int
     num_opinions: int
+    answer_type: str
+    questions: List[str]
+    tags: List[str]
+    results: Optional[Dict[str, Any]] = None
 
 # Initialize FastAPI app
 app = FastAPI(title="Hivemind Insights")
@@ -234,13 +238,40 @@ async def create_page(request: Request):
 
 @app.get("/states", response_class=HTMLResponse)
 async def states_page(request: Request):
-    """Render the states page showing all hivemind states."""
-    mapping = load_state_mapping()
-    states = [{"hivemind_id": k, **v} for k, v in mapping.items()]
-    return templates.TemplateResponse("states.html", {
-        "request": request,
-        "states": states
-    })
+    """Display overview of all hivemind states."""
+    try:
+        mapping = load_state_mapping()
+        states = []
+        options = {}  # Dictionary to store option text for each state
+        
+        # Sort states by number of opinions (descending)
+        sorted_states = sorted(
+            mapping.items(),
+            key=lambda x: x[1]['num_opinions'],
+            reverse=True
+        )
+        
+        for hivemind_id, state_info in sorted_states:
+            state_info['hivemind_id'] = hivemind_id
+            states.append(state_info)
+            
+            # If state has results, load its options
+            if state_info.get('results'):
+                try:
+                    state = await get_state(state_info['state_hash'])
+                    if state:
+                        options.update(state.get_options())
+                except Exception as e:
+                    logger.error(f"Error loading options for state {hivemind_id}: {e}")
+        
+        return templates.TemplateResponse("states.html", {
+            "request": request,
+            "states": states,
+            "options": options
+        })
+    except Exception as e:
+        logger.error(f"Error loading states page: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/fetch_state")
 async def fetch_state(request: IPFSHashRequest):
@@ -288,7 +319,11 @@ async def fetch_state(request: IPFSHashRequest):
                 "name": basic_info['issue']['name'],
                 "description": basic_info['issue']['description'],
                 "num_options": basic_info['num_options'],
-                "num_opinions": basic_info['num_opinions']
+                "num_opinions": basic_info['num_opinions'],
+                "answer_type": basic_info['issue']['answer_type'],
+                "questions": basic_info['issue']['questions'],
+                "tags": basic_info['issue']['tags'],
+                "results": None
             }
             save_state_mapping(mapping)
             logger.info(f"Saved state mapping for {state.hivemind_id}")
@@ -485,7 +520,11 @@ async def create_issue(issue: HivemindIssueCreate):
                     "name": issue.name,
                     "description": issue.description,
                     "num_options": len(options),
-                    "num_opinions": 0
+                    "num_opinions": 0,
+                    "answer_type": issue.answer_type,
+                    "questions": issue.questions,
+                    "tags": issue.tags,
+                    "results": None
                 }
                 save_state_mapping(mapping)
                 logger.info("Updated state mapping")
@@ -545,7 +584,11 @@ async def update_state(state_update: StateHashUpdate):
         "name": state_update.name,
         "description": state_update.description,
         "num_options": state_update.num_options,
-        "num_opinions": state_update.num_opinions
+        "num_opinions": state_update.num_opinions,
+        "answer_type": state_update.answer_type,
+        "questions": state_update.questions,
+        "tags": state_update.tags,
+        "results": state_update.results
     }
     save_state_mapping(mapping)
     return {"status": "success", "hivemind_id": state_update.hivemind_id, **mapping[state_update.hivemind_id]}
