@@ -28,7 +28,7 @@
             <!-- Input Form -->
             <div class="max-w-xl mx-auto bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
                 <div class="flex space-x-4">
-                    <input type="text" id="ipfsHash" 
+                    <input type="text" id="cid" 
                            class="flex-1 px-4 py-2 border rounded-lg bg-gray-700 text-white border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                            placeholder="Enter CID"
                            value="{{ initial_cid }}">
@@ -58,320 +58,325 @@
 
         // Auto-fetch state if CID is provided
         document.addEventListener('DOMContentLoaded', function() {
-            const initialCid = document.getElementById('ipfsHash').value;
+            const initialCid = document.getElementById('cid').value;
             if (initialCid) {
                 fetchState();
             }
         });
 
         async function fetchState() {
-            const ipfsHash = document.getElementById('ipfsHash').value.trim();
+            const cid = document.getElementById('cid').value.trim();
             const errorDiv = document.getElementById('error');
             const loadingDiv = document.getElementById('loading');
             const issuesList = document.getElementById('issuesList');
 
-            if (!ipfsHash) {
+            if (!cid) {
                 showError('Please enter a CID');
                 return;
             }
 
-            // Reset and show loading
-            errorDiv.classList.add('hidden');
-            loadingDiv.classList.remove('hidden');
-            issuesList.innerHTML = '';
-
             try {
+                errorDiv.style.display = 'none';
+                loadingDiv.style.display = 'block';
+                issuesList.innerHTML = '';
+
+                // Clear previous state data
+                stateData = null;
+
                 const response = await fetch('/fetch_state', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ cid: ipfsHash })
+                    body: JSON.stringify({ cid: cid })
                 });
 
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
                 const data = await response.json();
+                if (data.error) {
+                    throw new Error(data.error);
+                }
 
-                if (response.ok) {
-                    // Update chain
-                    if (!cidChain.has(ipfsHash)) {
-                        cidChain.set(ipfsHash, { previous: data.previous_cid, next: null });
+                // Update chain
+                if (!cidChain.has(cid)) {
+                    cidChain.set(cid, { previous: data.previous_cid, next: null });
+                }
+                if (data.previous_cid && !cidChain.has(data.previous_cid)) {
+                    cidChain.set(data.previous_cid, { previous: null, next: cid });
+                }
+                // Update next pointers
+                if (data.previous_cid) {
+                    const prevInfo = cidChain.get(data.previous_cid);
+                    if (prevInfo) {
+                        prevInfo.next = cid;
                     }
-                    if (data.previous_cid && !cidChain.has(data.previous_cid)) {
-                        cidChain.set(data.previous_cid, { previous: null, next: ipfsHash });
-                    }
-                    // Update next pointers
-                    if (data.previous_cid) {
-                        const prevInfo = cidChain.get(data.previous_cid);
-                        if (prevInfo) {
-                            prevInfo.next = ipfsHash;
-                        }
-                    }
+                }
 
-                    currentCid = ipfsHash;
+                currentCid = cid;
 
-                    // Create navigation section
-                    const navigationSection = document.createElement('div');
-                    navigationSection.className = 'bg-gray-800 border-l-4 border-blue-500 p-4 mb-6 rounded-lg shadow-lg';
-                    
-                    let navigationContent = '<div class="flex items-center justify-between w-full">';
-                    
-                    // Previous version
-                    navigationContent += '<div class="flex items-center">';
-                    if (data.previous_cid) {
-                        navigationContent += `
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0">
-                                    <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                    </svg>
-                                </div>
-                                <div class="ml-2">
-                                    <p class="text-sm text-blue-300">
-                                        Previous <a href="#" onclick="document.getElementById('ipfsHash').value='${data.previous_cid}'; fetchState(); return false;" 
-                                           class="font-mono hover:text-blue-400 transition-colors duration-200">
-                                            ${data.previous_cid}
-                                        </a>
-                                    </p>
-                                </div>
-                            </div>`;
-                    }
-                    navigationContent += '</div>';
+                // Create navigation section
+                const navigationSection = document.createElement('div');
+                navigationSection.className = 'bg-gray-800 border-l-4 border-blue-500 p-4 mb-6 rounded-lg shadow-lg';
+                
+                let navigationContent = '<div class="flex items-center justify-between w-full">';
+                
+                // Previous version
+                navigationContent += '<div class="flex items-center">';
+                if (data.previous_cid) {
+                    navigationContent += `
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-2">
+                                <p class="text-sm text-blue-300">
+                                    Previous <a href="#" onclick="document.getElementById('cid').value='${data.previous_cid}'; fetchState(); return false;" 
+                                       class="font-mono hover:text-blue-400 transition-colors duration-200">
+                                        ${data.previous_cid}
+                                    </a>
+                                </p>
+                            </div>
+                        </div>`;
+                }
+                navigationContent += '</div>';
 
-                    // Next version
-                    navigationContent += '<div class="flex items-center">';
-                    const currentInfo = cidChain.get(currentCid);
-                    if (currentInfo && currentInfo.next) {
-                        const nextCid = currentInfo.next;
-                        navigationContent += `
-                            <div class="flex items-center">
-                                <div class="mr-2">
-                                    <p class="text-sm text-blue-300">
-                                        Next <a href="#" onclick="document.getElementById('ipfsHash').value='${nextCid}'; fetchState(); return false;" 
-                                           class="font-mono hover:text-blue-400 transition-colors duration-200">
-                                            ${nextCid}
-                                        </a>
-                                    </p>
-                                </div>
-                                <div class="flex-shrink-0">
-                                    <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                                    </svg>
-                                </div>
-                            </div>`;
-                    }
-                    navigationContent += '</div>';
-                    navigationContent += '</div>';
-                    navigationSection.innerHTML = navigationContent;
-                    issuesList.appendChild(navigationSection);
+                // Next version
+                navigationContent += '<div class="flex items-center">';
+                const currentInfo = cidChain.get(currentCid);
+                if (currentInfo && currentInfo.next) {
+                    const nextCid = currentInfo.next;
+                    navigationContent += `
+                        <div class="flex items-center">
+                            <div class="mr-2">
+                                <p class="text-sm text-blue-300">
+                                    Next <a href="#" onclick="document.getElementById('cid').value='${nextCid}'; fetchState(); return false;" 
+                                       class="font-mono hover:text-blue-400 transition-colors duration-200">
+                                        ${nextCid}
+                                    </a>
+                                </p>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                        </div>`;
+                }
+                navigationContent += '</div>';
+                navigationContent += '</div>';
+                navigationSection.innerHTML = navigationContent;
+                issuesList.appendChild(navigationSection);
 
-                    // Display issue information
-                    const issueInfoSection = document.createElement('div');
-                    issueInfoSection.className = 'bg-gray-800 rounded-lg shadow-lg p-6 mb-6';
-                    
-                    const issue = data.issue || {};
-                    const questions = Array.isArray(issue.questions) ? issue.questions : [];
-                    const tags = Array.isArray(issue.tags) ? issue.tags : [];
-                    
-                    issueInfoSection.innerHTML = `
-                        <div class="flex items-center justify-between mb-4">
-                            <h2 class="text-2xl font-semibold text-white">Issue Information</h2>
-                            <span class="px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-medium">
-                                ${data.total_opinions} Opinion${data.total_opinions !== 1 ? 's' : ''}
-                            </span>
+                // Display issue information
+                const issueInfoSection = document.createElement('div');
+                issueInfoSection.className = 'bg-gray-800 rounded-lg shadow-lg p-6 mb-6';
+                
+                const issue = data.issue || {};
+                const questions = Array.isArray(issue.questions) ? issue.questions : [];
+                const tags = Array.isArray(issue.tags) ? issue.tags : [];
+                
+                issueInfoSection.innerHTML = `
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-2xl font-semibold text-white">Issue Information</h2>
+                        <span class="px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-medium">
+                            ${data.total_opinions} Opinion${data.total_opinions !== 1 ? 's' : ''}
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-gray-700 rounded-lg p-4">
+                            <p class="font-medium text-gray-300">Name</p>
+                            <p class="text-white mt-1">${issue.name || 'Unnamed Issue'}</p>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="bg-gray-700 rounded-lg p-4">
-                                <p class="font-medium text-gray-300">Name</p>
-                                <p class="text-white mt-1">${issue.name || 'Unnamed Issue'}</p>
-                            </div>
-                            <div class="bg-gray-700 rounded-lg p-4">
-                                <p class="font-medium text-gray-300">Answer Type</p>
-                                <p class="text-white mt-1">${issue.answer_type || 'Unknown'}</p>
-                            </div>
-                            <div class="md:col-span-2 bg-gray-700 rounded-lg p-4">
-                                <p class="font-medium text-gray-300">Description</p>
-                                <p class="text-white mt-1">${issue.description || 'No description available'}</p>
-                            </div>
-                            <div class="md:col-span-2 bg-gray-700 rounded-lg p-4">
-                                <p class="font-medium text-gray-300">Questions</p>
-                                ${questions.length > 0 ? `
-                                    <ul class="list-disc list-inside text-white mt-1 space-y-1">
-                                        ${questions.map(q => `<li>${q}</li>`).join('')}
-                                    </ul>
-                                ` : `
-                                    <p class="text-gray-400 mt-1 italic">No questions available</p>
-                                `}
-                            </div>
-                            <div class="md:col-span-2 bg-gray-700 rounded-lg p-4">
-                                <p class="font-medium text-gray-300">Tags</p>
-                                <div class="flex flex-wrap gap-2 mt-2">
-                                    ${tags.map(tag => `
-                                        <span class="px-2 py-1 bg-gray-600 text-white rounded text-sm">
-                                            ${tag}
-                                        </span>
-                                    `).join('')}
-                                </div>
+                        <div class="bg-gray-700 rounded-lg p-4">
+                            <p class="font-medium text-gray-300">Answer Type</p>
+                            <p class="text-white mt-1">${issue.answer_type || 'Unknown'}</p>
+                        </div>
+                        <div class="md:col-span-2 bg-gray-700 rounded-lg p-4">
+                            <p class="font-medium text-gray-300">Description</p>
+                            <p class="text-white mt-1">${issue.description || 'No description available'}</p>
+                        </div>
+                        <div class="md:col-span-2 bg-gray-700 rounded-lg p-4">
+                            <p class="font-medium text-gray-300">Questions</p>
+                            ${questions.length > 0 ? `
+                                <ul class="list-disc list-inside text-white mt-1 space-y-1">
+                                    ${questions.map(q => `<li>${q}</li>`).join('')}
+                                </ul>
+                            ` : `
+                                <p class="text-gray-400 mt-1 italic">No questions available</p>
+                            `}
+                        </div>
+                        <div class="md:col-span-2 bg-gray-700 rounded-lg p-4">
+                            <p class="font-medium text-gray-300">Tags</p>
+                            <div class="flex flex-wrap gap-2 mt-2">
+                                ${tags.map(tag => `
+                                    <span class="px-2 py-1 bg-gray-600 text-white rounded text-sm">
+                                        ${tag}
+                                    </span>
+                                `).join('')}
                             </div>
                         </div>
-                    `;
-                    issuesList.appendChild(issueInfoSection);
+                    </div>
+                `;
+                issuesList.appendChild(issueInfoSection);
 
-                    // Display results section
-                    const resultsSection = document.createElement('div');
-                    resultsSection.className = 'bg-gray-800 rounded-lg shadow-lg p-6 mb-6';
+                // Display results section
+                const resultsSection = document.createElement('div');
+                resultsSection.className = 'bg-gray-800 rounded-lg shadow-lg p-6 mb-6';
+                
+                const results = data.results || [];
+                const resultsContent = results.map((questionResults, questionIndex) => {
+                    const question = questions[questionIndex] || `Question ${questionIndex + 1}`;
                     
-                    const results = data.results || [];
-                    const resultsContent = results.map((questionResults, questionIndex) => {
-                        const question = questions[questionIndex] || `Question ${questionIndex + 1}`;
-                        
-                        if (!questionResults || questionResults.length === 0) {
-                            return `
-                                <div class="mb-6 last:mb-0">
-                                    <h3 class="text-lg font-semibold text-white mb-2">${question}</h3>
-                                    <p class="text-gray-400 italic">No results available</p>
-                                </div>
-                            `;
-                        }
-                        
-                        // Sort results by score in descending order
-                        const sortedResults = [...questionResults].sort((a, b) => b.score - a.score);
-                        
+                    if (!questionResults || questionResults.length === 0) {
                         return `
                             <div class="mb-6 last:mb-0">
                                 <h3 class="text-lg font-semibold text-white mb-2">${question}</h3>
-                                <div class="space-y-4">
-                                    ${sortedResults.map((result, index) => {
-                                        const scorePercentage = Math.round(result.score * 100);
-                                        return `
-                                            <div class="bg-gray-700 rounded-lg p-4">
-                                                <div class="flex items-center justify-between mb-2">
-                                                    <span class="font-medium text-gray-300">
-                                                        ${result.text || result.value || 'Unnamed Option'}
-                                                    </span>
-                                                    <span class="text-sm font-medium ${index === 0 ? 'text-green-600' : 'text-gray-400'}">
-                                                        Score: ${result.score || 0}%
-                                                    </span>
-                                                </div>
-                                                <div class="w-full bg-gray-600 rounded-full h-2.5">
-                                                    <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${result.score || 0}%"></div>
-                                                </div>
-                                            </div>
-                                        `;
-                                    }).join('')}
-                                </div>
+                                <p class="text-gray-400 italic">No results available</p>
                             </div>
                         `;
-                    }).join('');
+                    }
                     
-                    resultsSection.innerHTML = `
-                        <div class="flex items-center justify-between mb-4">
-                            <h2 class="text-2xl font-semibold text-white">Results</h2>
+                    // Sort results by score in descending order
+                    const sortedResults = [...questionResults].sort((a, b) => b.score - a.score);
+                    
+                    return `
+                        <div class="mb-6 last:mb-0">
+                            <h3 class="text-lg font-semibold text-white mb-2">${question}</h3>
+                            <div class="space-y-4">
+                                ${sortedResults.map((result, index) => {
+                                    const scorePercentage = Math.round(result.score * 100);
+                                    return `
+                                        <div class="bg-gray-700 rounded-lg p-4">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <span class="font-medium text-gray-300">
+                                                    ${result.text || result.value || 'Unnamed Option'}
+                                                </span>
+                                                <span class="text-sm font-medium ${index === 0 ? 'text-green-600' : 'text-gray-400'}">
+                                                    Score: ${result.score || 0}%
+                                                </span>
+                                            </div>
+                                            <div class="w-full bg-gray-600 rounded-full h-2.5">
+                                                <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${result.score || 0}%"></div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
                         </div>
-                        ${resultsContent}
                     `;
-                    issuesList.appendChild(resultsSection);
+                }).join('');
+                
+                resultsSection.innerHTML = `
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-2xl font-semibold text-white">Results</h2>
+                    </div>
+                    ${resultsContent}
+                `;
+                issuesList.appendChild(resultsSection);
 
-                    // Display options
-                    const optionsSection = document.createElement('div');
-                    optionsSection.className = 'bg-gray-800 rounded-lg shadow-lg p-6 mb-6';
-                    optionsSection.innerHTML = `
-                        <h2 class="text-2xl font-semibold mb-4">Options (${data.options.length})</h2>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            ${data.options.map(option => `
-                                <div class="bg-gray-700 rounded-lg p-4">
-                                    <h4 class="font-semibold mb-2">${option.text || option.value || 'Unnamed Option'}</h4>
-                                    <div class="space-y-2">
-                                        <p class="text-sm text-gray-400">
-                                            <span class="font-medium">Value:</span> ${option.value}
-                                        </p>
-                                        <p class="text-xs font-mono text-gray-500 break-all">
-                                            <span class="font-medium">CID:</span> ${option.cid}
-                                        </p>
+                // Display options
+                const optionsSection = document.createElement('div');
+                optionsSection.className = 'bg-gray-800 rounded-lg shadow-lg p-6 mb-6';
+                optionsSection.innerHTML = `
+                    <h2 class="text-2xl font-semibold mb-4">Options (${data.options.length})</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        ${data.options.map(option => `
+                            <div class="bg-gray-700 rounded-lg p-4">
+                                <h4 class="font-semibold mb-2">${option.text || option.value || 'Unnamed Option'}</h4>
+                                <div class="space-y-2">
+                                    <p class="text-sm text-gray-400">
+                                        <span class="font-medium">Value:</span> ${option.value}
+                                    </p>
+                                    <p class="text-xs font-mono text-gray-500 break-all">
+                                        <span class="font-medium">CID:</span> ${option.cid}
+                                    </p>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                issuesList.appendChild(optionsSection);
+
+                // Display opinions data in an organized way
+                if (data.opinions) {
+                    const opinionsSection = document.createElement('div');
+                    opinionsSection.className = 'bg-gray-800 rounded-lg shadow-lg p-6';
+                    
+                    // Create the header
+                    let opinionsContent = `
+                        <h2 class="text-2xl font-semibold mb-4">Opinions</h2>
+                        ${data.opinions.map((questionOpinions, questionIndex) => {
+                            const question = questions[questionIndex] || `Question ${questionIndex + 1}`;
+                            const opinionEntries = Object.entries(questionOpinions);
+                            
+                            // Sort opinions by contribution score in descending order
+                            opinionEntries.sort((a, b) => (b[1].contribution_score || 0) - (a[1].contribution_score || 0));
+                            
+                            return `
+                                <div class="mb-8 last:mb-0">
+                                    <h3 class="text-lg font-semibold text-white mb-4">${question}</h3>
+                                    <div class="overflow-x-auto">
+                                        <table class="min-w-full divide-y divide-gray-200">
+                                            <thead>
+                                                <tr>
+                                                    <th class="px-4 py-3 bg-gray-700 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Address</th>
+                                                    <th class="px-4 py-3 bg-gray-700 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Contribution</th>
+                                                    <th class="px-4 py-3 bg-gray-700 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Timestamp</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="bg-gray-800 divide-y divide-gray-700">
+                                                ${opinionEntries.map(([address, opinion]) => `
+                                                    <tr class="hover:bg-gray-700 cursor-pointer" onclick="toggleOpinionDetails(this, ${questionIndex}, '${address}')">
+                                                        <td class="px-4 py-3 text-sm font-mono text-gray-300">${address}</td>
+                                                        <td class="px-4 py-3">
+                                                            <div class="flex items-center">
+                                                                <div class="flex-1 w-32 bg-gray-600 rounded-full h-2 mr-2">
+                                                                    <div class="bg-blue-600 h-2 rounded-full" style="width: ${opinion.contribution_score || 0}%"></div>
+                                                                </div>
+                                                                <span class="text-sm font-medium text-gray-300">${opinion.contribution_score || 0}%</span>
+                                                            </div>
+                                                        </td>
+                                                        <td class="px-4 py-3 text-sm text-gray-400">
+                                                            ${new Date(opinion.timestamp * 1000).toLocaleString()}
+                                                        </td>
+                                                    </tr>
+                                                    <tr class="opinion-details hidden">
+                                                        <td colspan="3" class="px-4 py-3 bg-gray-700">
+                                                            <div class="text-sm">
+                                                                <p class="font-medium text-gray-300 mb-2">Ranking:</p>
+                                                                ${opinion.ranking ? `
+                                                                    <ol class="list-decimal list-inside">
+                                                                        ${opinion.ranking.map(optionId => {
+                                                                            const option = data.options.find(o => o.cid === optionId);
+                                                                            return `<li class="text-gray-400">${option ? (option.text || option.value) : optionId}</li>`;
+                                                                        }).join('')}
+                                                                    </ol>
+                                                                ` : '<p class="text-gray-500 italic">No ranking available</p>'}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                `).join('')}
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
-                            `).join('')}
-                        </div>
+                            `;
+                        }).join('')}
                     `;
-                    issuesList.appendChild(optionsSection);
-
-                    // Display opinions data in an organized way
-                    if (data.opinions) {
-                        const opinionsSection = document.createElement('div');
-                        opinionsSection.className = 'bg-gray-800 rounded-lg shadow-lg p-6';
-                        
-                        // Create the header
-                        let opinionsContent = `
-                            <h2 class="text-2xl font-semibold mb-4">Opinions</h2>
-                            ${data.opinions.map((questionOpinions, questionIndex) => {
-                                const question = questions[questionIndex] || `Question ${questionIndex + 1}`;
-                                const opinionEntries = Object.entries(questionOpinions);
-                                
-                                // Sort opinions by contribution score in descending order
-                                opinionEntries.sort((a, b) => (b[1].contribution_score || 0) - (a[1].contribution_score || 0));
-                                
-                                return `
-                                    <div class="mb-8 last:mb-0">
-                                        <h3 class="text-lg font-semibold text-white mb-4">${question}</h3>
-                                        <div class="overflow-x-auto">
-                                            <table class="min-w-full divide-y divide-gray-200">
-                                                <thead>
-                                                    <tr>
-                                                        <th class="px-4 py-3 bg-gray-700 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Address</th>
-                                                        <th class="px-4 py-3 bg-gray-700 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Contribution</th>
-                                                        <th class="px-4 py-3 bg-gray-700 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Timestamp</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody class="bg-gray-800 divide-y divide-gray-700">
-                                                    ${opinionEntries.map(([address, opinion]) => `
-                                                        <tr class="hover:bg-gray-700 cursor-pointer" onclick="toggleOpinionDetails(this, ${questionIndex}, '${address}')">
-                                                            <td class="px-4 py-3 text-sm font-mono text-gray-300">${address}</td>
-                                                            <td class="px-4 py-3">
-                                                                <div class="flex items-center">
-                                                                    <div class="flex-1 w-32 bg-gray-600 rounded-full h-2 mr-2">
-                                                                        <div class="bg-blue-600 h-2 rounded-full" style="width: ${opinion.contribution_score || 0}%"></div>
-                                                                    </div>
-                                                                    <span class="text-sm font-medium text-gray-300">${opinion.contribution_score || 0}%</span>
-                                                                </div>
-                                                            </td>
-                                                            <td class="px-4 py-3 text-sm text-gray-400">
-                                                                ${new Date(opinion.timestamp * 1000).toLocaleString()}
-                                                            </td>
-                                                        </tr>
-                                                        <tr class="opinion-details hidden">
-                                                            <td colspan="3" class="px-4 py-3 bg-gray-700">
-                                                                <div class="text-sm">
-                                                                    <p class="font-medium text-gray-300 mb-2">Ranking:</p>
-                                                                    ${opinion.ranking ? `
-                                                                        <ol class="list-decimal list-inside">
-                                                                            ${opinion.ranking.map(optionId => {
-                                                                                const option = data.options.find(o => o.cid === optionId);
-                                                                                return `<li class="text-gray-400">${option ? (option.text || option.value) : optionId}</li>`;
-                                                                            }).join('')}
-                                                                        </ol>
-                                                                    ` : '<p class="text-gray-500 italic">No ranking available</p>'}
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    `).join('')}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                `;
-                            }).join('')}
-                        `;
-                        
-                        opinionsSection.innerHTML = opinionsContent;
-                        issuesList.appendChild(opinionsSection);
-                    }
-
-                } else {
-                    showError(data.detail || 'Failed to fetch state');
+                    
+                    opinionsSection.innerHTML = opinionsContent;
+                    issuesList.appendChild(opinionsSection);
                 }
+
             } catch (error) {
                 showError('Error fetching state: ' + error.message);
             } finally {
-                loadingDiv.classList.add('hidden');
+                loadingDiv.style.display = 'none';
             }
         }
 
