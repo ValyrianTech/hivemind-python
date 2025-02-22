@@ -160,7 +160,7 @@ log_listener = setup_logging()
 logger = logging.getLogger(__name__)
 
 # Initialize state storage
-STATE_FILE = Path("hivemind_states.json")
+STATE_FILE = Path(__file__).parent / "hivemind_states.json"
 if not STATE_FILE.exists():
     with open(STATE_FILE, "w") as f:
         json.dump({}, f)
@@ -186,6 +186,10 @@ class StateHashUpdate(BaseModel):
     """Pydantic model for updating state hash."""
     hivemind_id: str
     state_hash: str
+    name: str
+    description: str
+    num_options: int
+    num_opinions: int
 
 # Initialize FastAPI app
 app = FastAPI(title="Hivemind Insights")
@@ -232,7 +236,7 @@ async def create_page(request: Request):
 async def states_page(request: Request):
     """Render the states page showing all hivemind states."""
     mapping = load_state_mapping()
-    states = [{"hivemind_id": k, "state_hash": v} for k, v in mapping.items()]
+    states = [{"hivemind_id": k, **v} for k, v in mapping.items()]
     return templates.TemplateResponse("states.html", {
         "request": request,
         "states": states
@@ -275,9 +279,20 @@ async def fetch_state(request: IPFSHashRequest):
                 'tags': issue.tags or [],
                 'questions': issue.questions or [],
                 'answer_type': issue.answer_type or 'Unknown',
-                'constraints': issue.constraints,
-                'restrictions': issue.restrictions
             }
+            
+            # Save state information to hivemind_states.json
+            mapping = load_state_mapping()
+            mapping[state.hivemind_id] = {
+                "state_hash": cid,
+                "name": basic_info['issue']['name'],
+                "description": basic_info['issue']['description'],
+                "num_options": basic_info['num_options'],
+                "num_opinions": basic_info['num_opinions']
+            }
+            save_state_mapping(mapping)
+            logger.info(f"Saved state mapping for {state.hivemind_id}")
+            
             stats.num_questions = len(issue.questions) if issue.questions else 0
             logger.info(f"Loaded issue details for {state.hivemind_id}")
         
@@ -452,6 +467,9 @@ async def create_issue(issue: HivemindIssueCreate):
                 initial_state.set_hivemind_issue(issue_cid)
                 logger.info("Set hivemind issue in state")
                 
+                # Initialize options variable
+                options = []
+                
                 # Add predefined options only for Bool type
                 if issue.answer_type == 'Bool':
                     options = initial_state.add_predefined_options()
@@ -462,7 +480,13 @@ async def create_issue(issue: HivemindIssueCreate):
                 
                 # Save state mapping
                 mapping = load_state_mapping()
-                mapping[issue_cid] = state_cid
+                mapping[issue_cid] = {
+                    "state_hash": state_cid,
+                    "name": issue.name,
+                    "description": issue.description,
+                    "num_options": len(options),
+                    "num_opinions": 0
+                }
                 save_state_mapping(mapping)
                 logger.info("Updated state mapping")
                 
@@ -510,21 +534,27 @@ async def get_latest_state(hivemind_id: str):
     mapping = load_state_mapping()
     if hivemind_id not in mapping:
         raise HTTPException(status_code=404, detail="Hivemind ID not found")
-    return {"hivemind_id": hivemind_id, "state_hash": mapping[hivemind_id]}
+    return {"hivemind_id": hivemind_id, **mapping[hivemind_id]}
 
 @app.post("/api/update_state")
 async def update_state(state_update: StateHashUpdate):
     """Update the state hash for a given hivemind ID."""
     mapping = load_state_mapping()
-    mapping[state_update.hivemind_id] = state_update.state_hash
+    mapping[state_update.hivemind_id] = {
+        "state_hash": state_update.state_hash,
+        "name": state_update.name,
+        "description": state_update.description,
+        "num_options": state_update.num_options,
+        "num_opinions": state_update.num_opinions
+    }
     save_state_mapping(mapping)
-    return {"status": "success", "hivemind_id": state_update.hivemind_id, "state_hash": state_update.state_hash}
+    return {"status": "success", "hivemind_id": state_update.hivemind_id, **mapping[state_update.hivemind_id]}
 
 @app.get("/api/all_states")
 async def get_all_states():
     """Get all tracked hivemind states."""
     mapping = load_state_mapping()
-    return {"states": [{"hivemind_id": k, "state_hash": v} for k, v in mapping.items()]}
+    return {"states": [{"hivemind_id": k, **v} for k, v in mapping.items()]}
 
 if __name__ == "__main__":
     import uvicorn
