@@ -370,28 +370,32 @@ async def fetch_state(request: IPFSHashRequest):
 async def create_issue(issue: HivemindIssueCreate):
     """Create a new HivemindIssue and save it to IPFS."""
     try:
-        # Create new HivemindIssue
-        new_issue = HivemindIssue()
-        new_issue.name = issue.name
-        new_issue.description = issue.description
-        new_issue.tags = issue.tags
-        new_issue.answer_type = issue.answer_type
-        new_issue.on_selection = issue.on_selection
+        def create_and_save():
+            # Create new HivemindIssue
+            new_issue = HivemindIssue()
+            new_issue.name = issue.name
+            new_issue.description = issue.description
+            new_issue.tags = issue.tags
+            new_issue.answer_type = issue.answer_type
+            new_issue.on_selection = issue.on_selection
 
-        # Add questions
-        for question in issue.questions:
-            new_issue.add_question(question)
+            # Add questions
+            for question in issue.questions:
+                new_issue.add_question(question)
 
-        # Set constraints if provided
-        if issue.constraints:
-            new_issue.set_constraints(issue.constraints)
+            # Set constraints if provided
+            if issue.constraints:
+                new_issue.set_constraints(issue.constraints)
 
-        # Set restrictions if provided
-        if issue.restrictions:
-            new_issue.set_restrictions(issue.restrictions)
+            # Set restrictions if provided
+            if issue.restrictions:
+                new_issue.set_restrictions(issue.restrictions)
 
-        # Save to IPFS and get CID
-        cid = new_issue.save()
+            # Save to IPFS and get CID
+            return new_issue.save()
+
+        # Run the creation and save operation in a thread
+        cid = await asyncio.to_thread(create_and_save)
         return {"success": True, "cid": cid}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
