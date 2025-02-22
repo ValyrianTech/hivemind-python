@@ -170,8 +170,14 @@ class IPFSHashRequest(BaseModel):
     ipfs_hash: str
 
 @app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+async def landing_page(request: Request):
+    """Render the landing page."""
+    return templates.TemplateResponse("landing.html", {"request": request})
+
+@app.get("/insights", response_class=HTMLResponse)
+async def insights_page(request: Request):
+    """Render the insights page with IPFS data visualization."""
+    return templates.TemplateResponse("insights.html", {"request": request})
 
 @app.post("/fetch_state")
 async def fetch_state(request: IPFSHashRequest):

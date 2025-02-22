@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hivemind Insights</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-4xl font-bold text-center mb-8 text-gray-800">Hivemind Insights</h1>
+        
+        <!-- Input Form -->
+        <div class="max-w-xl mx-auto bg-white rounded-lg shadow-md p-6 mb-8">
+            <div class="flex space-x-4">
+                <input type="text" id="ipfsHash" 
+                       class="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="Enter IPFS Hash">
+                <button onclick="fetchState()" 
+                        class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    Load
+                </button>
+            </div>
+            <div id="error" class="mt-4 text-red-500 hidden"></div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loading" class="text-center hidden">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        </div>
+
+        <!-- Issues List -->
+        <div id="issuesList" class="space-y-6">
+        </div>
+    </div>
+
+    <script>
+        // Store the chain relationships
+        let cidChain = new Map(); // Maps CID -> { previous: CID, next: CID }
+        let currentCid = null;
+
+        async function fetchState() {
+            const ipfsHash = document.getElementById('ipfsHash').value.trim();
+            const errorDiv = document.getElementById('error');
+            const loadingDiv = document.getElementById('loading');
+            const issuesList = document.getElementById('issuesList');
+
+            if (!ipfsHash) {
+                showError('Please enter an IPFS hash');
+                return;
+            }
+
+            // Reset and show loading
+            errorDiv.classList.add('hidden');
+            loadingDiv.classList.remove('hidden');
+            issuesList.innerHTML = '';
+
+            try {
+                const response = await fetch('/fetch_state', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ ipfs_hash: ipfsHash })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Update chain
+                    if (!cidChain.has(ipfsHash)) {
+                        cidChain.set(ipfsHash, { previous: data.previous_cid, next: null });
+                    }
+                    if (data.previous_cid && !cidChain.has(data.previous_cid)) {
+                        cidChain.set(data.previous_cid, { previous: null, next: ipfsHash });
+                    }
+                    // Update next pointers
+                    if (data.previous_cid) {
+                        const prevInfo = cidChain.get(data.previous_cid);
+                        if (prevInfo) {
+                            prevInfo.next = ipfsHash;
+                        }
+                    }
+
+                    currentCid = ipfsHash;
+                    console.log('Chain:', Object.fromEntries(cidChain));
+                    console.log('Current CID:', currentCid);
+
+                    // Create navigation section
+                    const navigationSection = document.createElement('div');
+                    navigationSection.className = 'bg-blue-50 border-l-4 border-blue-400 p-4 mb-6';
+                    
+                    let navigationContent = '<div class="flex items-center justify-between w-full">';
+                    
+                    // Previous version - always on the left
+                    navigationContent += '<div class="flex items-center">';
+                    if (data.previous_cid) {
+                        navigationContent += `
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div class="ml-2">
+                                    <p class="text-sm text-blue-700">
+                                        Prev <a href="#" onclick="document.getElementById('ipfsHash').value='${data.previous_cid}'; fetchState(); return false;" 
+                                           class="font-mono hover:underline">
+                                            ${data.previous_cid}
+                                        </a>
+                                    </p>
+                                </div>
+                            </div>`;
+                    }
+                    navigationContent += '</div>';
+
+                    // Next version - always on the right
+                    navigationContent += '<div class="flex items-center">';
+                    const currentInfo = cidChain.get(currentCid);
+                    if (currentInfo && currentInfo.next) {
+                        const nextCid = currentInfo.next;
+                        navigationContent += `
+                            <div class="flex items-center">
+                                <div class="mr-2">
+                                    <p class="text-sm text-blue-700">
+                                        Next <a href="#" onclick="document.getElementById('ipfsHash').value='${nextCid}'; fetchState(); return false;" 
+                                           class="font-mono hover:underline">
+                                            ${nextCid}
+                                        </a>
+                                    </p>
+                                </div>
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                            </div>`;
+                    }
+                    navigationContent += '</div>';
+
+                    navigationContent += '</div>';
+                    navigationSection.innerHTML = navigationContent;
+                    issuesList.appendChild(navigationSection);
+
+                    // Display issue information
+                    const issueInfoSection = document.createElement('div');
+                    issueInfoSection.className = 'bg-white rounded-lg shadow-md p-6 mb-6';
+                    
+                    const issue = data.issue || {};
+                    const questions = Array.isArray(issue.questions) ? issue.questions : [];
+                    const tags = Array.isArray(issue.tags) ? issue.tags : [];
+                    
+                    issueInfoSection.innerHTML = `
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-2xl font-semibold text-gray-800">Issue Information</h2>
+                            <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                                ${data.total_opinions} Opinion${data.total_opinions !== 1 ? 's' : ''}
+                            </span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <p class="font-medium text-gray-700">Name</p>
+                                <p class="text-gray-600 mt-1">${issue.name || 'Unnamed Issue'}</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <p class="font-medium text-gray-700">Answer Type</p>
+                                <p class="text-gray-600 mt-1">${issue.answer_type || 'Unknown'}</p>
+                            </div>
+                            <div class="md:col-span-2 bg-gray-50 rounded-lg p-4">
+                                <p class="font-medium text-gray-700">Description</p>
+                                <p class="text-gray-600 mt-1">${issue.description || 'No description available'}</p>
+                            </div>
+                            <div class="md:col-span-2 bg-gray-50 rounded-lg p-4">
+                                <p class="font-medium text-gray-700">Questions</p>
+                                ${questions.length > 0 ? `
+                                    <ul class="list-disc list-inside text-gray-600 mt-1 space-y-1">
+                                        ${questions.map(q => `<li>${q}</li>`).join('')}
+                                    </ul>
+                                ` : `
+                                    <p class="text-gray-500 mt-1 italic">No questions available</p>
+                                `}
+                            </div>
+                            <div class="md:col-span-2 bg-gray-50 rounded-lg p-4">
+                                <p class="font-medium text-gray-700">Tags</p>
+                                ${tags.length > 0 ? `
+                                    <div class="flex flex-wrap gap-2 mt-1">
+                                        ${tags.map(tag => `
+                                            <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                                                ${tag}
+                                            </span>
+                                        `).join('')}
+                                    </div>
+                                ` : `
+                                    <p class="text-gray-500 mt-1 italic">No tags available</p>
+                                `}
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <p class="font-medium text-gray-700">Constraints</p>
+                                ${issue.constraints ? `
+                                    <pre class="text-xs font-mono mt-1 text-gray-600 whitespace-pre-wrap">${JSON.stringify(issue.constraints, null, 2)}</pre>
+                                ` : `
+                                    <p class="text-gray-500 mt-1 italic">No constraints</p>
+                                `}
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <p class="font-medium text-gray-700">Restrictions</p>
+                                ${issue.restrictions ? `
+                                    <pre class="text-xs font-mono mt-1 text-gray-600 whitespace-pre-wrap">${JSON.stringify(issue.restrictions, null, 2)}</pre>
+                                ` : `
+                                    <p class="text-gray-500 mt-1 italic">No restrictions</p>
+                                `}
+                            </div>
+                            <div class="md:col-span-2 bg-gray-50 rounded-lg p-4">
+                                <p class="font-medium text-gray-700">Hivemind ID</p>
+                                <p class="text-xs font-mono break-all text-gray-600 mt-1">${data.hivemind_id}</p>
+                            </div>
+                        </div>
+                    `;
+                    issuesList.appendChild(issueInfoSection);
+
+                    // Display results section
+                    const resultsSection = document.createElement('div');
+                    resultsSection.className = 'bg-white rounded-lg shadow-md p-6 mb-6';
+                    
+                    const results = data.results || [];
+                    const resultsContent = results.map((questionResults, questionIndex) => {
+                        const question = questions[questionIndex] || `Question ${questionIndex + 1}`;
+                        
+                        if (!questionResults || questionResults.length === 0) {
+                            return `
+                                <div class="mb-6 last:mb-0">
+                                    <h3 class="text-lg font-semibold text-gray-800 mb-2">${question}</h3>
+                                    <p class="text-gray-500 italic">No results available</p>
+                                </div>
+                            `;
+                        }
+                        
+                        // Sort results by score in descending order
+                        const sortedResults = [...questionResults].sort((a, b) => b.score - a.score);
+                        
+                        return `
+                            <div class="mb-6 last:mb-0">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-2">${question}</h3>
+                                <div class="space-y-4">
+                                    ${sortedResults.map((result, index) => {
+                                        const scorePercentage = Math.round(result.score * 100);
+                                        return `
+                                            <div class="bg-gray-50 rounded-lg p-4">
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <span class="font-medium text-gray-700">
+                                                        ${result.text || result.value || 'Unnamed Option'}
+                                                    </span>
+                                                    <span class="text-sm font-medium ${index === 0 ? 'text-green-600' : 'text-gray-600'}">
+                                                        Score: ${result.score || 0}%
+                                                    </span>
+                                                </div>
+                                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                                    <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${result.score || 0}%"></div>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                    
+                    resultsSection.innerHTML = `
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-2xl font-semibold text-gray-800">Results</h2>
+                        </div>
+                        ${resultsContent}
+                    `;
+                    issuesList.appendChild(resultsSection);
+
+                    // Display options
+                    const optionsSection = document.createElement('div');
+                    optionsSection.className = 'bg-white rounded-lg shadow-md p-6 mb-6';
+                    optionsSection.innerHTML = `
+                        <h2 class="text-2xl font-semibold mb-4">Options (${data.options.length})</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            ${data.options.map(option => `
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <h4 class="font-semibold mb-2">${option.text || option.value || 'Unnamed Option'}</h4>
+                                    <div class="space-y-2">
+                                        <p class="text-sm text-gray-600">
+                                            <span class="font-medium">Value:</span> ${option.value}
+                                        </p>
+                                        <p class="text-xs font-mono text-gray-500 break-all">
+                                            <span class="font-medium">CID:</span> ${option.cid}
+                                        </p>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    issuesList.appendChild(optionsSection);
+
+                    // Display opinions data in an organized way
+                    if (data.opinions) {
+                        const opinionsSection = document.createElement('div');
+                        opinionsSection.className = 'bg-white rounded-lg shadow-md p-6';
+                        
+                        // Create the header
+                        let opinionsContent = `
+                            <h2 class="text-2xl font-semibold mb-4">Opinions</h2>
+                            ${data.opinions.map((questionOpinions, questionIndex) => {
+                                const question = questions[questionIndex] || `Question ${questionIndex + 1}`;
+                                const opinionEntries = Object.entries(questionOpinions);
+                                
+                                // Sort opinions by contribution score in descending order
+                                opinionEntries.sort((a, b) => (b[1].contribution_score || 0) - (a[1].contribution_score || 0));
+                                
+                                return `
+                                    <div class="mb-8 last:mb-0">
+                                        <h3 class="text-lg font-semibold text-gray-800 mb-4">${question}</h3>
+                                        <div class="overflow-x-auto">
+                                            <table class="min-w-full divide-y divide-gray-200">
+                                                <thead>
+                                                    <tr>
+                                                        <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
+                                                        <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contribution</th>
+                                                        <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="bg-white divide-y divide-gray-200">
+                                                    ${opinionEntries.map(([address, opinion]) => `
+                                                        <tr class="hover:bg-gray-50 cursor-pointer" onclick="toggleOpinionDetails(this, ${questionIndex}, '${address}')">
+                                                            <td class="px-4 py-3 text-sm font-mono text-gray-500">${address}</td>
+                                                            <td class="px-4 py-3">
+                                                                <div class="flex items-center">
+                                                                    <div class="flex-1 w-32 bg-gray-200 rounded-full h-2 mr-2">
+                                                                        <div class="bg-blue-600 h-2 rounded-full" style="width: ${opinion.contribution_score || 0}%"></div>
+                                                                    </div>
+                                                                    <span class="text-sm font-medium text-gray-700">${opinion.contribution_score || 0}%</span>
+                                                                </div>
+                                                            </td>
+                                                            <td class="px-4 py-3 text-sm text-gray-500">
+                                                                ${new Date(opinion.timestamp * 1000).toLocaleString()}
+                                                            </td>
+                                                        </tr>
+                                                        <tr class="opinion-details hidden">
+                                                            <td colspan="3" class="px-4 py-3 bg-gray-50">
+                                                                <div class="text-sm">
+                                                                    <p class="font-medium text-gray-700 mb-2">Ranking:</p>
+                                                                    ${opinion.ranking ? `
+                                                                        <ol class="list-decimal list-inside">
+                                                                            ${opinion.ranking.map(optionId => {
+                                                                                const option = data.options.find(o => o.cid === optionId);
+                                                                                return `<li class="text-gray-600">${option ? (option.text || option.value) : optionId}</li>`;
+                                                                            }).join('')}
+                                                                        </ol>
+                                                                    ` : '<p class="text-gray-500 italic">No ranking available</p>'}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    `).join('')}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        `;
+                        
+                        opinionsSection.innerHTML = opinionsContent;
+                        issuesList.appendChild(opinionsSection);
+                    }
+
+                } else {
+                    showError(data.detail || 'Failed to load state');
+                }
+            } catch (error) {
+                showError('Error loading state: ' + error.message);
+            } finally {
+                loadingDiv.classList.add('hidden');
+            }
+        }
+
+        // Function to toggle opinion details with IPFS data
+        function toggleOpinionDetails(row, questionIndex, address) {
+            const detailsRow = row.nextElementSibling;
+            detailsRow.classList.toggle('hidden');
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+        }
+    </script>
+    <style>
+        .opinion-details {
+            transition: opacity 150ms ease-in-out;
+        }
+        .opinion-details.hidden {
+            opacity: 0;
+        }
+        .opinion-details:not(.hidden) {
+            opacity: 1;
+        }
+    </style>
+</body>
+</html>
