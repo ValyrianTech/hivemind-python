@@ -30,7 +30,8 @@
                 <div class="flex space-x-4">
                     <input type="text" id="ipfsHash" 
                            class="flex-1 px-4 py-2 border rounded-lg bg-gray-700 text-white border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                           placeholder="Enter IPFS Hash">
+                           placeholder="Enter CID"
+                           value="{{ initial_cid }}">
                     <button onclick="fetchState()" 
                             class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transform hover:scale-105 transition duration-200">
                         Load
@@ -55,6 +56,14 @@
         let cidChain = new Map(); // Maps CID -> { previous: CID, next: CID }
         let currentCid = null;
 
+        // Auto-fetch state if CID is provided
+        document.addEventListener('DOMContentLoaded', function() {
+            const initialCid = document.getElementById('ipfsHash').value;
+            if (initialCid) {
+                fetchState();
+            }
+        });
+
         async function fetchState() {
             const ipfsHash = document.getElementById('ipfsHash').value.trim();
             const errorDiv = document.getElementById('error');
@@ -62,7 +71,7 @@
             const issuesList = document.getElementById('issuesList');
 
             if (!ipfsHash) {
-                showError('Please enter an IPFS hash');
+                showError('Please enter a CID');
                 return;
             }
 
@@ -77,7 +86,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ ipfs_hash: ipfsHash })
+                    body: JSON.stringify({ cid: ipfsHash })
                 });
 
                 const data = await response.json();

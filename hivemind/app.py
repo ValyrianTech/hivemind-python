@@ -197,7 +197,7 @@ app.mount("/static", StaticFiles(directory=static_dir), name="static")
 templates = Jinja2Templates(directory=templates_dir)
 
 class IPFSHashRequest(BaseModel):
-    ipfs_hash: str
+    cid: str
 
 class HivemindIssueCreate(BaseModel):
     """Pydantic model for creating a new HivemindIssue."""
@@ -218,7 +218,10 @@ async def landing_page(request: Request):
 @app.get("/insights", response_class=HTMLResponse)
 async def insights_page(request: Request):
     """Render the insights page with IPFS data visualization."""
-    return templates.TemplateResponse("insights.html", {"request": request})
+    return templates.TemplateResponse("insights.html", {
+        "request": request,
+        "initial_cid": request.query_params.get("cid", "")
+    })
 
 @app.get("/create", response_class=HTMLResponse)
 async def create_page(request: Request):
@@ -240,16 +243,16 @@ async def fetch_state(request: IPFSHashRequest):
     stats = StateLoadingStats()
     
     try:
-        ipfs_hash = request.ipfs_hash
-        if not ipfs_hash:
-            raise HTTPException(status_code=400, detail="IPFS hash is required")
+        cid = request.cid
+        if not cid:
+            raise HTTPException(status_code=400, detail="CID is required")
         
-        stats.state_cid = ipfs_hash
-        logger.info(f"Attempting to load state from IPFS with CID: {ipfs_hash}")
+        stats.state_cid = cid
+        logger.info(f"Attempting to load state from IPFS with CID: {cid}")
 
         # Load the state in a thread
         state_start = time.time()
-        state = await asyncio.to_thread(lambda: HivemindState(cid=ipfs_hash))
+        state = await asyncio.to_thread(lambda: HivemindState(cid=cid))
         stats.state_load_time = time.time() - state_start
         
         # Get basic info that doesn't require IPFS calls
@@ -403,7 +406,7 @@ async def fetch_state(request: IPFSHashRequest):
         return basic_info
 
     except Exception as e:
-        logger.error(f"Error processing state {ipfs_hash}: {str(e)}")
+        logger.error(f"Error processing state {cid}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/create_issue")
