@@ -9,6 +9,8 @@ import asyncio
 import time
 from datetime import datetime
 import csv
+import json
+from pathlib import Path
 
 # Add parent directory to Python path to find hivemind package
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -157,6 +159,34 @@ def setup_logging():
 log_listener = setup_logging()
 logger = logging.getLogger(__name__)
 
+# Initialize state storage
+STATE_FILE = Path("hivemind_states.json")
+if not STATE_FILE.exists():
+    with open(STATE_FILE, "w") as f:
+        json.dump({}, f)
+
+def load_state_mapping():
+    """Load the hivemind state mapping from JSON file."""
+    try:
+        with open(STATE_FILE, "r") as f:
+            return json.load(f)
+    except Exception as e:
+        logger.error(f"Failed to load state mapping: {str(e)}")
+        return {}
+
+def save_state_mapping(mapping):
+    """Save the hivemind state mapping to JSON file."""
+    try:
+        with open(STATE_FILE, "w") as f:
+            json.dump(mapping, f, indent=2)
+    except Exception as e:
+        logger.error(f"Failed to save state mapping: {str(e)}")
+
+class StateHashUpdate(BaseModel):
+    """Pydantic model for updating state hash."""
+    hivemind_id: str
+    state_hash: str
+
 # Initialize FastAPI app
 app = FastAPI(title="Hivemind Insights")
 
@@ -194,6 +224,16 @@ async def insights_page(request: Request):
 async def create_page(request: Request):
     """Render the create page for new HivemindIssues."""
     return templates.TemplateResponse("create.html", {"request": request})
+
+@app.get("/states", response_class=HTMLResponse)
+async def states_page(request: Request):
+    """Render the states page showing all hivemind states."""
+    mapping = load_state_mapping()
+    states = [{"hivemind_id": k, "state_hash": v} for k, v in mapping.items()]
+    return templates.TemplateResponse("states.html", {
+        "request": request,
+        "states": states
+    })
 
 @app.post("/fetch_state")
 async def fetch_state(request: IPFSHashRequest):
@@ -425,6 +465,28 @@ async def test_ipfs():
             status_code=500,
             detail=f"Internal server error: {str(e)}"
         )
+
+@app.get("/api/latest_state/{hivemind_id}")
+async def get_latest_state(hivemind_id: str):
+    """Get the latest state hash for a given hivemind ID."""
+    mapping = load_state_mapping()
+    if hivemind_id not in mapping:
+        raise HTTPException(status_code=404, detail="Hivemind ID not found")
+    return {"hivemind_id": hivemind_id, "state_hash": mapping[hivemind_id]}
+
+@app.post("/api/update_state")
+async def update_state(state_update: StateHashUpdate):
+    """Update the state hash for a given hivemind ID."""
+    mapping = load_state_mapping()
+    mapping[state_update.hivemind_id] = state_update.state_hash
+    save_state_mapping(mapping)
+    return {"status": "success", "hivemind_id": state_update.hivemind_id, "state_hash": state_update.state_hash}
+
+@app.get("/api/all_states")
+async def get_all_states():
+    """Get all tracked hivemind states."""
+    mapping = load_state_mapping()
+    return {"states": [{"hivemind_id": k, "state_hash": v} for k, v in mapping.items()]}
 
 if __name__ == "__main__":
     import uvicorn

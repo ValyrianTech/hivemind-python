@@ -37,3 +37,6 @@ logs/
 *_stats.csv
 
 .idea/
+
+# State files
+hivemind/hivemind_states.json
