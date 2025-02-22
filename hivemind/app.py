@@ -426,18 +426,53 @@ async def create_issue(issue: HivemindIssueCreate):
             # Set constraints if provided
             if issue.constraints:
                 new_issue.set_constraints(issue.constraints)
+            elif issue.answer_type == 'Bool':
+                # Add default constraints for Bool type
+                new_issue.set_constraints({
+                    'true_value': 'True',
+                    'false_value': 'False'
+                })
 
             # Set restrictions if provided
             if issue.restrictions:
                 new_issue.set_restrictions(issue.restrictions)
 
-            # Save to IPFS and get CID
-            return new_issue.save()
+            logger.info(f"Created issue with name: {issue.name}, type: {issue.answer_type}")
+            
+            try:
+                # Save issue to IPFS and get CID
+                issue_cid = new_issue.save()
+                logger.info(f"Saved issue to IPFS with CID: {issue_cid}")
+                
+                # Create initial state with the issue
+                initial_state = HivemindState()
+                initial_state.set_hivemind_issue(issue_cid)
+                logger.info("Set hivemind issue in state")
+                
+                # Add predefined options only for Bool type
+                if issue.answer_type == 'Bool':
+                    options = initial_state.add_predefined_options()
+                    logger.info(f"Added predefined options: {options}")
+                
+                state_cid = initial_state.save()
+                logger.info(f"Saved state to IPFS with CID: {state_cid}")
+                
+                # Save state mapping
+                mapping = load_state_mapping()
+                mapping[issue_cid] = state_cid
+                save_state_mapping(mapping)
+                logger.info("Updated state mapping")
+                
+                return {"issue_cid": issue_cid, "state_cid": state_cid}
+            except Exception as e:
+                logger.error(f"Error in create_and_save: {str(e)}")
+                raise
 
         # Run the creation and save operation in a thread
-        cid = await asyncio.to_thread(create_and_save)
-        return {"success": True, "cid": cid}
+        result = await asyncio.to_thread(create_and_save)
+        return {"success": True, **result}
     except Exception as e:
+        logger.error(f"Failed to create issue: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/api/test_ipfs")

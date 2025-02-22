@@ -145,11 +145,11 @@
             <div id="result" class="mt-6 hidden">
                 <div class="bg-gray-700 border border-green-500 rounded-md p-4">
                     <h3 class="text-lg font-medium text-green-400">Issue Created Successfully!</h3>
-                    <p class="mt-2 text-sm text-gray-300">IPFS CID: <span id="issueCid" class="font-mono text-blue-400"></span></p>
+                    <p class="mt-2 text-sm text-gray-300">State CID: <span id="stateCid" class="font-mono text-blue-400"></span></p>
                     <div class="mt-4">
                         <a id="viewInsights" href="#" 
                            class="text-blue-400 hover:text-blue-300 font-medium transition-colors duration-200">
-                            View in Insights →
+                            View Insights →
                         </a>
                     </div>
                 </div>
@@ -185,51 +185,49 @@
             div.classList.toggle('hidden');
         }
 
-        document.getElementById('createIssueForm').addEventListener('submit', async (e) => {
+        document.getElementById('createIssueForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-
-            // Gather questions
-            const questionInputs = document.querySelectorAll('#questions-container input');
-            const questions = Array.from(questionInputs).map(input => input.value);
-
-            // Parse tags
+            
+            // Get questions
+            const questions = [];
+            document.querySelectorAll('#questions-container input').forEach(input => {
+                if (input.value) questions.push(input.value);
+            });
+            
+            // Get tags
             const tags = document.getElementById('tags').value
                 .split(',')
                 .map(tag => tag.trim())
                 .filter(tag => tag);
-
-            // Create request body
+            
+            // Get constraints and restrictions
+            let constraints = null;
+            let restrictions = null;
+            try {
+                const constraintsText = document.getElementById('constraints').value;
+                if (constraintsText) {
+                    constraints = JSON.parse(constraintsText);
+                }
+                const restrictionsText = document.getElementById('restrictions').value;
+                if (restrictionsText) {
+                    restrictions = JSON.parse(restrictionsText);
+                }
+            } catch (error) {
+                alert('Invalid JSON in constraints or restrictions');
+                return;
+            }
+            
             const data = {
                 name: document.getElementById('name').value,
                 description: document.getElementById('description').value,
                 questions: questions,
                 tags: tags,
                 answer_type: document.getElementById('answer_type').value,
-                on_selection: document.getElementById('on_selection').value || null
+                on_selection: document.getElementById('on_selection').value || null,
+                constraints: constraints,
+                restrictions: restrictions
             };
-
-            // Parse JSON fields if they're not empty
-            const constraints = document.getElementById('constraints').value.trim();
-            const restrictions = document.getElementById('restrictions').value.trim();
-
-            if (constraints) {
-                try {
-                    data.constraints = JSON.parse(constraints);
-                } catch (error) {
-                    alert('Invalid JSON in constraints field');
-                    return;
-                }
-            }
-
-            if (restrictions) {
-                try {
-                    data.restrictions = JSON.parse(restrictions);
-                } catch (error) {
-                    alert('Invalid JSON in restrictions field');
-                    return;
-                }
-            }
-
+            
             try {
                 const response = await fetch('/api/create_issue', {
                     method: 'POST',
@@ -238,30 +236,14 @@
                     },
                     body: JSON.stringify(data)
                 });
-
+                
                 const result = await response.json();
-
-                if (response.ok) {
-                    const resultDiv = document.getElementById('result');
-                    const issueCid = document.getElementById('issueCid');
-                    const viewInsights = document.getElementById('viewInsights');
-                    
-                    issueCid.textContent = result.cid;
-                    viewInsights.href = `/insights?ipfs_hash=${result.cid}`;
-                    resultDiv.classList.remove('hidden');
-
-                    // Clear form
-                    document.getElementById('createIssueForm').reset();
-                    const questionsContainer = document.getElementById('questions-container');
-                    while (questionsContainer.children.length > 1) {
-                        questionsContainer.lastChild.remove();
-                    }
-                    const firstQuestion = questionsContainer.firstElementChild;
-                    if (firstQuestion) {
-                        firstQuestion.querySelector('input').value = '';
-                    }
+                if (result.success) {
+                    document.getElementById('stateCid').textContent = result.state_cid;
+                    document.getElementById('viewInsights').href = `/insights?cid=${result.state_cid}`;
+                    document.getElementById('result').classList.remove('hidden');
                 } else {
-                    alert(result.detail || 'Failed to create issue');
+                    alert('Failed to create issue');
                 }
             } catch (error) {
                 alert('Error creating issue: ' + error.message);
