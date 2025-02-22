@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Hivemind Issue</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -46,14 +47,16 @@
                         <div class="flex space-x-2">
                             <input type="text" required maxlength="255" placeholder="Enter a question"
                                    class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            <button type="button" onclick="removeQuestion(this)" class="px-3 py-2 bg-red-500 text-white rounded-md hover:bg-red-600">
-                                Remove
+                            <button type="button" onclick="removeQuestion(this)" 
+                                    class="px-3 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors duration-200">
+                                <i class="fas fa-trash-alt"></i>
                             </button>
                         </div>
                     </div>
                     <button type="button" onclick="addQuestion()" 
-                            class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600">
-                        Add Question
+                            class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors duration-200">
+                        <i class="fas fa-plus"></i>
+                        <span class="ml-2">Add Question</span>
                     </button>
                 </div>
 
@@ -159,8 +162,8 @@
                 <input type="text" required maxlength="255" placeholder="Enter a question"
                        class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 <button type="button" onclick="removeQuestion(this)" 
-                        class="px-3 py-2 bg-red-500 text-white rounded-md hover:bg-red-600">
-                    Remove
+                        class="px-3 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors duration-200">
+                    <i class="fas fa-trash-alt"></i>
                 </button>
             `;
             container.appendChild(div);
