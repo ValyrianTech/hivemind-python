@@ -169,6 +169,17 @@ templates = Jinja2Templates(directory=templates_dir)
 class IPFSHashRequest(BaseModel):
     ipfs_hash: str
 
+class HivemindIssueCreate(BaseModel):
+    """Pydantic model for creating a new HivemindIssue."""
+    name: str
+    description: str
+    questions: List[str]
+    tags: List[str]
+    answer_type: str
+    constraints: Optional[Dict[str, Union[str, int, float, list]]] = None
+    restrictions: Optional[Dict[str, Union[List[str], int]]] = None
+    on_selection: Optional[str] = None
+
 @app.get("/", response_class=HTMLResponse)
 async def landing_page(request: Request):
     """Render the landing page."""
@@ -178,6 +189,11 @@ async def landing_page(request: Request):
 async def insights_page(request: Request):
     """Render the insights page with IPFS data visualization."""
     return templates.TemplateResponse("insights.html", {"request": request})
+
+@app.get("/create", response_class=HTMLResponse)
+async def create_page(request: Request):
+    """Render the create page for new HivemindIssues."""
+    return templates.TemplateResponse("create.html", {"request": request})
 
 @app.post("/fetch_state")
 async def fetch_state(request: IPFSHashRequest):
@@ -349,6 +365,36 @@ async def fetch_state(request: IPFSHashRequest):
     except Exception as e:
         logger.error(f"Error processing state {ipfs_hash}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/create_issue")
+async def create_issue(issue: HivemindIssueCreate):
+    """Create a new HivemindIssue and save it to IPFS."""
+    try:
+        # Create new HivemindIssue
+        new_issue = HivemindIssue()
+        new_issue.name = issue.name
+        new_issue.description = issue.description
+        new_issue.tags = issue.tags
+        new_issue.answer_type = issue.answer_type
+        new_issue.on_selection = issue.on_selection
+
+        # Add questions
+        for question in issue.questions:
+            new_issue.add_question(question)
+
+        # Set constraints if provided
+        if issue.constraints:
+            new_issue.set_constraints(issue.constraints)
+
+        # Set restrictions if provided
+        if issue.restrictions:
+            new_issue.set_restrictions(issue.restrictions)
+
+        # Save to IPFS and get CID
+        cid = new_issue.save()
+        return {"success": True, "cid": cid}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/api/test_ipfs")
 async def test_ipfs():
