@@ -52,14 +52,14 @@ pytest-cov >= 4.0.0
 │   ├── advanced_features.py # Advanced usage examples
 │   └── protocol_upgrade.py # Protocol upgrade demonstration
 │
-├── server/              # Server implementation
-│   ├── app.py              # Main server application
-│   ├── requirements.txt    # Server-specific dependencies
-│   ├── static/            # Static files for the server
+├── hivemind/            # Main package + Web Application
+│   ├── app.py              # Main web application
+│   ├── requirements.txt    # Web app specific dependencies
+│   ├── static/            # Static files (CSS, JS, images)
 │   ├── templates/         # HTML templates
-│   └── logs/              # Server logs directory
+│   └── logs/              # Application logs
 │
-├── src/hivemind/        # Main package source code
+├── src/hivemind/        # Core package source code
 │   ├── __init__.py          # Package initialization and public API exports
 │   ├── issue.py            # Implementation of voting issues and questions
 │   ├── opinion.py          # Handling of voter opinions and preferences
