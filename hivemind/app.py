@@ -400,6 +400,7 @@ async def fetch_state(request: IPFSHashRequest):
         # Calculate results for each question
         calculation_start = time.time()
         results = []
+        full_results = []  # Keep full results for the frontend
         for question_index in range(len(state.opinions)):
             try:
                 logger.info(f"Calculating results for question {question_index}...")
@@ -409,7 +410,7 @@ async def fetch_state(request: IPFSHashRequest):
                 logger.info(f"Raw question results: {question_results}")
                 logger.info(f"Sorted options: {[opt.cid() for opt in sorted_options]}")
                 
-                # Format results for the frontend
+                # Format full results for the frontend
                 formatted_results = []
                 for option in sorted_options:
                     # Remove '/ipfs/' prefix if present when looking up the score
@@ -426,7 +427,7 @@ async def fetch_state(request: IPFSHashRequest):
                         'text': option.text if hasattr(option, 'text') else str(option.value),
                         'score': round(score * 100, 2)  # Convert to percentage and round to 2 decimal places
                     })
-                    
+                
                 # Calculate contribution scores
                 contributions = await asyncio.to_thread(lambda: state.contributions(results=question_results, question_index=question_index))
                 
@@ -434,12 +435,39 @@ async def fetch_state(request: IPFSHashRequest):
                 for address in full_opinions[question_index]:
                     contribution = contributions.get(address, 0)
                     full_opinions[question_index][address]['contribution_score'] = round(contribution * 100, 2)
-                    
-                results.append(formatted_results)
+                
+                full_results.append(formatted_results)
+                
+                # Store just the winning option for the state mapping
+                if sorted_options:
+                    winning_option = sorted_options[0]
+                    cid = winning_option.cid()
+                    if cid.startswith('/ipfs/'):
+                        cid = cid[6:]
+                    score = question_results.get(cid, {}).get('score', 0)
+                    if score is None:
+                        score = 0
+                        
+                    results.append({
+                        'text': winning_option.text if hasattr(winning_option, 'text') else str(winning_option.value),
+                        'value': winning_option.value if hasattr(winning_option, 'value') else None,
+                        'score': round(score * 100, 2)
+                    })
+                else:
+                    results.append(None)
+                        
             except Exception as e:
                 logger.error(f"Failed to calculate results for question {question_index}: {str(e)}")
-                results.append([])
+                full_results.append([])
+                results.append(None)
         stats.calculation_time = time.time() - calculation_start
+            
+        # Update the state mapping with just the winning results
+        mapping = load_state_mapping()
+        if state.hivemind_id in mapping:
+            mapping[state.hivemind_id]["results"] = results
+            save_state_mapping(mapping)
+            logger.info(f"Updated state mapping with winning results for {state.hivemind_id}")
         
         # Calculate total time
         stats.total_time = time.time() - stats.start_time
@@ -450,7 +478,8 @@ async def fetch_state(request: IPFSHashRequest):
         
         # Add statistics to response
         basic_info['stats'] = stats.to_dict()
-        basic_info['results'] = results
+        basic_info['results'] = full_results  # Use full results for the frontend
+        basic_info['full_opinions'] = full_opinions
         
         logger.info(f"Completed loading state info with {len(options)} options and {basic_info['total_opinions']} opinions")
         return basic_info

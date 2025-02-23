@@ -63,19 +63,16 @@
                     </div>
                     {% if state.results %}
                     <div class="mb-4">
-                        <h4 class="text-sm uppercase text-gray-500 font-semibold mb-2">Current Winner</h4>
-                        {% set max_score = namespace(value=0, option='') %}
-                        {% for option, score in state.results.items() %}
-                            {% if score > max_score.value %}
-                                {% set max_score.value = score %}
-                                {% set max_score.option = option %}
+                        <h4 class="text-sm uppercase text-gray-500 font-semibold mb-2">Current Winners</h4>
+                        {% for result in state.results %}
+                            {% if result %}
+                            <div class="bg-green-900 bg-opacity-20 text-green-300 p-3 rounded {% if not loop.first %}mt-2{% endif %}">
+                                <div class="text-xs text-green-400 mb-1">Question {{ loop.index }}</div>
+                                <div class="font-semibold">{{ result.text }}</div>
+                                <div class="text-xs mt-1">Score: {{ "%.2f"|format(result.score) }}</div>
+                            </div>
                             {% endif %}
                         {% endfor %}
-                        <div class="bg-green-900 bg-opacity-20 text-green-300 p-3 rounded">
-                            <div class="text-xs text-green-400 mb-1">Leading Option</div>
-                            <div class="font-semibold">{{ options.get(max_score.option, {}).get('text', max_score.option) }}</div>
-                            <div class="text-xs mt-1">Score: {{ "%.2f"|format(max_score.value) }}</div>
-                        </div>
                     </div>
                     {% endif %}
                     <div class="flex justify-end">
