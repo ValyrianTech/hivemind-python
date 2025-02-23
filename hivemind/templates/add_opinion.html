@@ -15,9 +15,12 @@
             border: 2px dashed #4299e1;
             transform: scale(1.02);
         }
-        .options-ranking {
-            min-height: 200px;
+        .ranked-options {
+            min-height: 100px;
             padding: 8px;
+        }
+        .unranked-options {
+            min-height: 100px;
         }
         .drag-handle {
             cursor: move;
@@ -61,28 +64,36 @@
                 <div class="space-y-4">
                     <label class="block text-lg font-medium">Question {{ loop.index }}</label>
                     <p class="text-gray-300">{{ question }}</p>
+                    {% set question_index = loop.index0 %}
                     
-                    <div class="options-ranking" id="ranking-{{ loop.index0 }}">
-                        {% for option in options %}
-                        <div class="bg-gray-700 p-4 rounded-lg mb-2 cursor-move" 
-                             draggable="true"
-                             data-option-cid="{{ option.cid }}"
-                             data-index="{{ loop.index0 }}">
-                            <div class="flex items-center">
-                                <span class="text-gray-400 mr-4 drag-handle">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
-                                    </svg>
-                                </span>
-                                <div>
-                                    <p class="font-medium">{{ option.text or option.value }}</p>
-                                    {% if option.text and option.value != option.text %}
-                                    <p class="text-sm text-gray-400">Value: {{ option.value }}</p>
-                                    {% endif %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Unranked Options -->
+                        <div class="bg-gray-800 rounded-lg p-4">
+                            <h4 class="text-lg font-medium mb-4">Available Options</h4>
+                            <div class="unranked-options space-y-2" id="unranked-{{ question_index }}">
+                                {% for option in options %}
+                                <div class="bg-gray-700 p-4 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors" 
+                                     data-option-cid="{{ option.cid }}"
+                                     data-option-index="{{ loop.index0 }}"
+                                     data-question-index="{{ question_index }}">
+                                    <div>
+                                        <p class="font-medium">{{ option.text or option.value }}</p>
+                                        {% if option.text and option.value != option.text %}
+                                        <p class="text-sm text-gray-400">Value: {{ option.value }}</p>
+                                        {% endif %}
+                                    </div>
                                 </div>
+                                {% endfor %}
                             </div>
                         </div>
-                        {% endfor %}
+
+                        <!-- Ranked Options -->
+                        <div class="bg-gray-800 rounded-lg p-4">
+                            <h4 class="text-lg font-medium mb-4">Your Ranking</h4>
+                            <div class="ranked-options space-y-2" id="ranking-{{ question_index }}">
+                                <!-- Ranked options will be added here -->
+                            </div>
+                        </div>
                     </div>
                 </div>
                 {% endfor %}
@@ -106,9 +117,12 @@
             const form = document.getElementById('opinionForm');
             
             // Initialize drag and drop for each ranking container
-            document.querySelectorAll('.options-ranking').forEach(container => {
+            document.querySelectorAll('.ranked-options').forEach(container => {
                 initDragAndDrop(container);
             });
+
+            // Add click handlers for all unranked options
+            initializeUnrankedOptions();
             
             form.addEventListener('submit', async function(e) {
                 e.preventDefault();
@@ -147,89 +161,144 @@
             });
         });
 
-        function initDragAndDrop(container) {
-            let draggedItem = null;
-            let draggedOverItem = null;
-
-            // Add event listeners to all draggable items in the container
-            container.querySelectorAll('[draggable="true"]').forEach(item => {
-                item.addEventListener('dragstart', handleDragStart);
-                item.addEventListener('dragend', handleDragEnd);
-                item.addEventListener('dragover', handleDragOver);
-                item.addEventListener('drop', handleDrop);
-                item.addEventListener('dragenter', handleDragEnter);
-                item.addEventListener('dragleave', handleDragLeave);
+        function initializeUnrankedOptions() {
+            document.querySelectorAll('.unranked-options > div').forEach(option => {
+                addClickHandlerToUnrankedOption(option);
             });
+        }
 
-            function handleDragStart(e) {
-                draggedItem = this;
+        function addClickHandlerToUnrankedOption(option) {
+            option.addEventListener('click', function() {
+                const questionIndex = this.dataset.questionIndex;
+                addToRanking(this, questionIndex);
+            });
+        }
+
+        function addToRanking(element, questionIndex) {
+            const rankingContainer = document.getElementById(`ranking-${questionIndex}`);
+            
+            // Create new ranked option element
+            const rankedOption = document.createElement('div');
+            rankedOption.className = 'bg-gray-700 p-4 rounded-lg mb-2 cursor-move';
+            rankedOption.draggable = true;
+            rankedOption.dataset.optionCid = element.dataset.optionCid;
+            rankedOption.dataset.index = element.dataset.index;
+            rankedOption.dataset.questionIndex = questionIndex;
+            
+            rankedOption.innerHTML = `
+                <div class="flex items-center">
+                    <span class="text-gray-400 mr-4 drag-handle">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
+                        </svg>
+                    </span>
+                    <div class="flex-1">
+                        ${element.innerHTML}
+                    </div>
+                    <button type="button" onclick="removeFromRanking(this.parentElement.parentElement, ${questionIndex})" 
+                            class="ml-2 text-gray-400 hover:text-red-500">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            `;
+            
+            // Add to ranking and remove from unranked
+            rankingContainer.appendChild(rankedOption);
+            element.remove();
+
+            // Initialize drag and drop for the new element
+            initDragAndDropForElement(rankedOption);
+        }
+
+        function initDragAndDropForElement(element) {
+            element.addEventListener('dragstart', function(e) {
+                e.stopPropagation();
                 this.classList.add('dragging');
                 e.dataTransfer.effectAllowed = 'move';
                 e.dataTransfer.setData('text/plain', ''); // Required for Firefox
-            }
+            });
 
-            function handleDragEnd(e) {
-                draggedItem = null;
-                draggedOverItem = null;
+            element.addEventListener('dragend', function(e) {
+                e.stopPropagation();
                 this.classList.remove('dragging');
-                
-                // Remove all drag-related visual effects
-                container.querySelectorAll('[draggable="true"]').forEach(item => {
-                    item.classList.remove('drag-over');
-                });
-            }
+            });
+        }
 
-            function handleDragOver(e) {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-            }
-
-            function handleDragEnter(e) {
-                e.preventDefault();
-                if (this !== draggedItem) {
-                    this.classList.add('drag-over');
-                    draggedOverItem = this;
-                }
-            }
-
-            function handleDragLeave(e) {
-                this.classList.remove('drag-over');
-                if (draggedOverItem === this) {
-                    draggedOverItem = null;
-                }
-            }
-
-            function handleDrop(e) {
+        function initDragAndDrop(container) {
+            container.addEventListener('dragover', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 
-                if (draggedItem && this !== draggedItem) {
-                    // Get the positions of the dragged and target items
-                    const allItems = [...container.children];
-                    const draggedPos = allItems.indexOf(draggedItem);
-                    const droppedPos = allItems.indexOf(this);
-                    
-                    // Reorder the items
-                    if (draggedPos < droppedPos) {
-                        this.parentNode.insertBefore(draggedItem, this.nextSibling);
-                    } else {
-                        this.parentNode.insertBefore(draggedItem, this);
-                    }
-                    
-                    // Update indices
-                    updateIndices();
-                }
+                const draggingElement = document.querySelector('.dragging');
+                if (!draggingElement) return;
                 
-                // Clean up
-                this.classList.remove('drag-over');
-                return false;
-            }
+                const siblings = [...container.children];
+                const afterElement = getDragAfterElement(container, e.clientY);
+                
+                if (afterElement) {
+                    container.insertBefore(draggingElement, afterElement);
+                } else {
+                    container.appendChild(draggingElement);
+                }
+            });
 
-            function updateIndices() {
-                container.querySelectorAll('[draggable="true"]').forEach((item, index) => {
-                    item.dataset.index = index;
-                });
-            }
+            container.addEventListener('dragenter', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.classList.add('drag-over');
+            });
+
+            container.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.classList.remove('drag-over');
+            });
+
+            container.addEventListener('drop', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.classList.remove('drag-over');
+            });
+
+            // Initialize drag and drop for existing ranked options
+            container.querySelectorAll('.bg-gray-700').forEach(initDragAndDropForElement);
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.children].filter(child => child !== document.querySelector('.dragging'));
+            
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function removeFromRanking(element, questionIndex) {
+            // Get the unranked container for this question
+            const unrankedContainer = document.getElementById(`unranked-${questionIndex}`);
+            
+            // Create unranked option element
+            const unrankedOption = document.createElement('div');
+            unrankedOption.className = 'bg-gray-700 p-4 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors';
+            unrankedOption.dataset.optionCid = element.dataset.optionCid;
+            unrankedOption.dataset.optionIndex = element.dataset.index;
+            unrankedOption.dataset.questionIndex = questionIndex;
+            unrankedOption.innerHTML = element.querySelector('.flex-1').innerHTML;
+            
+            // Add click handler to the new unranked option
+            addClickHandlerToUnrankedOption(unrankedOption);
+            
+            // Add to unranked and remove from ranking
+            unrankedContainer.appendChild(unrankedOption);
+            element.remove();
         }
     </script>
 </body>
