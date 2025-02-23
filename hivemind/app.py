@@ -247,8 +247,6 @@ async def states_page(request: Request):
     """Display overview of all hivemind states."""
     try:
         mapping = load_state_mapping()
-        states = []
-        options = {}  # Dictionary to store option text for each state
         
         # Sort states by number of opinions (descending)
         sorted_states = sorted(
@@ -257,23 +255,13 @@ async def states_page(request: Request):
             reverse=True
         )
         
-        for hivemind_id, state_info in sorted_states:
-            state_info['hivemind_id'] = hivemind_id
-            states.append(state_info)
-            
-            # If state has results, load its options
-            if state_info.get('results'):
-                try:
-                    state = await get_state(state_info['state_hash'])
-                    if state:
-                        options.update(state.get_options())
-                except Exception as e:
-                    logger.error(f"Error loading options for state {hivemind_id}: {e}")
+        # Add hivemind_id to each state_info
+        states = [dict(state_info, hivemind_id=hivemind_id) 
+                 for hivemind_id, state_info in sorted_states]
         
         return templates.TemplateResponse("states.html", {
             "request": request,
-            "states": states,
-            "options": options
+            "states": states
         })
     except Exception as e:
         logger.error(f"Error loading states page: {e}")
