@@ -55,19 +55,13 @@
                             <p class="text-2xl font-bold">{{ state.num_opinions }}</p>
                         </div>
                     </div>
-                    <div class="mb-4">
-                        <p class="text-sm text-gray-500 font-mono mb-1">Issue ID:</p>
-                        <p class="text-gray-400 font-mono text-sm break-all">{{ state.hivemind_id }}</p>
-                        <p class="text-sm text-gray-500 font-mono mt-2 mb-1">State Hash:</p>
-                        <p class="text-gray-400 font-mono text-sm break-all">{{ state.state_hash }}</p>
-                    </div>
                     {% if state.results %}
                     <div class="mb-4">
-                        <h4 class="text-sm uppercase text-gray-500 font-semibold mb-2">Current Winners</h4>
+                        <h4 class="text-sm uppercase text-gray-500 font-semibold mb-2">Current Results</h4>
                         {% for result in state.results %}
                             {% if result %}
                             <div class="bg-green-900 bg-opacity-20 text-green-300 p-3 rounded {% if not loop.first %}mt-2{% endif %}">
-                                <div class="text-xs text-green-400 mb-1">Question {{ loop.index }}</div>
+                                <div class="text-xs text-green-400 mb-1">{{ state.questions[loop.index0] }}</div>
                                 <div class="font-semibold">{{ result.text }}</div>
                                 <div class="text-xs mt-1">Score: {{ "%.2f"|format(result.score) }}</div>
                             </div>
