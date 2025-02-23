@@ -283,6 +283,10 @@
                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
                                 Add Option
                             </a>
+                            <a href="#" onclick="goToAddOpinion()" 
+                               class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
+                                Add Opinion
+                            </a>
                         </div>
                     </div>
                     ${resultsContent}
@@ -401,6 +405,15 @@
             const errorDiv = document.getElementById('error');
             errorDiv.textContent = message;
             errorDiv.classList.remove('hidden');
+        }
+        
+        function goToAddOpinion() {
+            const cid = document.getElementById('cid').value.trim();
+            if (!cid) {
+                showError('Please load a state first');
+                return;
+            }
+            window.location.href = `/add_opinion?cid=${encodeURIComponent(cid)}`;
         }
     </script>
 </body>

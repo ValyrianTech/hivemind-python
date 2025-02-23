@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Opinion - Hivemind Protocol</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+    <style>
+        .dragging {
+            opacity: 0.5;
+            transform: scale(0.95);
+        }
+        .drag-over {
+            border: 2px dashed #4299e1;
+            transform: scale(1.02);
+        }
+        .options-ranking {
+            min-height: 200px;
+            padding: 8px;
+        }
+        .drag-handle {
+            cursor: move;
+            user-select: none;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-gray-800 min-h-screen text-white">
+    <nav class="bg-gray-800 bg-opacity-50 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <a href="/" class="text-xl font-bold">Hivemind Protocol</a>
+            <div class="space-x-4">
+                <a href="/insights" class="hover:text-blue-300">Insights</a>
+                <a href="/create" class="hover:text-blue-300">Create Issue</a>
+                <a href="/states" class="hover:text-blue-300">View States</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 py-16">
+        <!-- Hero Section -->
+        <div class="text-center mb-16">
+            <h1 class="text-6xl font-bold mb-6">Add Opinion</h1>
+            <p class="text-xl text-gray-300 mb-8">Submit your opinion for the current state</p>
+        </div>
+
+        <!-- Opinion Form -->
+        <div class="max-w-2xl mx-auto bg-gray-800 rounded-lg shadow-lg p-8">
+            <form id="opinionForm" class="space-y-6">
+                <input type="hidden" id="stateCid" name="stateCid" value="{{ state_cid }}">
+                
+                <div class="space-y-4">
+                    <label class="block text-lg font-medium">Issue</label>
+                    <div class="bg-gray-700 rounded-lg p-4">
+                        <h3 class="text-xl font-bold">{{ issue_name }}</h3>
+                        <p class="text-gray-300 mt-2">{{ issue_description }}</p>
+                    </div>
+                </div>
+
+                {% for question in questions %}
+                <div class="space-y-4">
+                    <label class="block text-lg font-medium">Question {{ loop.index }}</label>
+                    <p class="text-gray-300">{{ question }}</p>
+                    
+                    <div class="options-ranking" id="ranking-{{ loop.index0 }}">
+                        {% for option in options %}
+                        <div class="bg-gray-700 p-4 rounded-lg mb-2 cursor-move" 
+                             draggable="true"
+                             data-option-cid="{{ option.cid }}"
+                             data-index="{{ loop.index0 }}">
+                            <div class="flex items-center">
+                                <span class="text-gray-400 mr-4 drag-handle">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
+                                    </svg>
+                                </span>
+                                <div>
+                                    <p class="font-medium">{{ option.text or option.value }}</p>
+                                    {% if option.text and option.value != option.text %}
+                                    <p class="text-sm text-gray-400">Value: {{ option.value }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+
+                <div class="flex justify-end space-x-4 mt-8">
+                    <button type="button" onclick="window.history.back()" 
+                            class="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        Submit Opinion
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('opinionForm');
+            
+            // Initialize drag and drop for each ranking container
+            document.querySelectorAll('.options-ranking').forEach(container => {
+                initDragAndDrop(container);
+            });
+            
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const rankings = [];
+                const questionCount = {{ questions|length }};
+                
+                for (let i = 0; i < questionCount; i++) {
+                    const rankingDiv = document.getElementById(`ranking-${i}`);
+                    const options = Array.from(rankingDiv.children);
+                    const ranking = options.map(opt => opt.dataset.optionCid);
+                    rankings.push(ranking);
+                }
+                
+                try {
+                    const response = await fetch('/api/add_opinion', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            state_cid: document.getElementById('stateCid').value,
+                            rankings: rankings
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        window.location.href = `/insights?cid=${result.new_state_cid}`;
+                    } else {
+                        alert('Error submitting opinion: ' + result.error);
+                    }
+                } catch (error) {
+                    alert('Error submitting opinion: ' + error.message);
+                }
+            });
+        });
+
+        function initDragAndDrop(container) {
+            let draggedItem = null;
+            let draggedOverItem = null;
+
+            // Add event listeners to all draggable items in the container
+            container.querySelectorAll('[draggable="true"]').forEach(item => {
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragend', handleDragEnd);
+                item.addEventListener('dragover', handleDragOver);
+                item.addEventListener('drop', handleDrop);
+                item.addEventListener('dragenter', handleDragEnter);
+                item.addEventListener('dragleave', handleDragLeave);
+            });
+
+            function handleDragStart(e) {
+                draggedItem = this;
+                this.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', ''); // Required for Firefox
+            }
+
+            function handleDragEnd(e) {
+                draggedItem = null;
+                draggedOverItem = null;
+                this.classList.remove('dragging');
+                
+                // Remove all drag-related visual effects
+                container.querySelectorAll('[draggable="true"]').forEach(item => {
+                    item.classList.remove('drag-over');
+                });
+            }
+
+            function handleDragOver(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+            }
+
+            function handleDragEnter(e) {
+                e.preventDefault();
+                if (this !== draggedItem) {
+                    this.classList.add('drag-over');
+                    draggedOverItem = this;
+                }
+            }
+
+            function handleDragLeave(e) {
+                this.classList.remove('drag-over');
+                if (draggedOverItem === this) {
+                    draggedOverItem = null;
+                }
+            }
+
+            function handleDrop(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                if (draggedItem && this !== draggedItem) {
+                    // Get the positions of the dragged and target items
+                    const allItems = [...container.children];
+                    const draggedPos = allItems.indexOf(draggedItem);
+                    const droppedPos = allItems.indexOf(this);
+                    
+                    // Reorder the items
+                    if (draggedPos < droppedPos) {
+                        this.parentNode.insertBefore(draggedItem, this.nextSibling);
+                    } else {
+                        this.parentNode.insertBefore(draggedItem, this);
+                    }
+                    
+                    // Update indices
+                    updateIndices();
+                }
+                
+                // Clean up
+                this.classList.remove('drag-over');
+                return false;
+            }
+
+            function updateIndices() {
+                container.querySelectorAll('[draggable="true"]').forEach((item, index) => {
+                    item.dataset.index = index;
+                });
+            }
+        }
+    </script>
+</body>
+</html>

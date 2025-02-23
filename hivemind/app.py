@@ -724,6 +724,47 @@ async def create_option(option: OptionCreate):
         logger.exception("Full traceback:")
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
+@app.get("/add_opinion")
+async def add_opinion_page(request: Request, cid: str):
+    """Render the add opinion page."""
+    try:
+        # Load the state to get issue details
+        state = await asyncio.to_thread(lambda: HivemindState(cid=cid))
+        issue = await asyncio.to_thread(lambda: HivemindIssue(cid=state.hivemind_id))
+        
+        # Load options
+        options = []
+        for option_hash in state.options:
+            try:
+                option = await asyncio.to_thread(lambda h=option_hash: HivemindOption(cid=h))
+                options.append({
+                    'cid': option_hash,
+                    'value': option.value if hasattr(option, 'value') else None,
+                    'text': option.text if hasattr(option, 'text') else None
+                })
+            except Exception as e:
+                logger.error(f"Failed to load option {option_hash}: {str(e)}")
+                options.append({
+                    'cid': option_hash,
+                    'value': None,
+                    'text': f"Failed to load: {str(e)}"
+                })
+        
+        return templates.TemplateResponse(
+            "add_opinion.html",
+            {
+                "request": request,
+                "state_cid": cid,
+                "issue_name": issue.name,
+                "issue_description": issue.description,
+                "questions": issue.questions,
+                "options": options
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error rendering add opinion page: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/test_ipfs")
 async def test_ipfs():
     """Test endpoint to verify IPFS connectivity."""
