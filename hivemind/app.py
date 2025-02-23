@@ -195,6 +195,12 @@ class StateHashUpdate(BaseModel):
     tags: List[str]
     results: Optional[Dict[str, Any]] = None
 
+class OptionCreate(BaseModel):
+    """Pydantic model for creating a new option."""
+    hivemind_id: str
+    value: Union[str, int, float]
+    text: Optional[str] = None
+
 # Initialize FastAPI app
 app = FastAPI(title="Hivemind Insights")
 
@@ -424,7 +430,7 @@ async def fetch_state(request: IPFSHashRequest):
                     formatted_results.append({
                         'cid': option.cid(),
                         'value': option.value if hasattr(option, 'value') else None,
-                        'text': option.text if hasattr(option, 'text') else str(option.value),
+                        'text': option.text if hasattr(option, 'text') else str(option.value) if hasattr(option, 'value') else 'Unnamed Option',
                         'score': round(score * 100, 2)  # Convert to percentage and round to 2 decimal places
                     })
                 
@@ -449,7 +455,7 @@ async def fetch_state(request: IPFSHashRequest):
                         score = 0
                         
                     results.append({
-                        'text': winning_option.text if hasattr(winning_option, 'text') else str(winning_option.value),
+                        'text': winning_option.text if hasattr(winning_option, 'text') else str(winning_option.value) if hasattr(winning_option, 'value') else 'Unnamed Option',
                         'value': winning_option.value if hasattr(winning_option, 'value') else None,
                         'score': round(score * 100, 2)
                     })
@@ -569,6 +575,166 @@ async def create_issue(issue: HivemindIssueCreate):
     except Exception as e:
         logger.error(f"Failed to create issue: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/options/add", response_class=HTMLResponse)
+async def add_option_page(request: Request, hivemind_id: str):
+    """Render the add option page."""
+    try:
+        # Load the hivemind issue to get answer type and constraints
+        issue = await asyncio.to_thread(lambda: HivemindIssue(cid=hivemind_id))
+        
+        return templates.TemplateResponse(
+            "add_option.html",
+            {
+                "request": request,
+                "hivemind_id": hivemind_id,
+                "issue": issue
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error loading issue for add option page: {str(e)}")
+        raise HTTPException(status_code=404, detail=str(e))
+
+@app.post("/api/options/create")
+async def create_option(option: OptionCreate):
+    """Create a new option for a hivemind issue."""
+    try:
+        logger.info(f"=== Starting option creation process ===")
+        logger.info(f"Input parameters - hivemind_id: {option.hivemind_id}")
+        logger.info(f"Input parameters - value: {option.value} (type: {type(option.value)})")
+        logger.info(f"Input parameters - text: {option.text}")
+
+        # Get the latest state for this hivemind
+        mapping = load_state_mapping()
+        if option.hivemind_id not in mapping:
+            logger.error(f"No state found for hivemind_id: {option.hivemind_id}")
+            logger.debug(f"Available hivemind IDs in mapping: {list(mapping.keys())}")
+            raise HTTPException(status_code=404, detail="No state found for this hivemind ID")
+            
+        latest_state_cid = mapping[option.hivemind_id]["state_hash"]
+        logger.info(f"Latest state CID: {latest_state_cid}")
+
+        def create_and_save():
+            try:
+                # Load the current state and issue
+                logger.info(f"Loading current state from CID: {latest_state_cid}")
+                state = HivemindState(cid=latest_state_cid)
+                logger.info(f"Current state loaded successfully")
+                logger.info(f"State details - Number of options: {len(state.options)}")
+                logger.info(f"State details - Number of opinions: {len(state.opinions[0]) if state.opinions else 0}")
+
+                logger.info(f"Loading issue from CID: {option.hivemind_id}")
+                issue = HivemindIssue(cid=option.hivemind_id)
+                logger.info(f"Issue loaded successfully")
+                logger.info(f"Issue details - Answer type: {issue.answer_type}")
+                logger.info(f"Issue details - Constraints: {issue.constraints}")
+
+                # Create the new option
+                logger.info("Creating new option object...")
+                new_option = HivemindOption()
+                new_option.set_hivemind_issue(hivemind_issue_hash=option.hivemind_id)
+                
+                # Set the option value based on the answer type
+                try:
+                    if issue.answer_type == 'Integer':
+                        logger.info(f"Converting value to integer: {option.value}")
+                        new_option.value = int(option.value)
+                    elif issue.answer_type == 'Float':
+                        logger.info(f"Converting value to float: {option.value}")
+                        new_option.value = float(option.value)
+                    else:
+                        logger.info(f"Using value as string: {option.value}")
+                        new_option.value = str(option.value)
+                except (ValueError, TypeError) as e:
+                    logger.error(f"Failed to convert value to {issue.answer_type}: {str(e)}")
+                    raise HTTPException(
+                        status_code=400, 
+                        detail=f"Invalid value format for answer type {issue.answer_type}: {str(e)}"
+                    )
+                    
+                new_option.text = option.text or ''
+                
+                # Validate the option
+                logger.info("Validating option...")
+                try:
+                    if not new_option.valid():
+                        logger.error("Option validation failed")
+                        raise HTTPException(status_code=400, detail="Option validation failed")
+                    logger.info("Option validation successful")
+                except Exception as e:
+                    logger.error(f"Option validation error: {str(e)}")
+                    raise HTTPException(status_code=400, detail=f"Option validation error: {str(e)}")
+
+                # Save the option to IPFS
+                logger.info("Saving new option to IPFS...")
+                option_cid = new_option.save()
+                logger.info(f"Option saved successfully with CID: {option_cid}")
+
+                # Add the option to the state
+                logger.info("Adding option to state...")
+                current_time = int(time.time())
+                state.add_option(timestamp=current_time, option_hash=option_cid)
+                logger.info(f"Option added successfully. New number of options: {len(state.options)}")
+
+                # Save the updated state
+                logger.info("Saving updated state...")
+                new_state_cid = state.save()
+                logger.info(f"New state saved successfully with CID: {new_state_cid}")
+
+                # Return the CIDs and metadata
+                result = {
+                    "option_cid": option_cid, 
+                    "state_cid": new_state_cid,
+                    "issue_name": issue.name,
+                    "issue_description": issue.description,
+                    "num_options": len(state.options),
+                    "num_opinions": len(state.opinions[0]) if state.opinions else 0,
+                    "answer_type": issue.answer_type,
+                    "questions": issue.questions,
+                    "tags": issue.tags
+                }
+                logger.info("Result metadata prepared successfully")
+                return result
+
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Unexpected error in create_and_save: {str(e)}")
+                logger.exception("Full traceback:")
+                raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+        # Run the creation in a thread to avoid blocking
+        logger.info("Running option creation in background thread...")
+        result = await asyncio.to_thread(create_and_save)
+        
+        # Update the state mapping
+        logger.info("Updating state mapping...")
+        update_state(StateHashUpdate(
+            hivemind_id=option.hivemind_id,
+            state_hash=result["state_cid"],
+            name=result["issue_name"],
+            description=result["issue_description"],
+            num_options=result["num_options"],
+            num_opinions=result["num_opinions"],
+            answer_type=result["answer_type"],
+            questions=result["questions"],
+            tags=result["tags"]
+        ))
+        logger.info("State mapping updated successfully")
+        
+        logger.info("=== Option creation process completed successfully ===")
+        return {
+            "status": "success",
+            "option_cid": result["option_cid"],
+            "state_cid": result["state_cid"]
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in create_option: {str(e)}")
+        logger.exception("Full traceback:")
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 @app.get("/api/test_ipfs")
 async def test_ipfs():

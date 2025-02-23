@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Option - Hivemind Protocol</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-gray-800 min-h-screen text-white">
+    <nav class="bg-gray-800 bg-opacity-50 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <a href="/" class="text-xl font-bold">Hivemind Protocol</a>
+            <div class="space-x-4">
+                <a href="/insights" class="hover:text-blue-300">Insights</a>
+                <a href="/create" class="hover:text-blue-300">Create Issue</a>
+                <a href="/states" class="hover:text-blue-300">View States</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 py-16">
+        <div class="max-w-2xl mx-auto">
+            <h1 class="text-4xl font-bold mb-8 text-center">Add New Option</h1>
+            
+            <!-- Issue Info -->
+            <div class="bg-gray-800 rounded-lg shadow-lg p-6 mb-8">
+                <h2 class="text-2xl font-semibold mb-4">Issue Information</h2>
+                <div class="grid grid-cols-1 gap-4">
+                    <div>
+                        <p class="text-gray-400">Name</p>
+                        <p class="text-white">{{ issue.name }}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-400">Answer Type</p>
+                        <p class="text-white">{{ issue.answer_type }}</p>
+                    </div>
+                    {% if issue.constraints %}
+                    <div>
+                        <p class="text-gray-400">Constraints</p>
+                        <ul class="list-disc list-inside text-white">
+                            {% for key, value in issue.constraints.items() %}
+                            <li>{{ key }}: {{ value }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Option Form -->
+            <form id="optionForm" class="bg-gray-800 rounded-lg shadow-lg p-6">
+                <input type="hidden" id="hivemindId" value="{{ hivemind_id }}">
+                
+                <div class="mb-6">
+                    <label for="value" class="block text-sm font-medium text-gray-400 mb-2">Option Value</label>
+                    {% if issue.answer_type == 'String' %}
+                    <input type="text" id="value" name="value" 
+                           class="w-full px-4 py-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           required>
+                    {% elif issue.answer_type == 'Integer' %}
+                    <input type="number" id="value" name="value" step="1"
+                           class="w-full px-4 py-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           required>
+                    {% elif issue.answer_type == 'Float' %}
+                    <input type="number" id="value" name="value" step="any"
+                           class="w-full px-4 py-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           required>
+                    {% endif %}
+                </div>
+
+                <div class="mb-6">
+                    <label for="text" class="block text-sm font-medium text-gray-400 mb-2">Description (Optional)</label>
+                    <textarea id="text" name="text" rows="3"
+                              class="w-full px-4 py-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+
+                <div class="flex justify-end space-x-4">
+                    <a href="/insights?cid={{ hivemind_id }}" 
+                       class="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                        Cancel
+                    </a>
+                    <button type="submit"
+                            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        Add Option
+                    </button>
+                </div>
+            </form>
+
+            <!-- Error Message -->
+            <div id="error" class="mt-4 text-red-500 hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('optionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const form = e.target;
+            const errorDiv = document.getElementById('error');
+            errorDiv.classList.add('hidden');
+
+            try {
+                const response = await fetch('/api/options/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        hivemind_id: document.getElementById('hivemindId').value,
+                        value: document.getElementById('value').value,
+                        text: document.getElementById('text').value
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to create option');
+                }
+
+                const result = await response.json();
+                // Redirect to insights page with the new state CID
+                window.location.href = `/insights?cid=${result.state_cid}`;
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
