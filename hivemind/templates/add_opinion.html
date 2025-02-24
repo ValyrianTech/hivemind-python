@@ -68,9 +68,9 @@
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <!-- Unranked Options -->
-                        <div class="bg-gray-800 rounded-lg p-4">
+                        <div class="bg-gray-800 rounded-lg p-4" id="unranked-{{ question_index }}">
                             <h4 class="text-lg font-medium mb-4">Available Options</h4>
-                            <div class="unranked-options space-y-2" id="unranked-{{ question_index }}">
+                            <div class="unranked-options space-y-2">
                                 {% for option in options %}
                                 <div class="bg-gray-700 p-4 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors" 
                                      data-option-cid="{{ option.cid }}"
@@ -88,9 +88,9 @@
                         </div>
 
                         <!-- Ranked Options -->
-                        <div class="bg-gray-800 rounded-lg p-4">
+                        <div class="bg-gray-800 rounded-lg p-4" id="ranking-{{ question_index }}">
                             <h4 class="text-lg font-medium mb-4">Your Ranking</h4>
-                            <div class="ranked-options space-y-2" id="ranking-{{ question_index }}">
+                            <div class="ranked-options space-y-2">
                                 <!-- Ranked options will be added here -->
                             </div>
                         </div>
@@ -182,7 +182,7 @@
             rankedOption.className = 'bg-gray-700 p-4 rounded-lg mb-2 cursor-move';
             rankedOption.draggable = true;
             rankedOption.dataset.optionCid = element.dataset.optionCid;
-            rankedOption.dataset.index = element.dataset.index;
+            rankedOption.dataset.index = element.dataset.optionIndex;
             rankedOption.dataset.questionIndex = questionIndex;
             
             rankedOption.innerHTML = `
