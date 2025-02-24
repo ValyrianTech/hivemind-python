@@ -6,29 +6,7 @@ from typing import Tuple, List
 from bitcoin.wallet import CBitcoinSecret, P2PKHBitcoinAddress
 from bitcoin.signmessage import BitcoinMessage, SignMessage
 from hivemind import HivemindState, HivemindIssue, HivemindOption, HivemindOpinion
-
-def generate_bitcoin_keypair() -> Tuple[CBitcoinSecret, str]:
-    """Generate a random Bitcoin private key and its corresponding address.
-    
-    Returns:
-        Tuple[CBitcoinSecret, str]: (private_key, address) pair where address is in base58 format
-    """
-    entropy = random.getrandbits(256).to_bytes(32, byteorder='big')
-    private_key = CBitcoinSecret.from_secret_bytes(entropy)
-    address = str(P2PKHBitcoinAddress.from_pubkey(private_key.pub))
-    return private_key, address
-
-def sign_message(message: str, private_key: CBitcoinSecret) -> str:
-    """Sign a message with a Bitcoin private key.
-    
-    Args:
-        message: The message to sign
-        private_key: Bitcoin private key
-        
-    Returns:
-        str: The signature in base64 format
-    """
-    return SignMessage(key=private_key, message=BitcoinMessage(message)).decode()
+from hivemind.utils import generate_bitcoin_keypair, sign_message
 
 # Common Fixtures
 @pytest.fixture
