@@ -72,7 +72,7 @@
                             <h4 class="text-lg font-medium mb-4">Available Options</h4>
                             <div class="unranked-options space-y-2">
                                 {% for option in options %}
-                                <div class="bg-gray-700 p-4 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors" 
+                                <div class="bg-gray-700 p-4 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors mb-2" 
                                      data-option-cid="{{ option.cid }}"
                                      data-option-index="{{ loop.index0 }}"
                                      data-question-index="{{ question_index }}">
@@ -88,9 +88,9 @@
                         </div>
 
                         <!-- Ranked Options -->
-                        <div class="bg-gray-800 rounded-lg p-4" id="ranking-{{ question_index }}">
+                        <div class="bg-gray-800 rounded-lg p-4">
                             <h4 class="text-lg font-medium mb-4">Your Ranking</h4>
-                            <div class="ranked-options space-y-2">
+                            <div class="ranked-options space-y-2" id="ranking-{{ question_index }}">
                                 <!-- Ranked options will be added here -->
                             </div>
                         </div>
@@ -234,7 +234,8 @@
                 const draggingElement = document.querySelector('.dragging');
                 if (!draggingElement) return;
                 
-                const siblings = [...container.children];
+                // Get the immediate children of the container that are draggable
+                const siblings = [...container.querySelectorAll('[draggable="true"]')];
                 const afterElement = getDragAfterElement(container, e.clientY);
                 
                 if (afterElement) {
@@ -260,14 +261,21 @@
                 e.preventDefault();
                 e.stopPropagation();
                 this.classList.remove('drag-over');
+                
+                // Update all indices after a drop
+                const options = [...container.querySelectorAll('[draggable="true"]')];
+                options.forEach((option, index) => {
+                    option.dataset.index = index;
+                });
             });
 
             // Initialize drag and drop for existing ranked options
-            container.querySelectorAll('.bg-gray-700').forEach(initDragAndDropForElement);
+            container.querySelectorAll('[draggable="true"]').forEach(initDragAndDropForElement);
         }
 
         function getDragAfterElement(container, y) {
-            const draggableElements = [...container.children].filter(child => child !== document.querySelector('.dragging'));
+            // Only consider immediate draggable children
+            const draggableElements = [...container.querySelectorAll('[draggable="true"]:not(.dragging)')];
             
             return draggableElements.reduce((closest, child) => {
                 const box = child.getBoundingClientRect();
@@ -283,11 +291,11 @@
 
         function removeFromRanking(element, questionIndex) {
             // Get the unranked container for this question
-            const unrankedContainer = document.getElementById(`unranked-${questionIndex}`);
+            const unrankedContainer = document.getElementById(`unranked-${questionIndex}`).querySelector('.unranked-options');
             
             // Create unranked option element
             const unrankedOption = document.createElement('div');
-            unrankedOption.className = 'bg-gray-700 p-4 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors';
+            unrankedOption.className = 'bg-gray-700 p-4 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors mb-2';
             unrankedOption.dataset.optionCid = element.dataset.optionCid;
             unrankedOption.dataset.optionIndex = element.dataset.index;
             unrankedOption.dataset.questionIndex = questionIndex;
