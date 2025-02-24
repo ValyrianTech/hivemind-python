@@ -128,7 +128,7 @@
                 e.preventDefault();
                 
                 const rankings = [];
-                const questionCount = {{ questions|length }};
+                const questionCount = parseInt('{{ questions|length|int }}');
                 
                 for (let i = 0; i < questionCount; i++) {
                     const rankingDiv = document.getElementById(`ranking-${i}`);
