@@ -28,6 +28,8 @@ from typing import Optional, List, Dict, Any, Union
 from hivemind.state import HivemindOption, HivemindOpinion, HivemindState
 from hivemind.issue import HivemindIssue
 from hivemind.option import HivemindOption
+from hivemind.utils import generate_bitcoin_keypair, get_bitcoin_address
+from bitcoin.wallet import CBitcoinSecret
 
 class StateLoadingStats:
     def __init__(self):
@@ -822,6 +824,42 @@ async def get_all_states():
     """Get all tracked hivemind states."""
     mapping = load_state_mapping()
     return {"states": [{"hivemind_id": k, **v} for k, v in mapping.items()]}
+
+@app.get("/generate_keypair")
+async def generate_keypair():
+    """Generate a new Bitcoin keypair for signing opinions.
+    
+    Returns:
+        dict: Contains private_key and address strings
+    """
+    private_key, address = generate_bitcoin_keypair()
+    return {
+        "private_key": str(private_key),
+        "address": address
+    }
+
+@app.get("/validate_key/{private_key}")
+async def validate_key(private_key: str):
+    """Validate a Bitcoin private key and return its address.
+    
+    Args:
+        private_key: WIF formatted private key
+        
+    Returns:
+        dict: Contains valid status and address if valid
+    """
+    try:
+        key = CBitcoinSecret(private_key)
+        address = get_bitcoin_address(key)
+        return {
+            "valid": True,
+            "address": address
+        }
+    except Exception as e:
+        return {
+            "valid": False,
+            "error": str(e)
+        }
 
 if __name__ == "__main__":
     import uvicorn

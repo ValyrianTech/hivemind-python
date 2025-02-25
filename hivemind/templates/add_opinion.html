@@ -98,6 +98,26 @@
                 </div>
                 {% endfor %}
 
+                <div class="space-y-4 mt-8">
+                    <label class="block text-lg font-medium">Bitcoin Signature</label>
+                    <div class="bg-gray-700 rounded-lg p-4 space-y-2">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300">Private Key (WIF format)</label>
+                            <input type="text" id="bitcoinPrivateKey"
+                                   class="mt-1 block w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-sm text-gray-300"
+                                   placeholder="Enter private key or click Generate">
+                            <button type="button" id="generateKeyBtn"
+                                    class="mt-2 px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                Generate New Key
+                            </button>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300">Bitcoin Address</label>
+                            <p id="bitcoinAddress" class="mt-1 text-sm text-gray-300 font-mono break-all"></p>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="flex justify-end space-x-4 mt-8">
                     <button type="button" onclick="window.history.back()" 
                             class="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500">
@@ -113,8 +133,68 @@
     </div>
 
     <script>
+        // Bitcoin key handling functions
+        async function generateBitcoinKeypair() {
+            try {
+                const response = await fetch('/generate_keypair');
+                if (!response.ok) {
+                    throw new Error('Failed to generate keypair');
+                }
+                return await response.json();
+            } catch (error) {
+                console.error('Error in generateBitcoinKeypair:', error);
+                throw error;
+            }
+        }
+
+        async function updateBitcoinAddress(wifPrivateKey) {
+            try {
+                if (!wifPrivateKey.trim()) {
+                    document.getElementById('bitcoinAddress').textContent = '';
+                    return false;
+                }
+
+                const response = await fetch(`/validate_key/${encodeURIComponent(wifPrivateKey)}`);
+                const data = await response.json();
+                
+                if (data.valid) {
+                    document.getElementById('bitcoinAddress').textContent = data.address;
+                    return true;
+                } else {
+                    document.getElementById('bitcoinAddress').textContent = 'Invalid private key';
+                    return false;
+                }
+            } catch (error) {
+                console.error('Invalid private key:', error);
+                document.getElementById('bitcoinAddress').textContent = 'Invalid private key';
+                return false;
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.getElementById('opinionForm');
+            const privateKeyInput = document.getElementById('bitcoinPrivateKey');
+            const generateKeyBtn = document.getElementById('generateKeyBtn');
+            
+            // Handle private key input changes
+            privateKeyInput.addEventListener('input', function() {
+                updateBitcoinAddress(this.value);
+            });
+            
+            // Handle generate key button click
+            generateKeyBtn.addEventListener('click', async function() {
+                try {
+                    const keypair = await generateBitcoinKeypair();
+                    privateKeyInput.value = keypair.private_key;
+                    document.getElementById('bitcoinAddress').textContent = keypair.address;
+                } catch (error) {
+                    console.error('Error generating keypair:', error);
+                    alert('Failed to generate Bitcoin keypair. Please try again.');
+                }
+            });
+            
+            // Generate initial keypair
+            generateKeyBtn.click();
             
             // Initialize drag and drop for each ranking container
             document.querySelectorAll('.ranked-options').forEach(container => {
@@ -159,155 +239,155 @@
                     alert('Error submitting opinion: ' + error.message);
                 }
             });
-        });
 
-        function initializeUnrankedOptions() {
-            document.querySelectorAll('.unranked-options > div').forEach(option => {
-                addClickHandlerToUnrankedOption(option);
-            });
-        }
-
-        function addClickHandlerToUnrankedOption(option) {
-            option.addEventListener('click', function() {
-                const questionIndex = this.dataset.questionIndex;
-                addToRanking(this, questionIndex);
-            });
-        }
-
-        function addToRanking(element, questionIndex) {
-            const rankingContainer = document.getElementById(`ranking-${questionIndex}`);
-            
-            // Create new ranked option element
-            const rankedOption = document.createElement('div');
-            rankedOption.className = 'bg-gray-700 p-4 rounded-lg mb-2 cursor-move';
-            rankedOption.draggable = true;
-            rankedOption.dataset.optionCid = element.dataset.optionCid;
-            rankedOption.dataset.index = element.dataset.optionIndex;
-            rankedOption.dataset.questionIndex = questionIndex;
-            
-            rankedOption.innerHTML = `
-                <div class="flex items-center">
-                    <span class="text-gray-400 mr-4 drag-handle">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
-                        </svg>
-                    </span>
-                    <div class="flex-1">
-                        ${element.innerHTML}
-                    </div>
-                    <button type="button" onclick="removeFromRanking(this.parentElement.parentElement, ${questionIndex})" 
-                            class="ml-2 text-gray-400 hover:text-red-500">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
-                </div>
-            `;
-            
-            // Add to ranking and remove from unranked
-            rankingContainer.appendChild(rankedOption);
-            element.remove();
-
-            // Initialize drag and drop for the new element
-            initDragAndDropForElement(rankedOption);
-        }
-
-        function initDragAndDropForElement(element) {
-            element.addEventListener('dragstart', function(e) {
-                e.stopPropagation();
-                this.classList.add('dragging');
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', ''); // Required for Firefox
-            });
-
-            element.addEventListener('dragend', function(e) {
-                e.stopPropagation();
-                this.classList.remove('dragging');
-            });
-        }
-
-        function initDragAndDrop(container) {
-            container.addEventListener('dragover', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const draggingElement = document.querySelector('.dragging');
-                if (!draggingElement) return;
-                
-                // Get the immediate children of the container that are draggable
-                const siblings = [...container.querySelectorAll('[draggable="true"]')];
-                const afterElement = getDragAfterElement(container, e.clientY);
-                
-                if (afterElement) {
-                    container.insertBefore(draggingElement, afterElement);
-                } else {
-                    container.appendChild(draggingElement);
-                }
-            });
-
-            container.addEventListener('dragenter', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                this.classList.add('drag-over');
-            });
-
-            container.addEventListener('dragleave', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                this.classList.remove('drag-over');
-            });
-
-            container.addEventListener('drop', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                this.classList.remove('drag-over');
-                
-                // Update all indices after a drop
-                const options = [...container.querySelectorAll('[draggable="true"]')];
-                options.forEach((option, index) => {
-                    option.dataset.index = index;
+            function initializeUnrankedOptions() {
+                document.querySelectorAll('.unranked-options > div').forEach(option => {
+                    addClickHandlerToUnrankedOption(option);
                 });
-            });
+            }
 
-            // Initialize drag and drop for existing ranked options
-            container.querySelectorAll('[draggable="true"]').forEach(initDragAndDropForElement);
-        }
+            function addClickHandlerToUnrankedOption(option) {
+                option.addEventListener('click', function() {
+                    const questionIndex = this.dataset.questionIndex;
+                    addToRanking(this, questionIndex);
+                });
+            }
 
-        function getDragAfterElement(container, y) {
-            // Only consider immediate draggable children
-            const draggableElements = [...container.querySelectorAll('[draggable="true"]:not(.dragging)')];
-            
-            return draggableElements.reduce((closest, child) => {
-                const box = child.getBoundingClientRect();
-                const offset = y - box.top - box.height / 2;
+            function addToRanking(element, questionIndex) {
+                const rankingContainer = document.getElementById(`ranking-${questionIndex}`);
                 
-                if (offset < 0 && offset > closest.offset) {
-                    return { offset: offset, element: child };
-                } else {
-                    return closest;
-                }
-            }, { offset: Number.NEGATIVE_INFINITY }).element;
-        }
+                // Create new ranked option element
+                const rankedOption = document.createElement('div');
+                rankedOption.className = 'bg-gray-700 p-4 rounded-lg mb-2 cursor-move';
+                rankedOption.draggable = true;
+                rankedOption.dataset.optionCid = element.dataset.optionCid;
+                rankedOption.dataset.index = element.dataset.optionIndex;
+                rankedOption.dataset.questionIndex = questionIndex;
+                
+                rankedOption.innerHTML = `
+                    <div class="flex items-center">
+                        <span class="text-gray-400 mr-4 drag-handle">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
+                            </svg>
+                        </span>
+                        <div class="flex-1">
+                            ${element.innerHTML}
+                        </div>
+                        <button type="button" onclick="removeFromRanking(this.parentElement.parentElement, ${questionIndex})" 
+                                class="ml-2 text-gray-400 hover:text-red-500">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+                
+                // Add to ranking and remove from unranked
+                rankingContainer.appendChild(rankedOption);
+                element.remove();
 
-        function removeFromRanking(element, questionIndex) {
-            // Get the unranked container for this question
-            const unrankedContainer = document.getElementById(`unranked-${questionIndex}`).querySelector('.unranked-options');
-            
-            // Create unranked option element
-            const unrankedOption = document.createElement('div');
-            unrankedOption.className = 'bg-gray-700 p-4 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors mb-2';
-            unrankedOption.dataset.optionCid = element.dataset.optionCid;
-            unrankedOption.dataset.optionIndex = element.dataset.index;
-            unrankedOption.dataset.questionIndex = questionIndex;
-            unrankedOption.innerHTML = element.querySelector('.flex-1').innerHTML;
-            
-            // Add click handler to the new unranked option
-            addClickHandlerToUnrankedOption(unrankedOption);
-            
-            // Add to unranked and remove from ranking
-            unrankedContainer.appendChild(unrankedOption);
-            element.remove();
-        }
+                // Initialize drag and drop for the new element
+                initDragAndDropForElement(rankedOption);
+            }
+
+            function initDragAndDropForElement(element) {
+                element.addEventListener('dragstart', function(e) {
+                    e.stopPropagation();
+                    this.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', ''); // Required for Firefox
+                });
+
+                element.addEventListener('dragend', function(e) {
+                    e.stopPropagation();
+                    this.classList.remove('dragging');
+                });
+            }
+
+            function initDragAndDrop(container) {
+                container.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const draggingElement = document.querySelector('.dragging');
+                    if (!draggingElement) return;
+                    
+                    // Get the immediate children of the container that are draggable
+                    const siblings = [...container.querySelectorAll('[draggable="true"]')];
+                    const afterElement = getDragAfterElement(container, e.clientY);
+                    
+                    if (afterElement) {
+                        container.insertBefore(draggingElement, afterElement);
+                    } else {
+                        container.appendChild(draggingElement);
+                    }
+                });
+
+                container.addEventListener('dragenter', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.classList.add('drag-over');
+                });
+
+                container.addEventListener('dragleave', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.classList.remove('drag-over');
+                });
+
+                container.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.classList.remove('drag-over');
+                    
+                    // Update all indices after a drop
+                    const options = [...container.querySelectorAll('[draggable="true"]')];
+                    options.forEach((option, index) => {
+                        option.dataset.index = index;
+                    });
+                });
+
+                // Initialize drag and drop for existing ranked options
+                container.querySelectorAll('[draggable="true"]').forEach(initDragAndDropForElement);
+            }
+
+            function getDragAfterElement(container, y) {
+                // Only consider immediate draggable children
+                const draggableElements = [...container.querySelectorAll('[draggable="true"]:not(.dragging)')];
+                
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = y - box.top - box.height / 2;
+                    
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset: offset, element: child };
+                    } else {
+                        return closest;
+                    }
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            }
+
+            function removeFromRanking(element, questionIndex) {
+                // Get the unranked container for this question
+                const unrankedContainer = document.getElementById(`unranked-${questionIndex}`).querySelector('.unranked-options');
+                
+                // Create unranked option element
+                const unrankedOption = document.createElement('div');
+                unrankedOption.className = 'bg-gray-700 p-4 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors mb-2';
+                unrankedOption.dataset.optionCid = element.dataset.optionCid;
+                unrankedOption.dataset.optionIndex = element.dataset.index;
+                unrankedOption.dataset.questionIndex = questionIndex;
+                unrankedOption.innerHTML = element.querySelector('.flex-1').innerHTML;
+                
+                // Add click handler to the new unranked option
+                addClickHandlerToUnrankedOption(unrankedOption);
+                
+                // Add to unranked and remove from ranking
+                unrankedContainer.appendChild(unrankedOption);
+                element.remove();
+            }
+        });
     </script>
 </body>
 </html>
