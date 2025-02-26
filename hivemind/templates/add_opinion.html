@@ -6,6 +6,7 @@
     <title>Add Opinion - Hivemind Protocol</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
     <style>
         .dragging {
             opacity: 0.5;
@@ -50,7 +51,9 @@
         <!-- Opinion Form -->
         <div class="max-w-2xl mx-auto bg-gray-800 rounded-lg shadow-lg p-8">
             <form id="opinionForm" class="space-y-6">
-                <input type="hidden" id="stateCid" name="stateCid" value="{{ state_cid }}">
+                <input type="hidden" id="hivemind_id" name="hivemind_id" value="{{ hivemind_id }}">
+                <input type="hidden" id="question_index" name="question_index" value="0">
+                <input type="hidden" id="state_cid" name="state_cid" value="{{ state_cid }}">
                 
                 <div class="space-y-4">
                     <label class="block text-lg font-medium">Issue</label>
@@ -98,6 +101,14 @@
                 </div>
                 {% endfor %}
 
+                <div id="qrCodeContainer" class="hidden">
+                    <div class="text-center mb-4">
+                        <h3 class="text-xl font-semibold">Opinion Submitted Successfully!</h3>
+                        <p class="text-gray-300 mt-2">Scan this QR code to verify your opinion</p>
+                    </div>
+                    <div id="qrcode" class="mx-auto bg-white p-4 rounded-lg w-64 h-64 flex items-center justify-center"></div>
+                </div>
+
                 <div class="flex justify-end space-x-4 mt-8">
                     <button type="button" onclick="window.history.back()" 
                             class="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500">
@@ -127,35 +138,57 @@
             form.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
-                const rankings = [];
-                const questionCount = parseInt('{{ questions|length|int }}');
+                // Get the ranked options
+                const rankedOptions = Array.from(document.querySelectorAll('.ranked-options .option'))
+                    .map(option => option.dataset.optionCid);
                 
-                for (let i = 0; i < questionCount; i++) {
-                    const rankingDiv = document.getElementById(`ranking-${i}`);
-                    const options = Array.from(rankingDiv.children);
-                    const ranking = options.map(opt => opt.dataset.optionCid);
-                    rankings.push(ranking);
-                }
+                // Create opinion object
+                const opinion = {
+                    hivemind_id: document.getElementById('hivemind_id').value,
+                    question_index: parseInt(document.getElementById('question_index').value),
+                    ranking: rankedOptions
+                };
                 
                 try {
-                    const response = await fetch('/api/add_opinion', {
+                    // Submit opinion to backend
+                    const response = await fetch('/api/submit_opinion', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({
-                            state_cid: document.getElementById('stateCid').value,
-                            rankings: rankings
-                        })
+                        body: JSON.stringify(opinion)
                     });
                     
-                    const result = await response.json();
-                    if (result.status === 'success') {
-                        window.location.href = `/insights?cid=${result.new_state_cid}`;
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // Create QR code data
+                        const timestamp = Math.floor(Date.now() / 1000);  // Convert to Unix timestamp
+                        const qrData = {
+                            msg: `${timestamp}/ipfs/${data.cid}`,
+                            url: 'http://192.168.0.189/api/AddMessage/message'
+                        };
+                        
+                        // Generate and display QR code
+                        document.getElementById('qrCodeContainer').classList.remove('hidden');
+                        new QRCode(document.getElementById('qrcode'), {
+                            text: JSON.stringify(qrData),
+                            width: 256,
+                            height: 256
+                        });
+                        
+                        // Hide the ranking containers
+                        document.querySelectorAll('.grid').forEach(el => el.classList.add('hidden'));
+                        document.querySelector('button[type="submit"]').classList.add('hidden');
                     } else {
-                        alert('Error submitting opinion: ' + result.error);
+                        alert('Error submitting opinion: ' + (data.error || 'Unknown error'));
                     }
                 } catch (error) {
+                    console.error('Error:', error);
                     alert('Error submitting opinion: ' + error.message);
                 }
             });
@@ -178,7 +211,7 @@
                 
                 // Create new ranked option element
                 const rankedOption = document.createElement('div');
-                rankedOption.className = 'bg-gray-700 p-4 rounded-lg mb-2 cursor-move';
+                rankedOption.className = 'bg-gray-700 p-4 rounded-lg mb-2 cursor-move option';
                 rankedOption.draggable = true;
                 rankedOption.dataset.optionCid = element.dataset.optionCid;
                 rankedOption.dataset.index = element.dataset.optionIndex;

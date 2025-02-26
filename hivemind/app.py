@@ -30,6 +30,7 @@ from hivemind.issue import HivemindIssue
 from hivemind.option import HivemindOption
 from hivemind.utils import generate_bitcoin_keypair, get_bitcoin_address
 from bitcoin.wallet import CBitcoinSecret
+from hivemind.ranking import Ranking
 
 class StateLoadingStats:
     def __init__(self):
@@ -202,6 +203,12 @@ class OptionCreate(BaseModel):
     hivemind_id: str
     value: Union[str, int, float]
     text: Optional[str] = None
+
+class OpinionCreate(BaseModel):
+    """Pydantic model for creating a new opinion."""
+    hivemind_id: str
+    question_index: int
+    ranking: List[str]
 
 # Initialize FastAPI app
 app = FastAPI(title="Hivemind Insights")
@@ -757,6 +764,7 @@ async def add_opinion_page(request: Request, cid: str):
             {
                 "request": request,
                 "state_cid": cid,
+                "hivemind_id": state.hivemind_id,
                 "issue_name": issue.name,
                 "issue_description": issue.description,
                 "questions": issue.questions,
@@ -767,7 +775,7 @@ async def add_opinion_page(request: Request, cid: str):
         logger.error(f"Error rendering add opinion page: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/test_ipfs")
+@app.post("/api/test_ipfs")
 async def test_ipfs():
     """Test endpoint to verify IPFS connectivity."""
     try:
@@ -824,6 +832,46 @@ async def get_all_states():
     """Get all tracked hivemind states."""
     mapping = load_state_mapping()
     return {"states": [{"hivemind_id": k, **v} for k, v in mapping.items()]}
+
+@app.post("/api/submit_opinion")
+async def submit_opinion(opinion: OpinionCreate) -> Dict[str, Any]:
+    """Submit a new opinion for a hivemind issue.
+    
+    Args:
+        opinion: Opinion data including hivemind ID and ranking
+        
+    Returns:
+        Dict containing success status and IPFS CID of saved opinion
+    """
+    try:
+        def save_opinion():
+            # Create opinion object
+            hivemind_opinion = HivemindOpinion()
+            hivemind_opinion.hivemind_id = opinion.hivemind_id
+            hivemind_opinion.question_index = opinion.question_index
+            
+            # Create ranking from option list
+            ranking = Ranking()
+            ranking.set_fixed(opinion.ranking)
+            hivemind_opinion.ranking = ranking.get()
+            
+            # Save and return CID
+            return hivemind_opinion.save()
+        
+        # Execute the save operation in a thread
+        cid = await asyncio.to_thread(save_opinion)
+        
+        return {
+            "success": True,
+            "cid": cid
+        }
+        
+    except Exception as e:
+        logger.error(f"Error submitting opinion: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error submitting opinion: {str(e)}"
+        )
 
 @app.get("/generate_keypair")
 async def generate_keypair():
