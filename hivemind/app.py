@@ -98,92 +98,32 @@ def log_stats_to_csv(stats: StateLoadingStats):
     except Exception as e:
         logger.error(f"Failed to write stats to CSV: {str(e)}")
 
+# Create log directory if it doesn't exist
+Path('logs').mkdir(exist_ok=True)
+
 def setup_logging():
-    # Create log directory if it doesn't exist
-    if not os.path.exists('logs'):
-        os.makedirs('logs')
-
-    # Create queue for logging
-    log_queue = queue.Queue(-1)  # No limit on size
-
-    # Configure queue handler
-    queue_handler = QueueHandler(log_queue)
-    
-    # Configure root logger with queue handler
+    """Setup logging configuration."""
+    # Configure root logger
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO)
-    root_logger.addHandler(queue_handler)
-    
-    # Configure file handler for the queue listener
+
+    # Create and configure file handler
     file_handler = RotatingFileHandler(
         'logs/debug.log',
         maxBytes=10*1024*1024,  # 10MB
-        backupCount=5,
-        delay=True  # Delay file creation until first log
+        backupCount=5
     )
     file_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s: %(message)s'))
-    
-    # Create and start queue listener
-    console_handler = logging.StreamHandler()  # For console output
+    root_logger.addHandler(file_handler)
+
+    # Add console handler
+    console_handler = logging.StreamHandler()
     console_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s: %(message)s'))
-    
-    listener = QueueListener(
-        log_queue,
-        file_handler,
-        console_handler,
-        respect_handler_level=True
-    )
-    listener.start()
-    
-    # Create CSV file with headers if it doesn't exist
-    csv_path = 'logs/state_loading_stats.csv'
-    if not os.path.exists(csv_path):
-        with open(csv_path, 'w', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow([
-                'timestamp',
-                'state_cid',
-                'state_load_time',
-                'options_load_time',
-                'opinions_load_time',
-                'calculation_time',
-                'total_time',
-                'num_questions',
-                'num_options',
-                'num_opinions'
-            ])
-    
-    # Register cleanup on exit
-    atexit.register(listener.stop)
-    
-    return listener
+    root_logger.addHandler(console_handler)
 
 # Initialize logging
-log_listener = setup_logging()
+setup_logging()
 logger = logging.getLogger(__name__)
-
-# Initialize state storage
-STATE_FILE = Path(__file__).parent / "hivemind_states.json"
-if not STATE_FILE.exists():
-    with open(STATE_FILE, "w") as f:
-        json.dump({}, f)
-
-def load_state_mapping():
-    """Load the hivemind state mapping from JSON file."""
-    try:
-        with open(STATE_FILE, "r") as f:
-            return json.load(f)
-    except Exception as e:
-        logger.error(f"Failed to load state mapping: {str(e)}")
-        return {}
-
-def save_state_mapping(mapping):
-    """Save the hivemind state mapping to JSON file."""
-    try:
-        with open(STATE_FILE, "w") as f:
-            json.dump(mapping, f, indent=2)
-    except Exception as e:
-        logger.error(f"Failed to save state mapping: {str(e)}")
 
 class StateHashUpdate(BaseModel):
     """Pydantic model for updating state hash."""
@@ -915,16 +855,17 @@ async def validate_key(private_key: str):
         }
 
 @app.post("/api/sign_opinion")
-async def sign_opinion(request: SignOpinionRequest):
+async def sign_opinion(request: Request):
     """Log the opinion signing request data.
     
     Args:
-        request: SignOpinionRequest containing the message and URL
+        request: Raw request to get the JSON data
         
     Returns:
         Dict indicating success status
     """
-    logger.info(f"Received opinion signing request - Message: {request.msg}, URL: {request.url}")
+    data = await request.json()
+    logger.info(f"Received raw opinion signing request data: {data}")
     return {"success": True}
 
 if __name__ == "__main__":
