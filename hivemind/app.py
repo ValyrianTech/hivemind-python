@@ -125,6 +125,30 @@ def setup_logging():
 setup_logging()
 logger = logging.getLogger(__name__)
 
+# Initialize state storage
+STATE_FILE = Path(__file__).parent / "data" / "hivemind_states.json"
+STATE_FILE.parent.mkdir(exist_ok=True)
+if not STATE_FILE.exists():
+    with open(STATE_FILE, "w") as f:
+        json.dump({}, f)
+
+def load_state_mapping():
+    """Load the hivemind state mapping from JSON file."""
+    try:
+        with open(STATE_FILE, "r") as f:
+            return json.load(f)
+    except Exception as e:
+        logger.error(f"Failed to load state mapping: {str(e)}")
+        return {}
+
+def save_state_mapping(mapping):
+    """Save the hivemind state mapping to JSON file."""
+    try:
+        with open(STATE_FILE, "w") as f:
+            json.dump(mapping, f, indent=2)
+    except Exception as e:
+        logger.error(f"Failed to save state mapping: {str(e)}")
+
 class StateHashUpdate(BaseModel):
     """Pydantic model for updating state hash."""
     hivemind_id: str
