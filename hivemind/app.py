@@ -3,13 +3,15 @@
 
 import sys
 import os
+import json
+import time
+import asyncio
+import logging
+
 import queue
 import atexit
-import asyncio
-import time
 from datetime import datetime
 import csv
-import json
 from pathlib import Path
 
 # Add parent directory to Python path to find hivemind package
@@ -880,17 +882,71 @@ async def validate_key(private_key: str):
 
 @app.post("/api/sign_opinion")
 async def sign_opinion(request: Request):
-    """Log the opinion signing request data.
+    """Add a signed opinion to the hivemind state.
     
     Args:
-        request: Raw request to get the JSON data
+        request: Raw request containing address, message, signature and data
         
     Returns:
-        Dict indicating success status
+        Dict indicating success status and any error message
+    
+    Raises:
+        HTTPException: If the request data is invalid or signature verification fails
     """
-    data = await request.json()
-    logger.info(f"Received raw opinion signing request data: {data}")
-    return {"success": True}
+    try:
+        data = await request.json()
+        logger.info(f"Received raw opinion signing request data: {data}")
+        
+        # Extract required fields
+        address = data.get('address')
+        message = data.get('message')
+        signature = data.get('signature')
+        opinion_data = data.get('data')
+        
+        if not all([address, message, signature, opinion_data]):
+            raise HTTPException(status_code=400, detail="Missing required fields")
+            
+        # Parse timestamp and state CID from message format: "timestamp/ipfs/CID"
+        try:
+            timestamp_str, _, opinion_hash = message.split('/')
+            timestamp = int(timestamp_str)
+            logger.info(f"Parsed timestamp: {timestamp}, opinion_hash: {opinion_hash}")
+        except ValueError:
+            logger.error(f"Failed to parse message format: {message}")
+            raise HTTPException(status_code=400, detail="Invalid message format")
+            
+        # Get hivemind state from the opinion data
+        try:
+            state_cid = opinion_data.split('/')[2]  # Same format as message
+            logger.info(f"Loading state with CID: {state_cid}")
+            
+            # Use to_thread to run the synchronous HivemindState operations
+            state = await asyncio.to_thread(lambda: HivemindState(cid=state_cid))
+            
+            # Add the opinion using to_thread as well
+            await asyncio.to_thread(
+                lambda: state.add_opinion(
+                    timestamp=timestamp,
+                    opinion_hash=opinion_hash,
+                    signature=signature,
+                    address=address
+                )
+            )
+            
+            # Save the state using to_thread
+            new_cid = await asyncio.to_thread(lambda: state.save())
+            
+            return {
+                "success": True,
+                "cid": new_cid
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to process opinion: {str(e)}")
+            raise HTTPException(status_code=400, detail=str(e))
+            
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON data")
 
 if __name__ == "__main__":
     import uvicorn
