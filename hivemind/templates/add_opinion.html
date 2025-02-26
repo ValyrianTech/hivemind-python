@@ -52,7 +52,6 @@
         <div class="max-w-2xl mx-auto bg-gray-800 rounded-lg shadow-lg p-8">
             <form id="opinionForm" class="space-y-6">
                 <input type="hidden" id="hivemind_id" name="hivemind_id" value="{{ hivemind_id }}">
-                <input type="hidden" id="question_index" name="question_index" value="0">
                 <input type="hidden" id="state_cid" name="state_cid" value="{{ state_cid }}">
                 
                 <div class="space-y-4">
@@ -96,28 +95,25 @@
                             <div class="ranked-options space-y-2" id="ranking-{{ question_index }}">
                                 <!-- Ranked options will be added here -->
                             </div>
+                            <button type="button" 
+                                    onclick="submitOpinion({{ question_index }})"
+                                    class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full transition-colors">
+                                Submit Opinion for Question {{ loop.index }}
+                            </button>
+                            <div id="qrCodeContainer-{{ question_index }}" class="hidden mt-4">
+                                <div class="text-center mb-4">
+                                    <h3 class="text-xl font-semibold">Opinion Submitted Successfully!</h3>
+                                    <p class="text-gray-300 mt-2">Scan this QR code to verify your opinion</p>
+                                </div>
+                                <div id="qrcode-{{ question_index }}" class="mx-auto bg-white p-4 rounded-lg w-64 h-64 flex items-center justify-center"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
                 {% endfor %}
 
-                <div id="qrCodeContainer" class="hidden">
-                    <div class="text-center mb-4">
-                        <h3 class="text-xl font-semibold">Opinion Submitted Successfully!</h3>
-                        <p class="text-gray-300 mt-2">Scan this QR code to verify your opinion</p>
-                    </div>
-                    <div id="qrcode" class="mx-auto bg-white p-4 rounded-lg w-64 h-64 flex items-center justify-center"></div>
-                </div>
-
-                <div class="flex justify-end space-x-4 mt-8">
-                    <button type="button" onclick="window.history.back()" 
-                            class="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500">
-                        Cancel
-                    </button>
-                    <button type="submit"
-                            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        Submit Opinion
-                    </button>
+                <div class="mt-8 text-center text-gray-400">
+                    <p>Submit an opinion for each question by using the submit buttons above.</p>
                 </div>
             </form>
         </div>
@@ -135,63 +131,72 @@
             // Add click handlers for all unranked options
             initializeUnrankedOptions();
             
-            form.addEventListener('submit', async function(e) {
-                e.preventDefault();
+            // Function to submit opinion for a specific question
+            window.submitOpinion = async function(questionIndex) {
+                const hivemindId = document.getElementById('hivemind_id').value;
+                const stateCid = document.getElementById('state_cid').value;
                 
-                // Get the ranked options
-                const rankedOptions = Array.from(document.querySelectorAll('.ranked-options .option'))
-                    .map(option => option.dataset.optionCid);
+                // Get ranking for the specific question
+                const rankingContainer = document.getElementById(`ranking-${questionIndex}`);
+                const rankedOptions = Array.from(rankingContainer.children).map(option => 
+                    option.getAttribute('data-option-cid')
+                );
                 
-                // Create opinion object
-                const opinion = {
-                    hivemind_id: document.getElementById('hivemind_id').value,
-                    question_index: parseInt(document.getElementById('question_index').value),
-                    ranking: rankedOptions
-                };
+                if (rankedOptions.length === 0) {
+                    alert('Please rank at least one option before submitting.');
+                    return;
+                }
                 
                 try {
-                    // Submit opinion to backend
                     const response = await fetch('/api/submit_opinion', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify(opinion)
+                        body: JSON.stringify({
+                            hivemind_id: hivemindId,
+                            question_index: questionIndex,
+                            ranking: rankedOptions
+                        })
                     });
                     
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    
                     const data = await response.json();
-                    
                     if (data.success) {
                         // Create QR code data
                         const timestamp = Math.floor(Date.now() / 1000);  // Convert to Unix timestamp
                         const qrData = {
                             msg: `${timestamp}/ipfs/${data.cid}`,
-                            url: 'http://192.168.0.189/api/AddMessage/message'
+                            url: 'http://192.168.0.189:8081/api/AddMessage/message'
                         };
                         
-                        // Generate and display QR code
-                        document.getElementById('qrCodeContainer').classList.remove('hidden');
-                        new QRCode(document.getElementById('qrcode'), {
+                        // Show QR code container for this question
+                        const qrContainer = document.getElementById(`qrCodeContainer-${questionIndex}`);
+                        qrContainer.classList.remove('hidden');
+                        
+                        // Clear any existing QR code
+                        const qrElement = document.getElementById(`qrcode-${questionIndex}`);
+                        qrElement.innerHTML = '';
+                        
+                        // Generate new QR code
+                        new QRCode(qrElement, {
                             text: JSON.stringify(qrData),
                             width: 256,
                             height: 256
                         });
                         
-                        // Hide the ranking containers
-                        document.querySelectorAll('.grid').forEach(el => el.classList.add('hidden'));
-                        document.querySelector('button[type="submit"]').classList.add('hidden');
+                        // Disable the submit button for this question
+                        const button = rankingContainer.nextElementSibling;
+                        button.disabled = true;
+                        button.classList.add('opacity-50', 'cursor-not-allowed');
+                        button.textContent = `Opinion Submitted for Question ${questionIndex + 1}`;
                     } else {
-                        alert('Error submitting opinion: ' + (data.error || 'Unknown error'));
+                        alert('Error submitting opinion. Please try again.');
                     }
                 } catch (error) {
                     console.error('Error:', error);
-                    alert('Error submitting opinion: ' + error.message);
+                    alert('Error submitting opinion. Please try again.');
                 }
-            });
+            };
 
             function initializeUnrankedOptions() {
                 document.querySelectorAll('.unranked-options > div').forEach(option => {
