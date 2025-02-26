@@ -918,14 +918,30 @@ async def sign_opinion(request: Request):
             
         # Get hivemind state from the opinion data
         try:
-            # opinion_data has same format as message: timestampCID
-            state_cid = opinion_data[10:]  # Skip timestamp part
-            logger.info(f"Loading state with CID: {state_cid}")
+            # First load the opinion to get its hivemind_id
+            logger.info(f"Loading opinion with CID: {opinion_hash}")
+            opinion = await asyncio.to_thread(lambda: HivemindOpinion(cid=opinion_hash))
+            logger.info(f"Loaded opinion: {opinion}")
+
+            if not opinion.hivemind_id:
+                raise HTTPException(status_code=400, detail="Opinion does not have an associated hivemind state")
+                
+            logger.info(f"Loading state with CID: {opinion.hivemind_id}")
+            
+            # Get the latest state hash from hivemind_states.json
+            state_data = load_state_mapping().get(opinion.hivemind_id)
+            if not state_data:
+                raise HTTPException(status_code=400, detail="No state data found for hivemind ID")
+            
+            latest_state_hash = state_data["state_hash"]
+            logger.info(f"Using latest state hash: {latest_state_hash}")
             
             # Use to_thread to run the synchronous HivemindState operations
-            state = await asyncio.to_thread(lambda: HivemindState(cid=state_cid))
+            state = await asyncio.to_thread(lambda: HivemindState(cid=latest_state_hash))
 
-            logger.info(f"Loaded state with CID: {state_cid}")
+            logger.info(f"options: {state.options}")
+
+            logger.info(f"Loaded state with CID: {opinion.hivemind_id}")
             
             # Verify the message signature before adding the opinion
             if not verify_message(message, address, signature):
