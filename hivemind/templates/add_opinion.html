@@ -165,7 +165,7 @@
                         // Create QR code data
                         const timestamp = Math.floor(Date.now() / 1000);  // Convert to Unix timestamp
                         const qrData = {
-                            msg: `${timestamp}/ipfs/${data.cid}`,
+                            msg: `${timestamp}${data.cid}`,
                             url: `${window.location.protocol}//${window.location.hostname}:8000/api/sign_opinion`
                         };
                         

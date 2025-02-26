@@ -27,11 +27,10 @@ from logging.handlers import QueueHandler, QueueListener, RotatingFileHandler
 import os
 from typing import Optional, List, Dict, Any, Union
 
-from hivemind.state import HivemindOption, HivemindOpinion, HivemindState
+from hivemind.state import HivemindOption, HivemindOpinion, HivemindState, verify_message
 from hivemind.issue import HivemindIssue
 from hivemind.option import HivemindOption
 from hivemind.utils import generate_bitcoin_keypair, get_bitcoin_address
-from bitcoin.wallet import CBitcoinSecret
 from hivemind.ranking import Ranking
 
 class StateLoadingStats:
@@ -906,9 +905,11 @@ async def sign_opinion(request: Request):
         if not all([address, message, signature, opinion_data]):
             raise HTTPException(status_code=400, detail="Missing required fields")
             
-        # Parse timestamp and state CID from message format: "timestamp/ipfs/CID"
+        # Parse timestamp and state CID from message format: "timestampCID"
         try:
-            timestamp_str, _, opinion_hash = message.split('/')
+            # First 10 chars are timestamp, rest is CID
+            timestamp_str = message[:10]
+            opinion_hash = message[10:]
             timestamp = int(timestamp_str)
             logger.info(f"Parsed timestamp: {timestamp}, opinion_hash: {opinion_hash}")
         except ValueError:
@@ -917,12 +918,20 @@ async def sign_opinion(request: Request):
             
         # Get hivemind state from the opinion data
         try:
-            state_cid = opinion_data.split('/')[2]  # Same format as message
+            # opinion_data has same format as message: timestampCID
+            state_cid = opinion_data[10:]  # Skip timestamp part
             logger.info(f"Loading state with CID: {state_cid}")
             
             # Use to_thread to run the synchronous HivemindState operations
             state = await asyncio.to_thread(lambda: HivemindState(cid=state_cid))
+
+            logger.info(f"Loaded state with CID: {state_cid}")
             
+            # Verify the message signature before adding the opinion
+            if not verify_message(message, address, signature):
+                logger.error(f"Message verification failed for address {address}")
+                raise HTTPException(status_code=400, detail="Signature is invalid")
+            logger.info(f"signature ok")
             # Add the opinion using to_thread as well
             await asyncio.to_thread(
                 lambda: state.add_opinion(
@@ -933,6 +942,8 @@ async def sign_opinion(request: Request):
                 )
             )
             
+            logger.info(f"Added opinion successfully")
+
             # Save the state using to_thread
             new_cid = await asyncio.to_thread(lambda: state.save())
             
