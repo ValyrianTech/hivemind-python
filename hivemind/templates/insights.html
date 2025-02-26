@@ -359,18 +359,25 @@
                                                             ${new Date(opinion.timestamp * 1000).toLocaleString()}
                                                         </td>
                                                     </tr>
-                                                    <tr class="opinion-details hidden">
+                                                    <tr class="opinion-details hidden opacity-0 transition-all duration-300">
                                                         <td colspan="3" class="px-4 py-3 bg-gray-700">
-                                                            <div class="text-sm">
+                                                            <div class="text-sm space-y-2">
                                                                 <p class="font-medium text-gray-300 mb-2">Ranking:</p>
                                                                 ${opinion.ranking ? `
-                                                                    <ol class="list-decimal list-inside">
-                                                                        ${opinion.ranking.map(optionId => {
-                                                                            const option = data.options.find(o => o.cid === optionId);
-                                                                            return `<li class="text-gray-400">${option ? (option.text || option.value) : optionId}</li>`;
+                                                                    <div class="space-y-2">
+                                                                        ${opinion.ranking.map((optionCid, rank) => {
+                                                                            const option = data.options.find(opt => opt.cid === optionCid);
+                                                                            return `
+                                                                                <div class="flex items-center space-x-2">
+                                                                                    <span class="text-gray-400">#${rank + 1}</span>
+                                                                                    <span class="text-white">${option ? (option.text || option.value) : optionCid}</span>
+                                                                                </div>
+                                                                            `;
                                                                         }).join('')}
-                                                                    </ol>
-                                                                ` : '<p class="text-gray-500 italic">No ranking available</p>'}
+                                                                    </div>
+                                                                ` : `
+                                                                    <p class="text-gray-400 italic">No ranking data available</p>
+                                                                `}
                                                             </div>
                                                         </td>
                                                     </tr>
@@ -397,8 +404,21 @@
         // Function to toggle opinion details with IPFS data
         function toggleOpinionDetails(row, questionIndex, address) {
             const detailsRow = row.nextElementSibling;
-            detailsRow.classList.toggle('hidden');
-            detailsRow.classList.toggle('opacity-0');
+            
+            // Toggle visibility with animation
+            if (detailsRow.classList.contains('hidden')) {
+                detailsRow.classList.remove('hidden');
+                // Use setTimeout to ensure the transition works
+                setTimeout(() => {
+                    detailsRow.classList.remove('opacity-0');
+                }, 10);
+            } else {
+                detailsRow.classList.add('opacity-0');
+                // Wait for transition to complete before hiding
+                setTimeout(() => {
+                    detailsRow.classList.add('hidden');
+                }, 300);
+            }
         }
 
         function showError(message) {
