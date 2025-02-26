@@ -210,6 +210,11 @@ class OpinionCreate(BaseModel):
     question_index: int
     ranking: List[str]
 
+class SignOpinionRequest(BaseModel):
+    """Pydantic model for signing an opinion."""
+    msg: str
+    url: str
+
 # Initialize FastAPI app
 app = FastAPI(title="Hivemind Insights")
 
@@ -908,6 +913,19 @@ async def validate_key(private_key: str):
             "valid": False,
             "error": str(e)
         }
+
+@app.post("/api/sign_opinion")
+async def sign_opinion(request: SignOpinionRequest):
+    """Log the opinion signing request data.
+    
+    Args:
+        request: SignOpinionRequest containing the message and URL
+        
+    Returns:
+        Dict indicating success status
+    """
+    logger.info(f"Received opinion signing request - Message: {request.msg}, URL: {request.url}")
+    return {"success": True}
 
 if __name__ == "__main__":
     import uvicorn

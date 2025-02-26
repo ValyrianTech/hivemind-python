@@ -166,7 +166,7 @@
                         const timestamp = Math.floor(Date.now() / 1000);  // Convert to Unix timestamp
                         const qrData = {
                             msg: `${timestamp}/ipfs/${data.cid}`,
-                            url: 'http://192.168.0.189:8081/api/AddMessage/message'
+                            url: `${window.location.protocol}//${window.location.hostname}:8000/api/sign_opinion`
                         };
                         
                         // Show QR code container for this question
