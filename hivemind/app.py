@@ -894,7 +894,6 @@ async def sign_opinion(request: Request):
     """
     try:
         data = await request.json()
-        logger.info(f"Received raw opinion signing request data: {data}")
         
         # Extract required fields
         address = data.get('address')
@@ -919,15 +918,11 @@ async def sign_opinion(request: Request):
         # Get hivemind state from the opinion data
         try:
             # First load the opinion to get its hivemind_id
-            logger.info(f"Loading opinion with CID: {opinion_hash}")
             opinion = await asyncio.to_thread(lambda: HivemindOpinion(cid=opinion_hash))
-            logger.info(f"Loaded opinion: {opinion}")
 
             if not opinion.hivemind_id:
                 raise HTTPException(status_code=400, detail="Opinion does not have an associated hivemind state")
                 
-            logger.info(f"Loading state with CID: {opinion.hivemind_id}")
-            
             # Get the latest state hash from hivemind_states.json
             state_data = load_state_mapping().get(opinion.hivemind_id)
             if not state_data:
@@ -938,9 +933,6 @@ async def sign_opinion(request: Request):
             
             # Use to_thread to run the synchronous HivemindState operations
             state = await asyncio.to_thread(lambda: HivemindState(cid=latest_state_hash))
-
-            logger.info(f"options: {state.options}")
-
             logger.info(f"Loaded state with CID: {opinion.hivemind_id}")
             
             # Verify the message signature before adding the opinion
@@ -948,6 +940,7 @@ async def sign_opinion(request: Request):
                 logger.error(f"Message verification failed for address {address}")
                 raise HTTPException(status_code=400, detail="Signature is invalid")
             logger.info(f"signature ok")
+            
             # Add the opinion using to_thread as well
             await asyncio.to_thread(
                 lambda: state.add_opinion(
@@ -962,6 +955,7 @@ async def sign_opinion(request: Request):
 
             # Save the state using to_thread
             new_cid = await asyncio.to_thread(lambda: state.save())
+            logger.info(f"Latest state CID: {new_cid}")
             
             return {
                 "success": True,

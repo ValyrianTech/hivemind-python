@@ -283,7 +283,7 @@ class HivemindState(IPFSDictChain):
             self.opinions[opinion.question_index][address] = {'opinion_cid': opinion_hash, 'timestamp': timestamp}
 
         else:
-            raise Exception('Opinion is invalid')
+            raise Exception('Opinion is invalid: contains options that do not exist in the hivemind state')
 
     def get_opinion(self, opinionator: str, question_index: int = 0) -> Optional[HivemindOpinion]:
         """Get the opinion of a participant.
