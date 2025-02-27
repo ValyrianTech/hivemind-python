@@ -424,7 +424,7 @@ async def fetch_state(request: IPFSHashRequest):
         if state.hivemind_id:
             if state.hivemind_id not in mapping:
                 mapping[state.hivemind_id] = {
-                    "state_hash": cid,
+                    "state_hash": state.cid(),  # Use state.cid() instead of input cid
                     "name": basic_info['issue']['name'],
                     "description": basic_info['issue']['description'],
                     "num_options": basic_info['num_options'],
@@ -436,13 +436,13 @@ async def fetch_state(request: IPFSHashRequest):
                 }
                 save_state_mapping(mapping)
                 logger.info(f"Added new state mapping for {state.hivemind_id}")
-            elif mapping[state.hivemind_id]["state_hash"] == cid:
+            elif mapping[state.hivemind_id]["state_hash"] == state.cid():  # Compare with state.cid()
                 # Only update results if this is the latest state we're tracking
                 mapping[state.hivemind_id]["results"] = results
                 save_state_mapping(mapping)
                 logger.info(f"Updated results for latest state of {state.hivemind_id}")
             else:
-                logger.info(f"Skipping state update for historical state {cid} of {state.hivemind_id}")
+                logger.info(f"Skipping state update for historical state {state.cid()} of {state.hivemind_id}")
         
         # Calculate total time
         stats.total_time = time.time() - stats.start_time
