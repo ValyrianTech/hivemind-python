@@ -161,7 +161,7 @@ class StateHashUpdate(BaseModel):
     answer_type: str
     questions: List[str]
     tags: List[str]
-    results: Optional[Dict[str, Any]] = None
+    results: Optional[List[Dict[str, Any]]] = None
 
 class OptionCreate(BaseModel):
     """Pydantic model for creating a new option."""
@@ -676,7 +676,7 @@ async def create_option(option: OptionCreate):
         
         # Update the state mapping
         logger.info("Updating state mapping...")
-        update_state(StateHashUpdate(
+        await update_state(StateHashUpdate(
             hivemind_id=option.hivemind_id,
             state_hash=result["state_cid"],
             name=result["issue_name"],
@@ -956,6 +956,47 @@ async def sign_opinion(request: Request):
             # Save the state using to_thread
             new_cid = await asyncio.to_thread(lambda: state.save())
             logger.info(f"Latest state CID: {new_cid}")
+            
+            # Calculate new results for the specific question
+            logger.info("Calculating updated results...")
+            def calc_results():
+                return state.calculate_results(opinion.question_index)
+            results = await asyncio.to_thread(calc_results)
+            
+            # Get sorted options to find the winner
+            sorted_options = await asyncio.to_thread(lambda: state.get_sorted_options(question_index=opinion.question_index))
+            
+            # Format results with just the winning option
+            formatted_results = []
+            if sorted_options:
+                winner = sorted_options[0]
+                score = results.get(winner.cid().replace('/ipfs/', ''), {}).get('score', 0) or 0
+                formatted_results.append({
+                    'text': winner.text if hasattr(winner, 'text') else str(winner.value) if hasattr(winner, 'value') else '',
+                    'value': winner.value if hasattr(winner, 'value') else '',
+                    'score': round(score * 100, 2)
+                })
+            
+            logger.info("Calculating updated results done")
+            logger.info(f"New winning result for question {opinion.question_index}: {formatted_results}")
+            
+            # Update the state mapping with new state hash and metadata
+            issue = await asyncio.to_thread(lambda: HivemindIssue(cid=opinion.hivemind_id))
+            logger.info("Loading issue done")
+
+            await update_state(StateHashUpdate(
+                hivemind_id=opinion.hivemind_id,
+                state_hash=new_cid,
+                name=issue.name,
+                description=issue.description,
+                num_options=len(state.options),
+                num_opinions=len(state.opinions[0]) if state.opinions else 0,
+                answer_type=issue.answer_type,
+                questions=issue.questions,
+                tags=issue.tags,
+                results=formatted_results
+            ))
+            logger.info("State mapping updated successfully")
             
             return {
                 "success": True,
