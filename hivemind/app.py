@@ -264,16 +264,25 @@ async def states_page(request: Request):
     try:
         mapping = load_state_mapping()
         
-        # Sort states by number of opinions (descending)
-        sorted_states = sorted(
-            mapping.items(),
-            key=lambda x: x[1]['num_opinions'],
-            reverse=True
-        )
+        # Get file modification times and sort by most recent
+        state_times = []
+        for hivemind_id in mapping:
+            state_file = STATES_DIR / f"{hivemind_id}.json"
+            try:
+                mtime = state_file.stat().st_mtime
+                state_times.append((hivemind_id, mtime))
+            except Exception as e:
+                logger.error(f"Failed to get modification time for {state_file}: {str(e)}")
+                state_times.append((hivemind_id, 0))  # Put files with errors at the end
         
-        # Add hivemind_id to each state_info
-        states = [dict(state_info, hivemind_id=hivemind_id) 
-                 for hivemind_id, state_info in sorted_states]
+        # Sort by modification time (most recent first)
+        sorted_states = sorted(state_times, key=lambda x: x[1], reverse=True)
+        
+        # Add state info to each entry
+        states = []
+        for hivemind_id, _ in sorted_states:
+            state_info = mapping[hivemind_id]
+            states.append(dict(state_info, hivemind_id=hivemind_id))
         
         return templates.TemplateResponse("states.html", {
             "request": request,
