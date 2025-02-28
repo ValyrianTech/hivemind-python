@@ -303,6 +303,8 @@ async def fetch_state(request: IPFSHashRequest):
                 'tags': issue.tags or [],
                 'questions': issue.questions or [],
                 'answer_type': issue.answer_type or 'Unknown',
+                'constraints': issue.constraints,
+                'restrictions': issue.restrictions,
             }
             
             stats.num_questions = len(issue.questions) if issue.questions else 0

@@ -200,7 +200,7 @@
                             <p class="font-medium text-gray-300">Answer Type</p>
                             <p class="text-white mt-1">${issue.answer_type || 'Unknown'}</p>
                         </div>
-                        <div class="md:col-span-2 bg-gray-700 rounded-lg p-4">
+                        <div class="col-span-2 bg-gray-700 rounded-lg p-4">
                             <p class="font-medium text-gray-300">Description</p>
                             <p class="text-white mt-1">${issue.description || 'No description available'}</p>
                         </div>
@@ -222,6 +222,28 @@
                                         ${tag}
                                     </span>
                                 `).join('')}
+                            </div>
+                        </div>
+                        <!-- Advanced Options Toggle -->
+                        <div class="col-span-2 mt-4">
+                            <button type="button" onclick="toggleAdvancedOptions()" 
+                                    class="text-blue-400 hover:text-blue-300 font-medium transition-colors duration-200">
+                                Advanced Options ▼
+                            </button>
+                        </div>
+
+                        <!-- Advanced Options Section -->
+                        <div id="advancedOptions" class="hidden col-span-2 space-y-4 mt-4">
+                            <!-- Constraints -->
+                            <div class="bg-gray-700 rounded-lg p-4">
+                                <p class="font-medium text-gray-300">Constraints</p>
+                                <pre class="text-white mt-1 font-mono text-sm overflow-x-auto">${issue.constraints === undefined ? 'None' : JSON.stringify(issue.constraints, null, 2)}</pre>
+                            </div>
+
+                            <!-- Restrictions -->
+                            <div class="bg-gray-700 rounded-lg p-4">
+                                <p class="font-medium text-gray-300">Restrictions</p>
+                                <pre class="text-white mt-1 font-mono text-sm overflow-x-auto">${issue.restrictions === undefined ? 'None' : JSON.stringify(issue.restrictions, null, 2)}</pre>
                             </div>
                         </div>
                     </div>
@@ -418,6 +440,15 @@
                 setTimeout(() => {
                     detailsRow.classList.add('hidden');
                 }, 300);
+            }
+        }
+
+        function toggleAdvancedOptions() {
+            const advancedOptions = document.getElementById('advancedOptions');
+            if (advancedOptions.classList.contains('hidden')) {
+                advancedOptions.classList.remove('hidden');
+            } else {
+                advancedOptions.classList.add('hidden');
             }
         }
 
