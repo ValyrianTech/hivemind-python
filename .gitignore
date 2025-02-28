@@ -39,4 +39,4 @@ logs/
 .idea/
 
 # State files
-hivemind/data/hivemind_states.json
+hivemind/data/*.json

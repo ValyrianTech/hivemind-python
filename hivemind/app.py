@@ -127,26 +127,43 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 # Initialize state storage
-STATE_FILE = Path(__file__).parent / "data" / "hivemind_states.json"
-STATE_FILE.parent.mkdir(exist_ok=True)
-if not STATE_FILE.exists():
-    with open(STATE_FILE, "w") as f:
-        json.dump({}, f)
+STATES_DIR = Path(__file__).parent / "data"
+STATES_DIR.mkdir(exist_ok=True, parents=True)
 
-def load_state_mapping():
-    """Load the hivemind state mapping from JSON file."""
+def load_state_mapping() -> Dict[str, Dict[str, Any]]:
+    """Load all hivemind states from individual JSON files.
+    
+    Returns:
+        Dict[str, Dict[str, Any]]: Mapping of hivemind IDs to their state data
+    """
     try:
-        with open(STATE_FILE, "r") as f:
-            return json.load(f)
+        mapping = {}
+        for state_file in STATES_DIR.glob("*.json"):
+            hivemind_id = state_file.stem
+            try:
+                with open(state_file, "r") as f:
+                    mapping[hivemind_id] = json.load(f)
+            except Exception as e:
+                logger.error(f"Failed to load state file {state_file}: {str(e)}")
+        return mapping
     except Exception as e:
         logger.error(f"Failed to load state mapping: {str(e)}")
         return {}
 
-def save_state_mapping(mapping):
-    """Save the hivemind state mapping to JSON file."""
+def save_state_mapping(mapping: Dict[str, Dict[str, Any]]) -> None:
+    """Save hivemind states to individual JSON files.
+    
+    Args:
+        mapping: Dict mapping hivemind IDs to their state data
+    """
     try:
-        with open(STATE_FILE, "w") as f:
-            json.dump(mapping, f, indent=2)
+        for hivemind_id, state_data in mapping.items():
+            state_file = STATES_DIR / f"{hivemind_id}.json"
+            try:
+                with open(state_file, "w") as f:
+                    json.dump(state_data, f, indent=2)
+            except Exception as e:
+                logger.error(f"Failed to save state file {state_file}: {str(e)}")
     except Exception as e:
         logger.error(f"Failed to save state mapping: {str(e)}")
 
