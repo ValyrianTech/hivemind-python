@@ -112,13 +112,10 @@
                 <div id="advancedOptions" class="hidden space-y-4">
                     <!-- Constraints -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-300">Constraints (JSON)</label>
-                        <textarea id="constraints" rows="4" placeholder='{
-  "min_length": 1,
-  "max_length": 100,
-  "choices": ["option1", "option2"]
-}'
-                                  class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 font-mono text-sm"></textarea>
+                        <label class="block text-sm font-medium text-gray-300">Constraints</label>
+                        <div id="dynamic-constraints" class="space-y-4">
+                            <!-- Dynamic constraint fields will be inserted here -->
+                        </div>
                     </div>
 
                     <!-- Restrictions -->
@@ -128,7 +125,7 @@
   "addresses": ["addr1", "addr2"],
   "options_per_address": 1
 }'
-                                  class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 font-mono text-sm"></textarea>
+                                  class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white font-mono text-sm"></textarea>
                     </div>
                 </div>
 
@@ -185,6 +182,209 @@
             div.classList.toggle('hidden');
         }
 
+        // Define constraint templates for each answer type
+        const constraintTemplates = {
+            String: `
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300">Minimum Length</label>
+                        <input type="number" id="min_length" min="0" 
+                               class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300">Maximum Length</label>
+                        <input type="number" id="max_length" min="0"
+                               class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300">Regex Pattern (optional)</label>
+                    <input type="text" id="regex" placeholder="^[a-zA-Z0-9]+$"
+                           class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300">Choices (one per line, optional)</label>
+                    <textarea id="choices" rows="3" placeholder="option1&#10;option2&#10;option3"
+                              class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white"></textarea>
+                </div>
+            `,
+            Integer: `
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300">Minimum Value</label>
+                        <input type="number" id="min_value" 
+                               class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300">Maximum Value</label>
+                        <input type="number" id="max_value"
+                               class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300">Choices (one per line, optional)</label>
+                    <textarea id="choices" rows="3" placeholder="1&#10;2&#10;3"
+                              class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white"></textarea>
+                </div>
+            `,
+            Float: `
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300">Minimum Value</label>
+                        <input type="number" id="min_value" step="any"
+                               class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300">Maximum Value</label>
+                        <input type="number" id="max_value" step="any"
+                               class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300">Decimal Places</label>
+                    <input type="number" id="decimals" min="0" max="20"
+                           class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300">Choices (one per line, optional)</label>
+                    <textarea id="choices" rows="3" placeholder="1.5&#10;2.5&#10;3.5"
+                              class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white"></textarea>
+                </div>
+            `,
+            Complex: `
+                <div>
+                    <label class="block text-sm font-medium text-gray-300">Field Specifications</label>
+                    <div id="complex-fields" class="space-y-2">
+                        <div class="flex space-x-2">
+                            <input type="text" placeholder="Field name" class="flex-1 rounded-md border-gray-600 bg-gray-700 text-white">
+                            <select class="rounded-md border-gray-600 bg-gray-700 text-white">
+                                <option value="String">String</option>
+                                <option value="Integer">Integer</option>
+                                <option value="Float">Float</option>
+                            </select>
+                            <button type="button" onclick="removeComplexField(this)" 
+                                    class="px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="button" onclick="addComplexField()" 
+                            class="mt-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                        <i class="fas fa-plus"></i>
+                        <span class="ml-2">Add Field</span>
+                    </button>
+                </div>
+            `,
+            Bool: `
+                <div>
+                    <label class="block text-sm font-medium text-gray-300">Choices (optional)</label>
+                    <div class="space-y-2">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="allow_true" checked
+                                   class="rounded border-gray-600 bg-gray-700 text-blue-500">
+                            <label class="ml-2 text-sm text-gray-300">Allow True</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="allow_false" checked
+                                   class="rounded border-gray-600 bg-gray-700 text-blue-500">
+                            <label class="ml-2 text-sm text-gray-300">Allow False</label>
+                        </div>
+                    </div>
+                </div>
+            `,
+            Address: `
+                <div>
+                    <label class="block text-sm font-medium text-gray-300">Allowed Addresses (one per line, optional)</label>
+                    <textarea id="choices" rows="3" placeholder="bc1...&#10;3...&#10;1..."
+                              class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white font-mono text-sm"></textarea>
+                </div>
+            `,
+            Hivemind: `
+                <div>
+                    <label class="block text-sm font-medium text-gray-300">Allowed Hivemind CIDs (one per line, optional)</label>
+                    <textarea id="choices" rows="3" placeholder="Qm...&#10;Qm...&#10;Qm..."
+                              class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white font-mono text-sm"></textarea>
+                </div>
+            `,
+            Image: `
+                <div>
+                    <label class="block text-sm font-medium text-gray-300">Allowed Image CIDs (one per line, optional)</label>
+                    <textarea id="choices" rows="3" placeholder="Qm...&#10;Qm...&#10;Qm..."
+                              class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white font-mono text-sm"></textarea>
+                </div>
+            `,
+            Video: `
+                <div>
+                    <label class="block text-sm font-medium text-gray-300">Allowed Video CIDs (one per line, optional)</label>
+                    <textarea id="choices" rows="3" placeholder="Qm...&#10;Qm...&#10;Qm..."
+                              class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white font-mono text-sm"></textarea>
+                </div>
+            `
+        };
+
+        // Use String template for these types
+        constraintTemplates.Hivemind = constraintTemplates.String;
+        constraintTemplates.Image = constraintTemplates.String;
+        constraintTemplates.Video = constraintTemplates.String;
+        constraintTemplates.Address = constraintTemplates.String;
+
+        function updateConstraintFields() {
+            const answerType = document.getElementById('answer_type').value;
+            const container = document.getElementById('dynamic-constraints');
+            container.innerHTML = constraintTemplates[answerType] || '';
+
+            // Update placeholders based on type
+            const choicesTextarea = container.querySelector('#choices');
+            if (choicesTextarea) {
+                switch (answerType) {
+                    case 'Hivemind':
+                        choicesTextarea.placeholder = 'Qm...\\nQm...\\nQm...';
+                        break;
+                    case 'Image':
+                        choicesTextarea.placeholder = 'Qm...\\nQm...\\nQm...';
+                        break;
+                    case 'Video':
+                        choicesTextarea.placeholder = 'Qm...\\nQm...\\nQm...';
+                        break;
+                    case 'Address':
+                        choicesTextarea.placeholder = 'bc1...\\n3...\\n1...';
+                        break;
+                }
+            }
+        }
+
+        function addComplexField() {
+            const container = document.getElementById('complex-fields');
+            const div = document.createElement('div');
+            div.className = 'flex space-x-2';
+            div.innerHTML = `
+                <input type="text" placeholder="Field name" class="flex-1 rounded-md border-gray-600 bg-gray-700 text-white">
+                <select class="rounded-md border-gray-600 bg-gray-700 text-white">
+                    <option value="String">String</option>
+                    <option value="Integer">Integer</option>
+                    <option value="Float">Float</option>
+                </select>
+                <button type="button" onclick="removeComplexField(this)" 
+                        class="px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            `;
+            container.appendChild(div);
+        }
+
+        function removeComplexField(button) {
+            const container = document.getElementById('complex-fields');
+            if (container.children.length > 1) {
+                button.parentElement.remove();
+            }
+        }
+
+        // Update constraint fields when answer type changes
+        document.getElementById('answer_type').addEventListener('change', updateConstraintFields);
+
+        // Initialize constraint fields
+        document.addEventListener('DOMContentLoaded', updateConstraintFields);
+
         document.getElementById('createIssueForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -200,20 +400,76 @@
                 .map(tag => tag.trim())
                 .filter(tag => tag);
             
-            // Get constraints and restrictions
-            let constraints = null;
+            // Build constraints based on answer type
+            const answerType = document.getElementById('answer_type').value;
+            let constraints = {};
+            
+            // Handle String-like types (String, Hivemind, Image, Video, Address)
+            if (['String', 'Hivemind', 'Image', 'Video', 'Address'].includes(answerType)) {
+                const minLength = document.getElementById('min_length').value;
+                const maxLength = document.getElementById('max_length').value;
+                const regex = document.getElementById('regex').value;
+                if (minLength) constraints.min_length = parseInt(minLength);
+                if (maxLength) constraints.max_length = parseInt(maxLength);
+                if (regex) constraints.regex = regex;
+            }
+            else if (answerType === 'Integer' || answerType === 'Float') {
+                const minValue = document.getElementById('min_value').value;
+                const maxValue = document.getElementById('max_value').value;
+                if (minValue) constraints.min_value = answerType === 'Float' ? parseFloat(minValue) : parseInt(minValue);
+                if (maxValue) constraints.max_value = answerType === 'Float' ? parseFloat(maxValue) : parseInt(maxValue);
+                if (answerType === 'Float') {
+                    const decimals = document.getElementById('decimals').value;
+                    if (decimals) constraints.decimals = parseInt(decimals);
+                }
+            }
+            else if (answerType === 'Complex') {
+                const specs = {};
+                document.querySelectorAll('#complex-fields .flex').forEach(field => {
+                    const name = field.querySelector('input').value;
+                    const type = field.querySelector('select').value;
+                    if (name) specs[name] = type;
+                });
+                if (Object.keys(specs).length > 0) constraints.specs = specs;
+            }
+            else if (answerType === 'Bool') {
+                const allowTrue = document.getElementById('allow_true').checked;
+                const allowFalse = document.getElementById('allow_false').checked;
+                if (!allowTrue || !allowFalse) {
+                    constraints.choices = [];
+                    if (allowTrue) constraints.choices.push(true);
+                    if (allowFalse) constraints.choices.push(false);
+                }
+            }
+            
+            // Get choices for types that support them
+            const choicesElement = document.getElementById('choices');
+            if (choicesElement) {
+                const choicesText = choicesElement.value.trim();
+                if (choicesText) {
+                    const choices = choicesText.split('\n').map(c => c.trim()).filter(c => c);
+                    if (choices.length > 0) {
+                        // Convert choices to appropriate type
+                        if (answerType === 'Integer') {
+                            constraints.choices = choices.map(c => parseInt(c));
+                        } else if (answerType === 'Float') {
+                            constraints.choices = choices.map(c => parseFloat(c));
+                        } else {
+                            constraints.choices = choices;
+                        }
+                    }
+                }
+            }
+            
+            // Get restrictions
             let restrictions = null;
             try {
-                const constraintsText = document.getElementById('constraints').value;
-                if (constraintsText) {
-                    constraints = JSON.parse(constraintsText);
-                }
                 const restrictionsText = document.getElementById('restrictions').value;
                 if (restrictionsText) {
                     restrictions = JSON.parse(restrictionsText);
                 }
             } catch (error) {
-                alert('Invalid JSON in constraints or restrictions');
+                alert('Invalid JSON in restrictions');
                 return;
             }
             
@@ -222,9 +478,9 @@
                 description: document.getElementById('description').value,
                 questions: questions,
                 tags: tags,
-                answer_type: document.getElementById('answer_type').value,
+                answer_type: answerType,
                 on_selection: document.getElementById('on_selection').value || null,
-                constraints: constraints,
+                constraints: Object.keys(constraints).length > 0 ? constraints : null,
                 restrictions: restrictions
             };
             
