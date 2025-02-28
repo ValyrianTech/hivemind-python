@@ -833,7 +833,8 @@ async def get_latest_state(hivemind_id: str):
 async def update_state(state_update: StateHashUpdate):
     """Update the state hash for a given hivemind ID."""
     mapping = load_state_mapping()
-    mapping[state_update.hivemind_id] = {
+    state_file = STATES_DIR / f"{state_update.hivemind_id}.json"
+    state_data = {
         "state_hash": state_update.state_hash,
         "name": state_update.name,
         "description": state_update.description,
@@ -844,8 +845,14 @@ async def update_state(state_update: StateHashUpdate):
         "tags": state_update.tags,
         "results": state_update.results
     }
-    save_state_mapping(mapping)
-    return {"status": "success", "hivemind_id": state_update.hivemind_id, **mapping[state_update.hivemind_id]}
+    mapping[state_update.hivemind_id] = state_data
+    try:
+        with open(state_file, "w") as f:
+            json.dump(state_data, f, indent=2)
+    except Exception as e:
+        logger.error(f"Failed to save state file {state_file}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to save state: {str(e)}")
+    return {"status": "success", "hivemind_id": state_update.hivemind_id, **state_data}
 
 @app.get("/api/all_states")
 async def get_all_states():
