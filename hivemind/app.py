@@ -17,7 +17,7 @@ from pathlib import Path
 # Add parent directory to Python path to find hivemind package
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, WebSocket
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -182,6 +182,26 @@ class SignOpinionRequest(BaseModel):
 
 # Initialize FastAPI app
 app = FastAPI(title="Hivemind Insights")
+
+# Store active WebSocket connections
+active_connections: Dict[str, List[WebSocket]] = {}
+
+# WebSocket endpoint for opinion notifications
+@app.websocket("/ws/opinion/{opinion_hash}")
+async def websocket_endpoint(websocket: WebSocket, opinion_hash: str):
+    await websocket.accept()
+    
+    if opinion_hash not in active_connections:
+        active_connections[opinion_hash] = []
+    active_connections[opinion_hash].append(websocket)
+    
+    try:
+        while True:
+            await websocket.receive_text()  # Keep connection alive
+    except:
+        active_connections[opinion_hash].remove(websocket)
+        if not active_connections[opinion_hash]:
+            del active_connections[opinion_hash]
 
 # Mount static files and templates
 static_dir = os.path.join(os.path.dirname(__file__), "static")
@@ -999,6 +1019,23 @@ async def sign_opinion(request: Request):
                 results=formatted_results
             ))
             logger.info("State mapping updated successfully")
+            
+            # Send notification to connected WebSocket clients
+            if opinion_hash in active_connections:
+                notification_data = {
+                    "success": True,
+                    "message": "Opinion signed successfully",
+                    "opinion_hash": opinion_hash,
+                    "state_cid": new_cid,
+                    "results": formatted_results,
+                    "hivemind_id": opinion.hivemind_id
+                }
+                for connection in active_connections[opinion_hash]:
+                    try:
+                        await connection.send_json(notification_data)
+                    except Exception as e:
+                        logger.error(f"Failed to send WebSocket notification: {str(e)}")
+                        continue  # Skip failed connections
             
             return {
                 "success": True,

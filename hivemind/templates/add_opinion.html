@@ -183,6 +183,41 @@
                             width: 256,
                             height: 256
                         });
+
+                        // Connect to WebSocket for signature notification
+                        const ws = new WebSocket(`ws://${window.location.hostname}:8000/ws/opinion/${data.cid}`);
+                        
+                        ws.onmessage = function(event) {
+                            const notification = JSON.parse(event.data);
+                            if (notification.success) {
+                                // Create success notification
+                                const notificationDiv = document.createElement('div');
+                                notificationDiv.className = 'bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mt-4';
+                                notificationDiv.innerHTML = `
+                                    <strong class="font-bold">Success!</strong>
+                                    <p class="block sm:inline">Your opinion has been successfully signed and added to the hivemind.</p>
+                                    <div class="mt-2">
+                                        <strong>Current Results:</strong>
+                                        ${notification.results.map(result => `
+                                            <p>${result.text || result.value}: ${result.score}%</p>
+                                        `).join('')}
+                                    </div>
+                                    <a href="/insights?cid=${notification.state_cid}" class="text-blue-500 hover:text-blue-700 mt-2 inline-block">
+                                        View Full Results →
+                                    </a>
+                                `;
+                                
+                                // Add notification to the QR code container
+                                qrContainer.appendChild(notificationDiv);
+                                
+                                // Close WebSocket connection
+                                ws.close();
+                            }
+                        };
+                        
+                        ws.onerror = function(error) {
+                            console.error('WebSocket error:', error);
+                        };
                         
                         // Disable the submit button for this question
                         const button = rankingContainer.nextElementSibling;
