@@ -278,17 +278,17 @@
             `,
             Bool: `
                 <div>
-                    <label class="block text-sm font-medium text-gray-300">Choices (optional)</label>
+                    <label class="block text-sm font-medium text-gray-300">Custom Boolean Labels</label>
                     <div class="space-y-2">
                         <div class="flex items-center">
-                            <input type="checkbox" id="allow_true" checked
-                                   class="rounded border-gray-600 bg-gray-700 text-blue-500">
-                            <label class="ml-2 text-sm text-gray-300">Allow True</label>
+                            <label class="text-sm text-gray-300 w-20">True Label:</label>
+                            <input type="text" id="true_label" value="True" placeholder="True"
+                                   class="rounded-md border-gray-600 bg-gray-700 text-white">
                         </div>
                         <div class="flex items-center">
-                            <input type="checkbox" id="allow_false" checked
-                                   class="rounded border-gray-600 bg-gray-700 text-blue-500">
-                            <label class="ml-2 text-sm text-gray-300">Allow False</label>
+                            <label class="text-sm text-gray-300 w-20">False Label:</label>
+                            <input type="text" id="false_label" value="False" placeholder="False"
+                                   class="rounded-md border-gray-600 bg-gray-700 text-white">
                         </div>
                     </div>
                 </div>
@@ -435,13 +435,9 @@
                 if (Object.keys(specs).length > 0) constraints.specs = specs;
             }
             else if (answerType === 'Bool') {
-                const allowTrue = document.getElementById('allow_true').checked;
-                const allowFalse = document.getElementById('allow_false').checked;
-                if (!allowTrue || !allowFalse) {
-                    constraints.choices = [];
-                    if (allowTrue) constraints.choices.push(true);
-                    if (allowFalse) constraints.choices.push(false);
-                }
+                const trueLabel = document.getElementById('true_label').value;
+                const falseLabel = document.getElementById('false_label').value;
+                constraints.choices = [trueLabel, falseLabel];
             }
             
             // Get choices for types that support them

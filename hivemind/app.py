@@ -530,7 +530,20 @@ async def create_issue(issue: HivemindIssueCreate):
 
             # Set constraints if provided
             if issue.constraints:
-                new_issue.set_constraints(issue.constraints)
+                # Special handling for Bool type constraints
+                if issue.answer_type == 'Bool' and 'choices' in issue.constraints:
+                    # Extract the true/false labels from the choices array
+                    true_label = issue.constraints['choices'][0] if len(issue.constraints['choices']) > 0 else 'True'
+                    false_label = issue.constraints['choices'][1] if len(issue.constraints['choices']) > 1 else 'False'
+                    
+                    # Set constraints in the format expected by HivemindState.add_predefined_options
+                    modified_constraints = {
+                        'true_value': true_label,
+                        'false_value': false_label
+                    }
+                    new_issue.set_constraints(modified_constraints)
+                else:
+                    new_issue.set_constraints(issue.constraints)
             elif issue.answer_type == 'Bool':
                 # Add default constraints for Bool type
                 new_issue.set_constraints({
