@@ -222,10 +222,7 @@ class HivemindOption(IPFSDict):
         return True
 
     def is_valid_complex_option(self) -> bool:
-        """Check if the option is a valid complex option.
-
-        Complex options are dictionaries that must match the specifications
-        defined in the hivemind issue constraints.
+        """Check if the option is a valid complex option according to the specifications in the constraints.
 
         :return: True if valid, False otherwise
         :rtype: bool
@@ -233,22 +230,32 @@ class HivemindOption(IPFSDict):
         if not isinstance(self.value, dict):
             return False
 
-        if 'specs' in self._hivemind_issue.constraints:
-            for spec_key in self._hivemind_issue.constraints['specs']:
-                if spec_key not in self.value:
-                    return False
+        # If there are no specs in the constraints, any dictionary is valid
+        if 'specs' not in self._hivemind_issue.constraints:
+            return True
 
-            for spec_key in self.value.keys():
-                if spec_key not in self._hivemind_issue.constraints['specs']:
-                    return False
+        specs = self._hivemind_issue.constraints['specs']
 
-            for spec_key, spec_value in self.value.items():
-                if self._hivemind_issue.constraints['specs'][spec_key] == 'String' and not isinstance(spec_value, str):
-                    return False
-                elif self._hivemind_issue.constraints['specs'][spec_key] == 'Integer' and not isinstance(spec_value, int):
-                    return False
-                elif self._hivemind_issue.constraints['specs'][spec_key] == 'Float' and not isinstance(spec_value, float):
-                    return False
+        # Check if the option has all the fields specified in the constraints
+        for spec_key in specs:
+            if spec_key not in self.value:
+                return False
+
+        # Check if the option has any fields not specified in the constraints
+        for value_key in self.value:
+            if value_key not in specs:
+                return False
+
+        # Check if the types of the fields match the specs
+        for spec_key, spec_value in self.value.items():
+            if specs[spec_key] == 'String' and not isinstance(spec_value, str):
+                return False
+            elif specs[spec_key] == 'Integer' and not isinstance(spec_value, int):
+                return False
+            elif specs[spec_key] == 'Float' and not isinstance(spec_value, float):
+                return False
+            elif specs[spec_key] == 'Bool' and not isinstance(spec_value, bool):
+                return False
 
         return True
 

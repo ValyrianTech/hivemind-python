@@ -18,7 +18,7 @@ from pathlib import Path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -236,7 +236,7 @@ class HivemindIssueCreate(BaseModel):
     questions: List[str]
     tags: List[str]
     answer_type: str
-    constraints: Optional[Dict[str, Union[str, int, float, list]]] = None
+    constraints: Optional[Dict[str, Union[str, int, float, list, dict]]] = None
     restrictions: Optional[Dict[str, Union[List[str], int]]] = None
     on_selection: Optional[str] = None
 
@@ -513,85 +513,37 @@ async def fetch_state(request: IPFSHashRequest):
 
 @app.post("/api/create_issue")
 async def create_issue(issue: HivemindIssueCreate):
-    """Create a new HivemindIssue and save it to IPFS."""
+    """Create a new issue and save it to IPFS.
+
+    :param issue: The issue to create
+    :type issue: HivemindIssueCreate
+    :return: The CID of the new issue
+    :rtype: dict
+    """
     try:
-        def create_and_save():
-            # Create new HivemindIssue
-            new_issue = HivemindIssue()
-            new_issue.name = issue.name
-            new_issue.description = issue.description
-            new_issue.tags = issue.tags
-            new_issue.answer_type = issue.answer_type
-            new_issue.on_selection = issue.on_selection
+        hivemind_issue = HivemindIssue()
+        hivemind_issue.name = issue.name
+        hivemind_issue.description = issue.description
+        hivemind_issue.tags = issue.tags
+        hivemind_issue.answer_type = issue.answer_type
+        hivemind_issue.on_selection = issue.on_selection
 
-            # Add questions
-            for question in issue.questions:
-                new_issue.add_question(question)
+        for question in issue.questions:
+            hivemind_issue.add_question(question)
 
-            # Set constraints if provided
-            if issue.constraints:
-                new_issue.set_constraints(issue.constraints)
-            elif issue.answer_type == 'Bool':
-                # Add default constraints for Bool type
-                new_issue.set_constraints({
-                    'true_value': 'True',
-                    'false_value': 'False'
-                })
+        if issue.constraints:
+            hivemind_issue.set_constraints(issue.constraints)
 
-            # Set restrictions if provided
-            if issue.restrictions:
-                new_issue.set_restrictions(issue.restrictions)
+        if issue.restrictions:
+            hivemind_issue.set_restrictions(issue.restrictions)
 
-            logger.info(f"Created issue with name: {issue.name}, type: {issue.answer_type}")
-            
-            try:
-                # Save issue to IPFS and get CID
-                issue_cid = new_issue.save()
-                logger.info(f"Saved issue to IPFS with CID: {issue_cid}")
-                
-                # Create initial state with the issue
-                initial_state = HivemindState()
-                initial_state.set_hivemind_issue(issue_cid)
-                logger.info("Set hivemind issue in state")
-                
-                # Initialize options variable
-                options = []
-                
-                # Add predefined options only for Bool type
-                if issue.answer_type == 'Bool':
-                    options = initial_state.add_predefined_options()
-                    logger.info(f"Added predefined options: {options}")
-                
-                state_cid = initial_state.save()
-                logger.info(f"Saved state to IPFS with CID: {state_cid}")
-                
-                # Save state mapping
-                mapping = load_state_mapping()
-                mapping[issue_cid] = {
-                    "state_hash": state_cid,
-                    "name": issue.name,
-                    "description": issue.description,
-                    "num_options": len(options),
-                    "num_opinions": 0,
-                    "answer_type": issue.answer_type,
-                    "questions": issue.questions,
-                    "tags": issue.tags,
-                    "results": None
-                }
-                save_state_mapping(mapping)
-                logger.info("Updated state mapping")
-                
-                return {"issue_cid": issue_cid, "state_cid": state_cid}
-            except Exception as e:
-                logger.error(f"Error in create_and_save: {str(e)}")
-                raise
+        hivemind_issue.valid()
+        cid = hivemind_issue.save()
 
-        # Run the creation and save operation in a thread
-        result = await asyncio.to_thread(create_and_save)
-        return {"success": True, **result}
+        return {"cid": cid}
     except Exception as e:
-        logger.error(f"Failed to create issue: {str(e)}")
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.error(f"Error creating issue: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/options/add", response_class=HTMLResponse)
 async def add_option_page(request: Request, hivemind_id: str):

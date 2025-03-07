@@ -78,8 +78,8 @@ class HivemindIssue(IPFSDict):
                 raise Exception('constraint "specs" must be a dict, got %s' % type(specs))
 
             for key in specs:
-                if specs[key] not in ['String', 'Integer', 'Float']:
-                    raise Exception('Spec type must be String or Integer or Float, got %s' % specs[key])
+                if specs[key] not in ['String', 'Integer', 'Float', 'Bool']:
+                    raise Exception('Spec type must be String, Integer, Float, or Bool, got %s' % specs[key])
 
         for constraint_type in ['min_length', 'max_length', 'min_value', 'max_value', 'decimals']:
             if constraint_type in constraints and not isinstance(constraints[constraint_type], (int, float)):
@@ -200,3 +200,5 @@ class HivemindIssue(IPFSDict):
         # On_selection must be in allowed values
         if self.on_selection not in [None, 'Finalize', 'Exclude', 'Reset']:
             raise Exception('Invalid on_selection for Hivemind Issue: %s' % self.on_selection)
+
+        return True
