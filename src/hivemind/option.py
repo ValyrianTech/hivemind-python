@@ -256,7 +256,6 @@ class HivemindOption(IPFSDict):
                 return False
             elif specs[spec_key] == 'Bool' and not isinstance(spec_value, bool):
                 return False
-
         return True
 
     def is_valid_address_option(self) -> bool:

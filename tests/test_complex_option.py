@@ -73,3 +73,24 @@ class TestComplexHivemindOption:
         # Test with integer value
         option.value = 42
         assert not option.valid()
+
+    def test_complex_option_with_bool_field(self, issue: HivemindIssue, option: HivemindOption) -> None:
+        """Test validation of complex option with a Bool field type."""
+        # Set constraints with a Bool field
+        issue.constraints = {
+            'specs': {
+                'bool_field': 'Bool'
+            }
+        }
+        
+        # Test with correct Bool value
+        option.value = {'bool_field': True}
+        assert option.valid()
+        
+        # Test with incorrect value type (string instead of bool)
+        option.value = {'bool_field': 'True'}
+        assert not option.valid()
+        
+        # Test with incorrect value type (integer instead of bool)
+        option.value = {'bool_field': 1}
+        assert not option.valid()
