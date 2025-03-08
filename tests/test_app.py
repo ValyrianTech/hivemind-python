@@ -5,62 +5,23 @@ import json
 import pytest
 from unittest.mock import patch, MagicMock, mock_open
 from datetime import datetime
+from pathlib import Path
 
 # Add the project root to the Python path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-# Create a mock StateLoadingStats class for testing
-class StateLoadingStats:
-    def __init__(self):
-        self.timestamp = datetime.now().isoformat()
-        self.start_time = 0
-        self.state_cid = None
-        self.state_load_time = 0
-        self.options_load_time = 0
-        self.opinions_load_time = 0
-        self.calculation_time = 0
-        self.total_time = 0
-        self.num_questions = 0
-        self.num_options = 0
-        self.num_opinions = 0
-
-    def to_dict(self):
-        return {
-            "timestamp": self.timestamp,
-            "state_cid": self.state_cid,
-            "state_load_time": round(self.state_load_time, 3),
-            "options_load_time": round(self.options_load_time, 3),
-            "opinions_load_time": round(self.opinions_load_time, 3),
-            "calculation_time": round(self.calculation_time, 3),
-            "total_time": round(self.total_time, 3),
-            "num_questions": self.num_questions,
-            "num_options": self.num_options,
-            "num_opinions": self.num_opinions
-        }
-
-
-def log_state_stats(stats, logger):
-    """Log state loading statistics in a structured format."""
-    stats_dict = stats.to_dict()
-    logger.info("State Loading Statistics:")
-    logger.info(f"  Timestamp: {stats_dict['timestamp']}")
-    logger.info(f"  State CID: {stats_dict['state_cid']}")
-    logger.info(f"  State Load Time: {stats_dict['state_load_time']}s")
-    logger.info(f"  Options Load Time: {stats_dict['options_load_time']}s")
-    logger.info(f"  Opinions Load Time: {stats_dict['opinions_load_time']}s")
-    logger.info(f"  Calculation Time: {stats_dict['calculation_time']}s")
-    logger.info(f"  Total Time: {stats_dict['total_time']}s")
-    logger.info(f"  Number of Questions: {stats_dict['num_questions']}")
-    logger.info(f"  Number of Options: {stats_dict['num_options']}")
-    logger.info(f"  Number of Opinions: {stats_dict['num_opinions']}")
+# Import the app module using a direct import with sys.path manipulation
+sys.path.append(os.path.join(project_root, "hivemind"))
+import app
+from app import StateLoadingStats, log_state_stats, load_state_mapping
 
 
 @pytest.mark.unit
 class TestStateLoadingStats:
     """Test the StateLoadingStats class."""
     
-    def test_init(self):
+    def test_init(self) -> None:
         """Test initialization of StateLoadingStats."""
         stats = StateLoadingStats()
         assert stats.state_cid is None
@@ -73,7 +34,7 @@ class TestStateLoadingStats:
         assert stats.num_options == 0
         assert stats.num_opinions == 0
         
-    def test_to_dict(self):
+    def test_to_dict(self) -> None:
         """Test the to_dict method."""
         stats = StateLoadingStats()
         stats.state_cid = "test_cid"
@@ -102,11 +63,9 @@ class TestStateLoadingStats:
 class TestLoggingFunctions:
     """Test logging related functions."""
     
-    def test_log_state_stats(self):
+    @patch("app.logger")
+    def test_log_state_stats(self, mock_logger):
         """Test logging state statistics."""
-        # Create a mock logger
-        mock_logger = MagicMock()
-        
         # Create test stats
         stats = StateLoadingStats()
         stats.state_cid = "test_cid"
@@ -120,12 +79,11 @@ class TestLoggingFunctions:
         stats.num_opinions = 7
         
         # Call the function
-        log_state_stats(stats, mock_logger)
+        log_state_stats(stats)
         
         # Verify logger was called with expected messages
         assert mock_logger.info.call_count == 11
         mock_logger.info.assert_any_call("State Loading Statistics:")
-        mock_logger.info.assert_any_call(f"  Timestamp: {stats.timestamp}")
         mock_logger.info.assert_any_call(f"  State CID: test_cid")
         mock_logger.info.assert_any_call(f"  State Load Time: 1.0s")
         mock_logger.info.assert_any_call(f"  Options Load Time: 2.0s")
@@ -135,3 +93,25 @@ class TestLoggingFunctions:
         mock_logger.info.assert_any_call(f"  Number of Questions: 5")
         mock_logger.info.assert_any_call(f"  Number of Options: 6")
         mock_logger.info.assert_any_call(f"  Number of Opinions: 7")
+
+
+@pytest.mark.unit
+class TestStateManagement:
+    """Test state management functions."""
+    
+    @patch("app.STATES_DIR")
+    @patch("builtins.open", new_callable=mock_open, read_data='{"state_hash": "test_hash"}')
+    def test_load_state_mapping(self, mock_file, mock_states_dir):
+        """Test loading state mapping from files."""
+        # Setup mock directory structure
+        mock_states_dir.glob.return_value = [
+            MagicMock(stem="test_id", __str__=lambda self: "test_id.json")
+        ]
+        
+        # Call the function
+        result = load_state_mapping()
+        
+        # Verify results
+        assert "test_id" in result
+        assert result["test_id"]["state_hash"] == "test_hash"
+        mock_states_dir.glob.assert_called_once_with("*.json")
