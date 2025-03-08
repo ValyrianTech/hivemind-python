@@ -6,6 +6,7 @@ import pytest
 from unittest.mock import patch, MagicMock, mock_open
 from datetime import datetime
 from pathlib import Path
+from typing import Dict, Any
 
 # Add the project root to the Python path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -14,7 +15,7 @@ sys.path.insert(0, project_root)
 # Import the app module using a direct import with sys.path manipulation
 sys.path.append(os.path.join(project_root, "hivemind"))
 import app
-from app import StateLoadingStats, log_state_stats, load_state_mapping
+from app import StateLoadingStats, log_state_stats, load_state_mapping, save_state_mapping
 
 
 @pytest.mark.unit
@@ -64,7 +65,7 @@ class TestLoggingFunctions:
     """Test logging related functions."""
     
     @patch("app.logger")
-    def test_log_state_stats(self, mock_logger):
+    def test_log_state_stats(self, mock_logger) -> None:
         """Test logging state statistics."""
         # Create test stats
         stats = StateLoadingStats()
@@ -101,7 +102,7 @@ class TestStateManagement:
     
     @patch("app.STATES_DIR")
     @patch("builtins.open", new_callable=mock_open, read_data='{"state_hash": "test_hash"}')
-    def test_load_state_mapping(self, mock_file, mock_states_dir):
+    def test_load_state_mapping(self, mock_file, mock_states_dir) -> None:
         """Test loading state mapping from files."""
         # Setup mock directory structure
         mock_states_dir.glob.return_value = [
@@ -115,3 +116,23 @@ class TestStateManagement:
         assert "test_id" in result
         assert result["test_id"]["state_hash"] == "test_hash"
         mock_states_dir.glob.assert_called_once_with("*.json")
+        
+    @patch("app.STATES_DIR")
+    @patch("builtins.open", new_callable=mock_open)
+    @patch("json.dump")
+    def test_save_state_mapping(self, mock_json_dump, mock_file, mock_states_dir) -> None:
+        """Test saving state mapping to files."""
+        # Setup test data
+        mapping: Dict[str, Dict[str, Any]] = {
+            "test_id": {"state_hash": "test_hash", "name": "Test Name"}
+        }
+        
+        # Call the function
+        save_state_mapping(mapping)
+        
+        # Verify results
+        mock_file.assert_called_once()
+        mock_json_dump.assert_called_once()
+        args, kwargs = mock_json_dump.call_args
+        assert args[0] == {"state_hash": "test_hash", "name": "Test Name"}
+        assert kwargs["indent"] == 2
