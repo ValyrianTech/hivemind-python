@@ -6,7 +6,7 @@ import pytest
 import tempfile
 import shutil
 import pytest
-from unittest.mock import patch, MagicMock, mock_open
+from unittest.mock import patch, MagicMock, mock_open, PropertyMock
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any
@@ -183,6 +183,32 @@ class TestLoggingFunctions:
         # Verify logger.error was called with the expected message
         mock_logger.error.assert_called_once_with("Failed to write stats to CSV: Test exception")
 
+    @patch("app.logger")
+    def test_save_state_mapping_exception(self, mock_logger) -> None:
+        """Test save_state_mapping when a top-level exception occurs."""
+        # Create a test mapping
+        test_mapping = {
+            "test_id": {
+                "state_hash": "test_hash",
+                "name": "Test Hivemind",
+                "description": "Test Description",
+                "num_options": 5
+            }
+        }
+        
+        # Force a top-level exception by patching STATES_DIR to raise an exception
+        with patch("app.STATES_DIR", new_callable=PropertyMock) as mock_states_dir:
+            mock_states_dir.side_effect = Exception("Test exception")
+            
+            # Call the function
+            save_state_mapping(test_mapping)
+            
+            # Verify logger.error was called with any error message
+            mock_logger.error.assert_called_once()
+            # Extract the actual error message for verification
+            actual_call_args = mock_logger.error.call_args[0][0]
+            assert actual_call_args.startswith("Failed to save state mapping:")
+    
 @pytest.mark.unit
 class TestStateManagement:
     """Test state management functions."""
