@@ -15,7 +15,13 @@ sys.path.insert(0, project_root)
 # Import the app module using a direct import with sys.path manipulation
 sys.path.append(os.path.join(project_root, "hivemind"))
 import app
-from app import StateLoadingStats, log_state_stats, load_state_mapping, save_state_mapping
+from app import (
+    StateLoadingStats, 
+    log_state_stats, 
+    load_state_mapping, 
+    save_state_mapping,
+    get_latest_state
+)
 
 
 @pytest.mark.unit
@@ -136,3 +142,28 @@ class TestStateManagement:
         args, kwargs = mock_json_dump.call_args
         assert args[0] == {"state_hash": "test_hash", "name": "Test Name"}
         assert kwargs["indent"] == 2
+        
+    @patch("app.load_state_mapping")
+    @pytest.mark.asyncio
+    async def test_get_latest_state(self, mock_load_state_mapping) -> None:
+        """Test retrieving the latest state for a specific hivemind ID."""
+        # Setup test data
+        mock_load_state_mapping.return_value = {
+            "test_id": {"state_hash": "test_hash", "name": "Test Name"},
+            "other_id": {"state_hash": "other_hash", "name": "Other Name"}
+        }
+        
+        # Test with existing ID
+        result = await get_latest_state("test_id")
+        assert result["hivemind_id"] == "test_id"
+        assert result["state_hash"] == "test_hash"
+        assert result["name"] == "Test Name"
+        
+        # Test with non-existent ID - should raise HTTPException
+        with pytest.raises(app.HTTPException) as excinfo:
+            await get_latest_state("non_existent_id")
+        assert excinfo.value.status_code == 404
+        assert "Hivemind ID not found" in excinfo.value.detail
+        
+        # Verify load_state_mapping was called
+        assert mock_load_state_mapping.call_count == 2
