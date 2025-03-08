@@ -24,6 +24,10 @@ from app import (
     get_latest_state
 )
 
+# Import HivemindState from src.hivemind.state
+sys.path.append(os.path.join(project_root, "src"))
+from hivemind.state import HivemindState
+
 
 @pytest.mark.unit
 class TestStateLoadingStats:
@@ -252,3 +256,119 @@ class TestEndpoints:
             assert len(states) == 2
             assert any(state["hivemind_id"] == "test_id" for state in states)
             assert any(state["hivemind_id"] == "other_id" for state in states)
+    
+    @patch("app.HivemindIssue")
+    @patch("app.HivemindState")
+    @patch("app.HivemindOption")
+    @patch("app.HivemindOpinion")
+    def test_fetch_state_success(self, mock_hivemind_opinion_class, mock_hivemind_option_class, mock_hivemind_state_class, mock_hivemind_issue_class):
+        """Test the fetch_state endpoint with a successful state load."""
+        # Setup mock state instance
+        mock_state = MagicMock()
+        mock_state.hivemind_id = "test_id"
+        mock_state.options = {"option1": "value1", "option2": "value2"}
+        mock_state.opinions = [
+            {"address1": {"opinion_cid": "opinion1", "timestamp": "2023-01-01", "ranking": ["option1", "option2"]}}
+        ]
+        mock_state.final = False
+        mock_state.get_questions.return_value = ["Question 1?"]
+        mock_state.get_options_for_question.return_value = [
+            {"id": "option1", "value": "value1", "text": "Option 1"},
+            {"id": "option2", "value": "value2", "text": "Option 2"}
+        ]
+        mock_state.get_rankings.return_value = {
+            "option1": {"rank": 1, "score": 1.0},
+            "option2": {"rank": 2, "score": 0.5}
+        }
+        mock_state.get_participants.return_value = ["participant1"]
+        mock_state.calculate_results.return_value = {
+            "rankings": [
+                {"id": "option1", "rank": 1, "score": 1.0},
+                {"id": "option2", "rank": 2, "score": 0.5}
+            ]
+        }
+        
+        # Setup mock issue instance
+        mock_issue = MagicMock()
+        mock_issue.name = "Test Issue"
+        mock_issue.description = "Test Description"
+        mock_issue.tags = ["test", "mock"]
+        mock_issue.questions = ["Question 1?"]
+        mock_issue.answer_type = "ranked"
+        mock_issue.constraints = {}
+        mock_issue.restrictions = {}
+        
+        # Setup mock option instance
+        mock_option = MagicMock()
+        mock_option.value = "test_value"
+        mock_option.text = "Test Option"
+        
+        # Setup mock opinion instance
+        mock_opinion = MagicMock()
+        mock_opinion.ranking = ["option1", "option2"]
+        
+        # Configure the mock classes to return our mock instances
+        mock_hivemind_state_class.return_value = mock_state
+        mock_hivemind_issue_class.return_value = mock_issue
+        mock_hivemind_option_class.return_value = mock_option
+        mock_hivemind_opinion_class.return_value = mock_opinion
+        
+        # Test the endpoint
+        response = self.client.post(
+            "/fetch_state",
+            json={"cid": "test_cid"}
+        )
+        
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+        
+        # Check basic structure
+        assert data["hivemind_id"] == "test_id"
+        assert data["num_options"] == 2
+        assert data["num_opinions"] == 1
+        assert data["is_final"] is False
+        
+        # Check issue data
+        assert "issue" in data
+        assert data["issue"]["name"] == "Test Issue"
+        assert data["issue"]["description"] == "Test Description"
+        
+        # Check that other expected fields exist
+        assert "full_opinions" in data
+        assert "stats" in data
+        
+    def test_fetch_state_missing_cid(self):
+        """Test the fetch_state endpoint with a missing CID."""
+        # Test with empty CID
+        response = self.client.post(
+            "/fetch_state",
+            json={"cid": ""}
+        )
+        assert response.status_code == 500
+        data = response.json()
+        assert "CID is required" in data["detail"]
+        
+        # Test with no CID field at all
+        response = self.client.post(
+            "/fetch_state",
+            json={}
+        )
+        assert response.status_code == 422  # Validation error from Pydantic
+        
+    @patch("app.HivemindState")
+    def test_fetch_state_exception(self, mock_hivemind_state):
+        """Test the fetch_state endpoint when an exception occurs."""
+        # Configure mock to raise an exception
+        mock_hivemind_state.side_effect = Exception("IPFS error")
+        
+        # Test the endpoint
+        response = self.client.post(
+            "/fetch_state",
+            json={"cid": "test_cid"}
+        )
+        
+        # Verify response
+        assert response.status_code == 500
+        data = response.json()
+        assert "IPFS error" in data["detail"]
