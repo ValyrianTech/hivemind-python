@@ -377,6 +377,23 @@ class TestEndpoints:
                 error_calls = [call[0][0] for call in mock_logger.error.call_args_list]
                 assert any("Failed to get modification time" in msg and "Test exception" in msg for msg in error_calls)
             
+    @patch("app.load_state_mapping")
+    def test_states_page_general_exception(self, mock_load_state_mapping):
+        """Test the states page endpoint when a general exception occurs."""
+        # Force load_state_mapping to raise an exception
+        mock_load_state_mapping.side_effect = Exception("Test general exception")
+        
+        # Mock logger to capture error messages
+        with patch("app.logger") as mock_logger:
+            # Test the endpoint - should raise HTTPException with 500 status
+            response = self.client.get("/states")
+            
+            # Verify the response has a 500 status code
+            assert response.status_code == 500
+            
+            # Verify that the logger.error was called with the expected message
+            mock_logger.error.assert_called_once_with("Error loading states page: Test general exception")
+    
     def test_get_all_states(self):
         """Test the get_all_states endpoint."""
         with patch("app.load_state_mapping") as mock_load_state_mapping:
