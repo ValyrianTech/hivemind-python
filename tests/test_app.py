@@ -1026,5 +1026,73 @@ class TestEndpoints:
         assert "error" in opinions["address2"]
         assert "Failed to load opinion" in opinions["address2"]["error"]
 
+    @patch("app.HivemindIssue")
+    @patch("app.HivemindState")
+    @patch("app.HivemindOption")
+    @patch("app.HivemindOpinion")
+    def test_fetch_state_option_cid_handling(self, mock_hivemind_opinion_class, mock_hivemind_option_class, mock_hivemind_state_class, mock_hivemind_issue_class):
+        """Test the fetch_state endpoint's handling of option CIDs with '/ipfs/' prefix and None scores."""
+        # Setup mock state instance
+        mock_state = MagicMock()
+        mock_state.hivemind_id = "test_id"
+        mock_state.options = {"/ipfs/option1": "value1", "option2": "value2"}
+        mock_state.opinions = [
+            {"address1": {"opinion_cid": "opinion1", "timestamp": "2023-01-01", "ranking": ["/ipfs/option1", "option2"]}}
+        ]
+        mock_state.final = False
+        mock_state.get_questions.return_value = ["Question 1?"]
+        
+        # Create mock options with different CID formats
+        option1 = MagicMock()
+        option1.cid.return_value = "/ipfs/option1"  # Option with /ipfs/ prefix
+        option1.value = "value1"
+        option1.text = "Option 1"
+        
+        option2 = MagicMock()
+        option2.cid.return_value = "option2"  # Option without prefix
+        option2.value = "value2"
+        option2.text = "Option 2"
+        
+        # Set up sorted options to include both types
+        mock_state.get_sorted_options.return_value = [option1, option2]
+        
+        # Set up calculate_results to return scores where one is None
+        mock_state.calculate_results.return_value = {
+            "option1": {"score": None},  # Test None score handling
+            "option2": {"score": 0.75}
+        }
+        
+        # Set up contributions
+        mock_state.contributions.return_value = {"address1": 1.0}
+        
+        # Setup mock issue instance
+        mock_issue = MagicMock()
+        mock_issue.name = "Test Issue"
+        mock_issue.description = "Test Description"
+        mock_issue.questions = ["Question 1?"]
+        mock_issue.answer_type = "ranked"
+        
+        # Configure the mock classes to return our mock instances
+        mock_hivemind_state_class.return_value = mock_state
+        mock_hivemind_issue_class.return_value = mock_issue
+        
+        # Setup mock opinion instance
+        mock_opinion = MagicMock()
+        mock_opinion.ranking = ["/ipfs/option1", "option2"]
+        mock_hivemind_opinion_class.return_value = mock_opinion
+        
+        # Test the endpoint
+        response = self.client.post(
+            "/fetch_state",
+            json={"cid": "test_cid"}
+        )
+        
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+        
+        # Check that the response contains the expected data
+        assert "results" in data
+
 if __name__ == "__main__":
     pytest.main(["-xvs", "test_app.py"])
