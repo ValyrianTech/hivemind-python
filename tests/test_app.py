@@ -205,6 +205,19 @@ class TestStateManagement:
         mock_states_dir.glob.assert_called_once_with("*.json")
         
     @patch("app.STATES_DIR")
+    def test_load_state_mapping_exception(self, mock_states_dir) -> None:
+        """Test loading state mapping when an exception occurs."""
+        # Setup mock directory to raise an exception
+        mock_states_dir.glob.side_effect = Exception("Test exception")
+        
+        # Call the function
+        result = load_state_mapping()
+        
+        # Verify results - should return empty dict on exception
+        assert result == {}
+        mock_states_dir.glob.assert_called_once_with("*.json")
+
+    @patch("app.STATES_DIR")
     @patch("builtins.open", new_callable=mock_open)
     @patch("json.dump")
     def test_save_state_mapping(self, mock_json_dump, mock_file, mock_states_dir) -> None:
