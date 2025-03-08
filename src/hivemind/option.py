@@ -117,9 +117,9 @@ class HivemindOption(IPFSDict):
             return True
         elif self._answer_type == 'Hivemind' and self.is_valid_hivemind_option():
             return True
-        elif self._answer_type == 'Image' and isinstance(self.value, str):  # todo check for valid ipfs hash
+        elif self._answer_type == 'Image' and self.is_valid_image_option():
             return True
-        elif self._answer_type == 'Video' and isinstance(self.value, str):  # todo check for valid ipfs hash
+        elif self._answer_type == 'Video' and self.is_valid_video_option():
             return True
         elif self._answer_type == 'Complex' and self.is_valid_complex_option():
             return True
@@ -220,6 +220,103 @@ class HivemindOption(IPFSDict):
             return False
 
         return True
+
+    def is_valid_image_option(self) -> bool:
+        """Check if the option is a valid image option.
+
+        :return: True if valid, False otherwise
+        :rtype: bool
+        """
+        if not isinstance(self.value, str):
+            LOG.error('Option value %s is not a string value but instead is a %s' % (self.value, type(self.value)))
+            return False
+
+        # Check if it's a valid IPFS hash format
+        if not self._is_valid_ipfs_hash(self.value):
+            LOG.error('Option value %s is not a valid IPFS hash' % self.value)
+            return False
+
+        # Check image-specific constraints if they exist
+        if self._hivemind_issue.constraints is not None:
+            # Check for allowed image formats if specified
+            if 'formats' in self._hivemind_issue.constraints:
+                # This would require fetching the image from IPFS and checking its format
+                # For now, we'll just log that this validation would happen here
+                LOG.debug('Image format validation would occur here')
+                
+            # Check for max file size if specified
+            if 'max_size' in self._hivemind_issue.constraints:
+                # This would require fetching the image from IPFS and checking its size
+                # For now, we'll just log that this validation would happen here
+                LOG.debug('Image size validation would occur here')
+                
+            # Check for image dimensions if specified
+            if 'dimensions' in self._hivemind_issue.constraints:
+                # This would require fetching the image from IPFS and checking its dimensions
+                # For now, we'll just log that this validation would happen here
+                LOG.debug('Image dimension validation would occur here')
+
+        return True
+
+    def is_valid_video_option(self) -> bool:
+        """Check if the option is a valid video option.
+
+        :return: True if valid, False otherwise
+        :rtype: bool
+        """
+        if not isinstance(self.value, str):
+            LOG.error('Option value %s is not a string value but instead is a %s' % (self.value, type(self.value)))
+            return False
+
+        # Check if it's a valid IPFS hash format
+        if not self._is_valid_ipfs_hash(self.value):
+            LOG.error('Option value %s is not a valid IPFS hash' % self.value)
+            return False
+
+        # Check video-specific constraints if they exist
+        if self._hivemind_issue.constraints is not None:
+            # Check for allowed video formats if specified
+            if 'formats' in self._hivemind_issue.constraints:
+                # This would require fetching the video from IPFS and checking its format
+                # For now, we'll just log that this validation would happen here
+                LOG.debug('Video format validation would occur here')
+                
+            # Check for max file size if specified
+            if 'max_size' in self._hivemind_issue.constraints:
+                # This would require fetching the video from IPFS and checking its size
+                # For now, we'll just log that this validation would happen here
+                LOG.debug('Video size validation would occur here')
+                
+            # Check for video duration if specified
+            if 'max_duration' in self._hivemind_issue.constraints:
+                # This would require fetching the video from IPFS and checking its duration
+                # For now, we'll just log that this validation would happen here
+                LOG.debug('Video duration validation would occur here')
+
+        return True
+
+    def _is_valid_ipfs_hash(self, hash_str: str) -> bool:
+        """Check if a string is a valid IPFS hash.
+
+        :param hash_str: The string to check
+        :type hash_str: str
+        :return: True if valid, False otherwise
+        :rtype: bool
+        """
+        # IPFS CIDv0 starts with "Qm" and is 46 characters long
+        if hash_str.startswith('Qm') and len(hash_str) == 46:
+            # Check if it only contains valid base58 characters
+            valid_chars = set('123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz')
+            return all(c in valid_chars for c in hash_str)
+        
+        # IPFS CIDv1 validation (more complex, would need a full implementation)
+        # For now, we'll just check if it starts with 'b' or 'B' followed by valid base32 characters
+        elif (hash_str.startswith('b') or hash_str.startswith('B')) and len(hash_str) > 1:
+            # Simplified check for base32 characters
+            valid_chars = set('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567abcdefghijklmnopqrstuvwxyz')
+            return all(c in valid_chars for c in hash_str[1:])
+            
+        return False
 
     def is_valid_complex_option(self) -> bool:
         """Check if the option is a valid complex option according to the specifications in the constraints.
