@@ -372,3 +372,380 @@ class TestEndpoints:
         assert response.status_code == 500
         data = response.json()
         assert "IPFS error" in data["detail"]
+
+    @patch("app.HivemindIssue")
+    def test_create_issue(self, mock_hivemind_issue):
+        """Test the create_issue endpoint."""
+        # Setup mock issue instance
+        mock_issue_instance = MagicMock()
+        mock_issue_instance.save.return_value = "test_issue_cid"
+        mock_hivemind_issue.return_value = mock_issue_instance
+        
+        # Setup test data
+        issue_data = {
+            "name": "Test Issue",
+            "description": "Test Description",
+            "questions": ["Question 1?"],
+            "tags": ["test", "mock"],
+            "answer_type": "ranked",
+            "constraints": {"min": 1, "max": 5},
+            "restrictions": {"allowed_addresses": ["addr1", "addr2"]},
+            "on_selection": None
+        }
+        
+        # Test the endpoint
+        with patch("app.HivemindState") as mock_hivemind_state:
+            # Configure mock state to return a successful save
+            mock_state_instance = MagicMock()
+            mock_state_instance.save.return_value = "test_state_cid"
+            mock_hivemind_state.return_value = mock_state_instance
+            
+            response = self.client.post(
+                "/api/create_issue",
+                json=issue_data
+            )
+        
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["issue_cid"] == "test_issue_cid"
+        
+        # Verify the HivemindIssue was created with correct attributes
+        mock_hivemind_issue.assert_called_once()
+        
+        # Verify attributes were set correctly
+        assert mock_issue_instance.name == issue_data["name"]
+        assert mock_issue_instance.description == issue_data["description"]
+        assert mock_issue_instance.tags == issue_data["tags"]
+        assert mock_issue_instance.answer_type == issue_data["answer_type"]
+        assert mock_issue_instance.on_selection == issue_data["on_selection"]
+        
+        # Verify add_question was called for each question
+        for question in issue_data["questions"]:
+            mock_issue_instance.add_question.assert_any_call(question)
+        
+        # Verify set_constraints and set_restrictions were called
+        mock_issue_instance.set_constraints.assert_called_once_with(issue_data["constraints"])
+        mock_issue_instance.set_restrictions.assert_called_once_with(issue_data["restrictions"])
+        
+        # Verify save was called
+        mock_issue_instance.save.assert_called_once()
+    
+    @patch("app.HivemindIssue")
+    def test_add_option_page(self, mock_hivemind_issue):
+        """Test the add_option_page endpoint."""
+        # Setup mock issue instance
+        mock_issue_instance = MagicMock()
+        mock_issue_instance.name = "Test Issue"
+        mock_issue_instance.description = "Test Description"
+        mock_issue_instance.questions = ["Question 1?"]
+        mock_issue_instance.answer_type = "ranked"
+        mock_hivemind_issue.return_value = mock_issue_instance
+        
+        # Test the endpoint
+        response = self.client.get("/options/add?hivemind_id=test_hivemind_id")
+        
+        # Verify response
+        assert response.status_code == 200
+        assert "<title>" in response.text
+        
+        # Verify the HivemindIssue was loaded with the correct ID
+        mock_hivemind_issue.assert_called_once_with(cid="test_hivemind_id")
+    
+    @patch("app.HivemindOption")
+    @patch("app.HivemindState")
+    @patch("app.HivemindIssue")
+    @patch("app.load_state_mapping")
+    def test_create_option(self, mock_load_state_mapping, mock_hivemind_issue, mock_hivemind_state, mock_hivemind_option):
+        """Test the create_option endpoint."""
+        # Setup mock option instance
+        mock_option_instance = MagicMock()
+        mock_option_instance.save.return_value = "test_option_cid"
+        mock_hivemind_option.return_value = mock_option_instance
+        
+        # Setup mock issue instance
+        mock_issue = MagicMock()
+        mock_issue.answer_type = "string"
+        mock_issue.name = "Test Issue"
+        mock_issue.description = "Test Description"
+        mock_issue.questions = ["Test Question"]
+        mock_issue.tags = ["test"]
+        mock_hivemind_issue.return_value = mock_issue
+        
+        # Setup mock state instance
+        mock_state = MagicMock()
+        mock_state.options = ["existing_option"]
+        mock_state.save.return_value = "new_state_cid"
+        mock_state.add_option = MagicMock()
+        
+        # Mock the add_option method to update the options list
+        def side_effect_add_option(timestamp, option_hash):
+            mock_state.options.append(option_hash)
+        mock_state.add_option.side_effect = side_effect_add_option
+        
+        mock_hivemind_state.return_value = mock_state
+        
+        # Setup mock state mapping
+        mock_load_state_mapping.return_value = {
+            "test_hivemind_id": {
+                "state_hash": "test_state_cid"
+            }
+        }
+        
+        # Setup test data
+        option_data = {
+            "hivemind_id": "test_hivemind_id",
+            "value": "test_value",
+            "text": "Test Option"
+        }
+        
+        # Test the endpoint
+        with patch("app.update_state") as mock_update_state:
+            mock_update_state.return_value = {"success": True}
+            
+            response = self.client.post(
+                "/api/options/create",
+                json=option_data
+            )
+        
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "success"
+        assert data["option_cid"] == "test_option_cid"
+        assert data["state_cid"] == "new_state_cid"
+        
+        # Verify the HivemindOption was created with correct attributes
+        mock_hivemind_option.assert_called_once()
+        assert mock_option_instance.value == "test_value"
+        assert mock_option_instance.text == "Test Option"
+        
+        # Verify the state was updated and saved
+        assert "test_option_cid" in mock_state.options
+    
+    @patch("app.HivemindState")
+    @patch("app.HivemindIssue")
+    def test_add_opinion_page(self, mock_hivemind_issue, mock_hivemind_state):
+        """Test the add_opinion_page endpoint."""
+        # Setup mock issue instance
+        mock_issue = MagicMock()
+        mock_issue.name = "Test Issue"
+        mock_issue.questions = ["Question 1?"]
+        mock_hivemind_issue.return_value = mock_issue
+        
+        # Setup mock state instance
+        mock_state = MagicMock()
+        mock_state.hivemind_id = "test_hivemind_id"
+        mock_state.options = ["option1", "option2"]
+        mock_state.get_options_for_question.return_value = [
+            {"id": "option1", "value": "value1", "text": "Option 1"},
+            {"id": "option2", "value": "value2", "text": "Option 2"}
+        ]
+        mock_hivemind_state.return_value = mock_state
+        
+        # Test the endpoint
+        response = self.client.get("/add_opinion?cid=test_state_cid")
+        
+        # Verify response
+        assert response.status_code == 200
+        assert "text/html" in response.headers["content-type"]
+        assert "<title>" in response.text
+        
+        # Verify the HivemindState was loaded with the correct CID
+        mock_hivemind_state.assert_called_once_with(cid="test_state_cid")
+    
+    def test_test_ipfs(self):
+        """Test the test_ipfs endpoint."""
+        # Test the endpoint
+        with patch("ipfs_dict_chain.IPFS.connect") as mock_connect:
+            # Configure mock to return successfully
+            mock_connect.return_value = True
+            
+            response = self.client.post("/api/test_ipfs")
+            
+            # Verify response
+            assert response.status_code == 200
+            data = response.json()
+            assert data["status"] == "success"
+            assert "message" in data
+    
+    @patch("app.load_state_mapping")
+    @patch("app.save_state_mapping")
+    def test_update_state(self, mock_save_state_mapping, mock_load_state_mapping):
+        """Test the update_state endpoint."""
+        # Setup mock data
+        mock_load_state_mapping.return_value = {
+            "test_id": {"state_hash": "old_hash", "name": "Old Name"}
+        }
+        
+        # Setup test data
+        state_update = {
+            "hivemind_id": "test_id",
+            "state_hash": "new_hash",
+            "name": "New Name",
+            "description": "New Description",
+            "num_options": 5,
+            "num_opinions": 10,
+            "answer_type": "ranked",
+            "questions": ["New Question?"],
+            "tags": ["new", "tags"]
+        }
+        
+        # Test the endpoint
+        response = self.client.post(
+            "/api/update_state",
+            json=state_update
+        )
+        
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "success"
+        assert data["hivemind_id"] == "test_id"
+        assert data["state_hash"] == "new_hash"
+        assert data["name"] == "New Name"
+        
+        # Verify state mapping was updated
+        assert mock_load_state_mapping.called
+    
+    @patch("app.HivemindOpinion")
+    @patch("app.HivemindState")
+    def test_submit_opinion(self, mock_hivemind_state, mock_hivemind_opinion):
+        """Test the submit_opinion endpoint."""
+        # Setup mock opinion instance
+        mock_opinion_instance = MagicMock()
+        mock_opinion_instance.save.return_value = "test_opinion_cid"
+        mock_hivemind_opinion.return_value = mock_opinion_instance
+        
+        # Setup mock state instance
+        mock_state = MagicMock()
+        mock_state.save.return_value = "new_state_cid"
+        mock_hivemind_state.return_value = mock_state
+        
+        # Setup test data
+        opinion_data = {
+            "hivemind_id": "test_hivemind_id",
+            "question_index": 0,
+            "ranking": ["option1", "option2"]
+        }
+        
+        # Test the endpoint
+        response = self.client.post(
+            "/api/submit_opinion",
+            json=opinion_data
+        )
+        
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["opinion_cid"] == "test_opinion_cid"
+        
+        # Verify the HivemindOpinion was created with correct attributes
+        mock_hivemind_opinion.assert_called_once()
+        assert mock_opinion_instance.ranking == ["option1", "option2"]
+    
+    @patch("app.verify_message")
+    @patch("app.HivemindOpinion")
+    @patch("app.HivemindState")
+    async def test_sign_opinion(self, mock_hivemind_state, mock_hivemind_opinion, mock_verify_message):
+        """Test the sign_opinion endpoint."""
+        # Setup mocks
+        mock_verify_message.return_value = True
+        
+        # Setup mock opinion instance
+        mock_opinion_instance = MagicMock()
+        mock_opinion_instance.save.return_value = "test_opinion_cid"
+        mock_hivemind_opinion.return_value = mock_opinion_instance
+        
+        # Setup mock state instance
+        mock_state = MagicMock()
+        mock_state.save.return_value = "new_state_cid"
+        mock_hivemind_state.return_value = mock_state
+        
+        # Setup test data
+        opinion_data = {
+            "address": "test_address",
+            "message": "test_message",
+            "signature": "test_signature",
+            "data": {
+                "hivemind_id": "test_hivemind_id",
+                "question_index": 0,
+                "ranking": ["option1", "option2"]
+            }
+        }
+        
+        # Create a mock request
+        mock_request = MagicMock()
+        mock_request.json.return_value = opinion_data
+        
+        # Test the endpoint by calling the function directly
+        with patch("app.Request", MagicMock):
+            result = await app.sign_opinion(mock_request)
+        
+        # Verify result
+        assert result["success"] is True
+        assert result["opinion_cid"] == "test_opinion_cid"
+        
+        # Verify verify_message was called
+        mock_verify_message.assert_called_once_with(
+            "test_message", "test_signature", "test_address"
+        )
+    
+    @patch("app.get_bitcoin_address")
+    def test_validate_key(self, mock_get_bitcoin_address):
+        """Test the validate_key endpoint."""
+        # Setup mock
+        mock_get_bitcoin_address.return_value = "test_address"
+        
+        # Test the endpoint
+        response = self.client.get("/validate_key/test_private_key")
+        
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+        assert data["valid"] is True
+        assert data["address"] == "test_address"
+        
+        # Test with exception
+        mock_get_bitcoin_address.side_effect = Exception("Invalid key")
+        response = self.client.get("/validate_key/invalid_key")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["valid"] is False
+        assert "error" in data
+    
+    @patch("app.active_connections")
+    async def test_websocket_endpoint(self, mock_active_connections):
+        """Test the websocket_endpoint function."""
+        # Setup mock WebSocket
+        mock_websocket = MagicMock()
+        
+        # Setup mock active_connections
+        mock_active_connections.get.return_value = []
+        
+        # Test the function by simulating a connection and then a disconnect
+        with patch("app.WebSocket", MagicMock):
+            # Simulate connection
+            await app.websocket_endpoint(mock_websocket, "test_hash")
+            
+            # Verify websocket was accepted
+            mock_websocket.accept.assert_called_once()
+            
+            # Verify active_connections was updated
+            assert "test_hash" in mock_active_connections
+            
+            # Simulate disconnect by raising an exception during receive_text
+            mock_websocket.receive_text.side_effect = Exception("Connection closed")
+            
+            # Call the function again to simulate the disconnect
+            with pytest.raises(Exception):
+                await app.websocket_endpoint(mock_websocket, "test_hash")
+            
+            # Verify active_connections was cleaned up
+            assert "test_hash" not in mock_active_connections
+
+
+if __name__ == "__main__":
+    pytest.main(["-xvs", "test_app.py"])
