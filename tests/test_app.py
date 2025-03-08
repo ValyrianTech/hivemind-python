@@ -123,6 +123,65 @@ class TestLoggingFunctions:
         mock_logger.info.assert_any_call(f"  Number of Options: 6")
         mock_logger.info.assert_any_call(f"  Number of Opinions: 7")
 
+    @patch("builtins.open", new_callable=mock_open)
+    @patch("csv.writer")
+    def test_log_stats_to_csv(self, mock_csv_writer, mock_file) -> None:
+        """Test logging state statistics to CSV file."""
+        # Create test stats
+        stats = StateLoadingStats()
+        stats.state_cid = "test_cid"
+        stats.state_load_time = 1.0
+        stats.options_load_time = 2.0
+        stats.opinions_load_time = 3.0
+        stats.calculation_time = 4.0
+        stats.total_time = 10.0
+        stats.num_questions = 5
+        stats.num_options = 6
+        stats.num_opinions = 7
+        stats.timestamp = "2023-01-01T12:00:00"
+        
+        # Mock csv.writer
+        mock_writer = MagicMock()
+        mock_csv_writer.return_value = mock_writer
+        
+        # Call the function
+        from app import log_stats_to_csv
+        log_stats_to_csv(stats)
+        
+        # Verify file was opened correctly
+        mock_file.assert_called_once_with('logs/state_loading_stats.csv', 'a', newline='')
+        
+        # Verify writer was called with expected row
+        mock_writer.writerow.assert_called_once_with([
+            "2023-01-01T12:00:00",
+            "test_cid",
+            1.0,
+            2.0,
+            3.0,
+            4.0,
+            10.0,
+            5,
+            6,
+            7
+        ])
+    
+    @patch("builtins.open")
+    @patch("app.logger")
+    def test_log_stats_to_csv_exception(self, mock_logger, mock_open_func) -> None:
+        """Test logging state statistics to CSV file with exception."""
+        # Create test stats
+        stats = StateLoadingStats()
+        stats.state_cid = "test_cid"
+        
+        # Mock open to raise an exception
+        mock_open_func.side_effect = Exception("Test exception")
+        
+        # Call the function
+        from app import log_stats_to_csv
+        log_stats_to_csv(stats)
+        
+        # Verify logger.error was called with the expected message
+        mock_logger.error.assert_called_once_with("Failed to write stats to CSV: Test exception")
 
 @pytest.mark.unit
 class TestStateManagement:
