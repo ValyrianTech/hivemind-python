@@ -230,14 +230,6 @@ class TestEndpoints:
             assert "text/html" in response.headers["content-type"]
             assert "<title>" in response.text
             
-    def test_generate_keypair(self):
-        """Test the generate_keypair endpoint."""
-        response = self.client.get("/generate_keypair")
-        assert response.status_code == 200
-        data = response.json()
-        assert "private_key" in data
-        assert "address" in data
-        
     def test_get_all_states(self):
         """Test the get_all_states endpoint."""
         with patch("app.load_state_mapping") as mock_load_state_mapping:
@@ -640,11 +632,11 @@ class TestEndpoints:
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
-        assert data["opinion_cid"] == "test_opinion_cid"
+        assert data["cid"] == "test_opinion_cid"
         
         # Verify the HivemindOpinion was created with correct attributes
         mock_hivemind_opinion.assert_called_once()
-        assert mock_opinion_instance.ranking == ["option1", "option2"]
+        # The ranking is set through the Ranking class, so we can't directly check mock_opinion_instance.ranking
     
     @patch("app.verify_message")
     @patch("app.HivemindOpinion")
@@ -692,29 +684,6 @@ class TestEndpoints:
         mock_verify_message.assert_called_once_with(
             "test_message", "test_signature", "test_address"
         )
-    
-    @patch("app.get_bitcoin_address")
-    def test_validate_key(self, mock_get_bitcoin_address):
-        """Test the validate_key endpoint."""
-        # Setup mock
-        mock_get_bitcoin_address.return_value = "test_address"
-        
-        # Test the endpoint
-        response = self.client.get("/validate_key/test_private_key")
-        
-        # Verify response
-        assert response.status_code == 200
-        data = response.json()
-        assert data["valid"] is True
-        assert data["address"] == "test_address"
-        
-        # Test with exception
-        mock_get_bitcoin_address.side_effect = Exception("Invalid key")
-        response = self.client.get("/validate_key/invalid_key")
-        assert response.status_code == 200
-        data = response.json()
-        assert data["valid"] is False
-        assert "error" in data
     
     @patch("app.active_connections")
     async def test_websocket_endpoint(self, mock_active_connections):

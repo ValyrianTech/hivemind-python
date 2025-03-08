@@ -30,7 +30,7 @@ from typing import Optional, List, Dict, Any, Union
 from hivemind.state import HivemindOption, HivemindOpinion, HivemindState, verify_message
 from hivemind.issue import HivemindIssue
 from hivemind.option import HivemindOption
-from hivemind.utils import generate_bitcoin_keypair, get_bitcoin_address
+from hivemind.utils import get_bitcoin_address
 from hivemind.ranking import Ranking
 
 class StateLoadingStats:
@@ -959,42 +959,6 @@ async def submit_opinion(opinion: OpinionCreate) -> Dict[str, Any]:
             status_code=500,
             detail=f"Error submitting opinion: {str(e)}"
         )
-
-@app.get("/generate_keypair")
-async def generate_keypair():
-    """Generate a new Bitcoin keypair for signing opinions.
-    
-    Returns:
-        dict: Contains private_key and address strings
-    """
-    private_key, address = generate_bitcoin_keypair()
-    return {
-        "private_key": str(private_key),
-        "address": address
-    }
-
-@app.get("/validate_key/{private_key}")
-async def validate_key(private_key: str):
-    """Validate a Bitcoin private key and return its address.
-    
-    Args:
-        private_key: WIF formatted private key
-        
-    Returns:
-        dict: Contains valid status and address if valid
-    """
-    try:
-        key = CBitcoinSecret(private_key)
-        address = get_bitcoin_address(key)
-        return {
-            "valid": True,
-            "address": address
-        }
-    except Exception as e:
-        return {
-            "valid": False,
-            "error": str(e)
-        }
 
 @app.post("/api/sign_opinion")
 async def sign_opinion(request: Request):
