@@ -308,25 +308,65 @@
                 </div>
             `,
             Image: `
-                <div>
-                    <label class="block text-sm font-medium text-gray-300">Allowed Image CIDs (one per line, optional)</label>
-                    <textarea id="choices" rows="3" placeholder="Qm...&#10;Qm...&#10;Qm..."
-                              class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white font-mono text-sm"></textarea>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300">Allowed Image CIDs (one per line, optional)</label>
+                        <textarea id="choices" rows="3" placeholder="Qm...&#10;Qm...&#10;Qm..."
+                                  class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white font-mono text-sm"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300">Allowed Formats (comma separated)</label>
+                        <input type="text" id="formats" placeholder="jpg,png,gif,webp" 
+                               class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300">Maximum File Size (in bytes)</label>
+                        <input type="number" id="max_size" placeholder="1048576" 
+                               class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300">Maximum Dimensions</label>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <input type="number" id="max_width" placeholder="Width (px)" 
+                                       class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white">
+                            </div>
+                            <div>
+                                <input type="number" id="max_height" placeholder="Height (px)" 
+                                       class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white">
+                            </div>
+                        </div>
+                    </div>
                 </div>
             `,
             Video: `
-                <div>
-                    <label class="block text-sm font-medium text-gray-300">Allowed Video CIDs (one per line, optional)</label>
-                    <textarea id="choices" rows="3" placeholder="Qm...&#10;Qm...&#10;Qm..."
-                              class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white font-mono text-sm"></textarea>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300">Allowed Video CIDs (one per line, optional)</label>
+                        <textarea id="choices" rows="3" placeholder="Qm...&#10;Qm...&#10;Qm..."
+                                  class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white font-mono text-sm"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300">Allowed Formats (comma separated)</label>
+                        <input type="text" id="formats" placeholder="mp4,webm,mov,avi" 
+                               class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300">Maximum File Size (in bytes)</label>
+                        <input type="number" id="max_size" placeholder="104857600" 
+                               class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300">Maximum Duration (in seconds)</label>
+                        <input type="number" id="max_duration" placeholder="300" 
+                               class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white">
+                    </div>
                 </div>
             `
         };
 
         // Use String template for these types
         constraintTemplates.Hivemind = constraintTemplates.String;
-        constraintTemplates.Image = constraintTemplates.String;
-        constraintTemplates.Video = constraintTemplates.String;
         constraintTemplates.Address = constraintTemplates.String;
 
         function updateConstraintFields() {
@@ -406,14 +446,43 @@
             const answerType = document.getElementById('answer_type').value;
             let constraints = {};
             
-            // Handle String-like types (String, Hivemind, Image, Video, Address)
-            if (['String', 'Hivemind', 'Image', 'Video', 'Address'].includes(answerType)) {
+            // Handle String-like types (String, Hivemind, Address)
+            if (['String', 'Hivemind', 'Address'].includes(answerType)) {
                 const minLength = document.getElementById('min_length').value;
                 const maxLength = document.getElementById('max_length').value;
                 const regex = document.getElementById('regex').value;
                 if (minLength) constraints.min_length = parseInt(minLength);
                 if (maxLength) constraints.max_length = parseInt(maxLength);
                 if (regex) constraints.regex = regex;
+            }
+            // Handle Image type
+            else if (answerType === 'Image') {
+                const formats = document.getElementById('formats').value;
+                const maxSize = document.getElementById('max_size').value;
+                const maxWidth = document.getElementById('max_width').value;
+                const maxHeight = document.getElementById('max_height').value;
+                
+                if (formats) {
+                    constraints.formats = formats.split(',').map(format => format.trim()).filter(format => format);
+                }
+                if (maxSize) constraints.max_size = parseInt(maxSize);
+                if (maxWidth || maxHeight) {
+                    constraints.dimensions = {};
+                    if (maxWidth) constraints.dimensions.max_width = parseInt(maxWidth);
+                    if (maxHeight) constraints.dimensions.max_height = parseInt(maxHeight);
+                }
+            }
+            // Handle Video type
+            else if (answerType === 'Video') {
+                const formats = document.getElementById('formats').value;
+                const maxSize = document.getElementById('max_size').value;
+                const maxDuration = document.getElementById('max_duration').value;
+                
+                if (formats) {
+                    constraints.formats = formats.split(',').map(format => format.trim()).filter(format => format);
+                }
+                if (maxSize) constraints.max_size = parseInt(maxSize);
+                if (maxDuration) constraints.max_duration = parseInt(maxDuration);
             }
             else if (answerType === 'Integer' || answerType === 'Float') {
                 const minValue = document.getElementById('min_value').value;
