@@ -802,5 +802,54 @@ class TestEndpoints:
         mock_hivemind_opinion.assert_called_once()
         # The ranking is set through the Ranking class, so we can't directly check mock_opinion_instance.ranking
     
+    @patch("app.HivemindIssue")
+    @patch("app.HivemindState")
+    @patch("app.HivemindOption")
+    @patch("app.HivemindOpinion")
+    def test_fetch_state_option_load_exception(self, mock_hivemind_opinion_class, mock_hivemind_option_class, mock_hivemind_state_class, mock_hivemind_issue_class):
+        """Test the fetch_state endpoint when loading an option raises an exception."""
+        # Setup mock state instance
+        mock_state = MagicMock()
+        mock_state.hivemind_id = "test_id"
+        mock_state.options = {"option1": "value1", "option2": "value2"}
+        mock_state.opinions = {}
+        mock_state.final = False
+        mock_state.get_questions.return_value = ["Question 1?"]
+        
+        # Setup mock issue instance
+        mock_issue = MagicMock()
+        mock_issue.name = "Test Issue"
+        mock_issue.description = "Test Description"
+        mock_issue.tags = ["test", "mock"]
+        mock_issue.questions = ["Question 1?"]
+        mock_issue.answer_type = "ranked"
+        
+        # Configure the mock classes to return our mock instances
+        mock_hivemind_state_class.return_value = mock_state
+        mock_hivemind_issue_class.return_value = mock_issue
+        
+        # Configure HivemindOption to raise an exception when initialized
+        mock_hivemind_option_class.side_effect = Exception("Failed to load option")
+        
+        # Test the endpoint
+        response = self.client.post(
+            "/fetch_state",
+            json={"cid": "test_cid"}
+        )
+        
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+        
+        # Check that options were handled correctly despite the exception
+        assert "options" in data
+        options = data["options"]
+        assert len(options) == 2  # Should still have 2 options
+        
+        # Verify that the options contain the error message
+        for option in options:
+            assert option["value"] is None
+            assert "Failed to load:" in option["text"]
+
 if __name__ == "__main__":
     pytest.main(["-xvs", "test_app.py"])
