@@ -3,6 +3,9 @@ import os
 import sys
 import json
 import pytest
+import tempfile
+import shutil
+import pytest
 from unittest.mock import patch, MagicMock, mock_open
 from datetime import datetime
 from pathlib import Path
@@ -28,6 +31,20 @@ from app import (
 sys.path.append(os.path.join(project_root, "src"))
 from hivemind.state import HivemindState
 
+# Create a fixture for temporary directory
+@pytest.fixture(scope="session")
+def temp_states_dir():
+    """Create a temporary directory for test state files."""
+    temp_dir = tempfile.mkdtemp()
+    yield Path(temp_dir)
+    # Clean up after tests
+    shutil.rmtree(temp_dir)
+
+@pytest.fixture(autouse=True)
+def patch_states_dir(temp_states_dir):
+    """Patch the STATES_DIR constant in app.py to use the temporary directory."""
+    with patch("app.STATES_DIR", temp_states_dir):
+        yield
 
 @pytest.mark.unit
 class TestStateLoadingStats:
@@ -563,8 +580,8 @@ class TestEndpoints:
             assert "message" in data
     
     @patch("app.load_state_mapping")
-    @patch("app.save_state_mapping")
-    def test_update_state(self, mock_save_state_mapping, mock_load_state_mapping):
+    @patch("builtins.open", new_callable=mock_open)
+    def test_update_state(self, mock_file, mock_load_state_mapping):
         """Test the update_state endpoint."""
         # Setup mock data
         mock_load_state_mapping.return_value = {
@@ -598,8 +615,8 @@ class TestEndpoints:
         assert data["state_hash"] == "new_hash"
         assert data["name"] == "New Name"
         
-        # Verify state mapping was updated
-        assert mock_load_state_mapping.called
+        # Verify file was written
+        mock_file.assert_called_once()
     
     @patch("app.HivemindOpinion")
     @patch("app.HivemindState")
