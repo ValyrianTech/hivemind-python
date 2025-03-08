@@ -954,5 +954,77 @@ class TestEndpoints:
         data = response.json()
         assert "IPFS error" in data["detail"]
 
+    @patch("app.HivemindIssue")
+    @patch("app.HivemindState")
+    @patch("app.HivemindOption")
+    @patch("app.HivemindOpinion")
+    def test_fetch_state_opinion_load_exception(self, mock_hivemind_opinion_class, mock_hivemind_option_class, mock_hivemind_state_class, mock_hivemind_issue_class):
+        """Test the fetch_state endpoint when loading an opinion raises an exception."""
+        # Setup mock state instance
+        mock_state = MagicMock()
+        mock_state.hivemind_id = "test_id"
+        mock_state.options = {"option1": "value1", "option2": "value2"}
+        # Create opinions with one that will cause an exception
+        mock_state.opinions = [
+            {
+                "address1": {"opinion_cid": "opinion1", "timestamp": "2023-01-01"},
+                "address2": {"opinion_cid": "opinion2", "timestamp": "2023-01-01"}
+            }
+        ]
+        mock_state.final = False
+        mock_state.get_questions.return_value = ["Question 1?"]
+        mock_state.calculate_results.return_value = {}
+        mock_state.get_sorted_options.return_value = []
+        mock_state.contributions.return_value = {}
+        
+        # Setup mock issue instance
+        mock_issue = MagicMock()
+        mock_issue.name = "Test Issue"
+        mock_issue.description = "Test Description"
+        
+        # Setup mock option instance
+        mock_option = MagicMock()
+        mock_option.value = "test_value"
+        mock_option.text = "Test Option"
+        
+        # Configure the mock classes to return our mock instances
+        mock_hivemind_state_class.return_value = mock_state
+        mock_hivemind_issue_class.return_value = mock_issue
+        mock_hivemind_option_class.return_value = mock_option
+        
+        # Configure mock_hivemind_opinion_class to return a valid opinion for address1
+        # but raise an exception for address2
+        def get_opinion(cid):
+            if cid == "opinion1":
+                mock_opinion = MagicMock()
+                mock_opinion.ranking = ["option1", "option2"]
+                return mock_opinion
+            elif cid == "opinion2":
+                raise Exception("Failed to load opinion")
+        
+        mock_hivemind_opinion_class.side_effect = get_opinion
+        
+        # Test the endpoint
+        response = self.client.post(
+            "/fetch_state",
+            json={"cid": "test_cid"}
+        )
+        
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+        
+        # Check that opinions were processed correctly
+        assert "opinions" in data
+        opinions = data["opinions"][0]  # First question's opinions
+        
+        # Check that the successful opinion was loaded correctly
+        assert opinions["address1"]["ranking"] == ["option1", "option2"]
+        
+        # Check that the failed opinion has the expected error structure
+        assert opinions["address2"]["ranking"] is None
+        assert "error" in opinions["address2"]
+        assert "Failed to load opinion" in opinions["address2"]["error"]
+
 if __name__ == "__main__":
     pytest.main(["-xvs", "test_app.py"])
