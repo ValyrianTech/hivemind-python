@@ -94,7 +94,7 @@ def test_bool_answer_type_constraints() -> None:
     print(f'- Allowed addresses: {restrictions["addresses"]}')
     print(f'- Options per address: {restrictions["options_per_address"]}')
     
-    hivemind_issue.set_restrictions(restrictions=restrictions)
+    # hivemind_issue.set_restrictions(restrictions=restrictions)  # Leave this for easier manual testing
     hivemind_issue_hash: str = hivemind_issue.save()
     print(f'\nHivemind issue saved')
     print(f'  IPFS Hash: {hivemind_issue_hash}')
