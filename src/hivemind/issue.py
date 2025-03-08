@@ -97,7 +97,34 @@ class HivemindIssue(IPFSDict):
             if constraint_type in constraints and not isinstance(constraints[constraint_type], int):
                 raise Exception('Value of constraint %s must be a integer' % constraint_type)
 
-        if all([key in ['min_length', 'max_length', 'min_value', 'max_value', 'decimals', 'regex', 'true_value', 'false_value', 'specs', 'choices', 'block_height'] for key in constraints.keys()]):
+        # Validate image-specific constraints
+        if 'formats' in constraints and not isinstance(constraints['formats'], list):
+            raise Exception('Value of constraint formats must be a list')
+            
+        if 'max_size' in constraints and not isinstance(constraints['max_size'], int):
+            raise Exception('Value of constraint max_size must be an integer')
+            
+        if 'dimensions' in constraints:
+            if not isinstance(constraints['dimensions'], dict):
+                raise Exception('Value of constraint dimensions must be a dictionary')
+            for dim in constraints['dimensions']:
+                if dim not in ['max_width', 'max_height']:
+                    raise Exception('Invalid dimension constraint: %s' % dim)
+                if not isinstance(constraints['dimensions'][dim], int):
+                    raise Exception('Dimension values must be integers')
+                    
+        # Validate video-specific constraints
+        if 'max_duration' in constraints and not isinstance(constraints['max_duration'], int):
+            raise Exception('Value of constraint max_duration must be an integer')
+
+        # Updated list of valid constraint keys
+        valid_constraints = [
+            'min_length', 'max_length', 'min_value', 'max_value', 'decimals', 
+            'regex', 'true_value', 'false_value', 'specs', 'choices', 'block_height',
+            'formats', 'max_size', 'dimensions', 'max_duration'
+        ]
+            
+        if all([key in valid_constraints for key in constraints.keys()]):
             self.constraints = constraints
         else:
             raise Exception('constraints contain an invalid key: %s' % constraints)

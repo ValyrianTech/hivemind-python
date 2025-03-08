@@ -374,3 +374,64 @@ class TestHivemindIssue:
         with pytest.raises(Exception) as exc_info:
             issue.set_constraints({'choices': 'not a list'})
         assert 'Value of constraint choices must be a list' in str(exc_info.value)
+
+    def test_set_constraints_with_image_constraints(self):
+        """Test setting image-specific constraints."""
+        issue = HivemindIssue()
+        issue.answer_type = 'Image'
+        
+        # Test with valid image constraints
+        constraints = {
+            'formats': ['jpg', 'png', 'gif'],
+            'max_size': 1048576,  # 1MB
+            'dimensions': {
+                'max_width': 1920,
+                'max_height': 1080
+            }
+        }
+        issue.set_constraints(constraints)
+        assert issue.constraints == constraints
+        
+        # Test with invalid formats (not a list)
+        with pytest.raises(Exception) as exc_info:
+            issue.set_constraints({'formats': 'jpg,png'})
+        assert 'Value of constraint formats must be a list' in str(exc_info.value)
+            
+        # Test with invalid max_size (not an integer)
+        with pytest.raises(Exception) as exc_info:
+            issue.set_constraints({'max_size': '1048576'})
+        assert 'Value of constraint max_size must be an integer' in str(exc_info.value)
+            
+        # Test with invalid dimensions (not a dict)
+        with pytest.raises(Exception) as exc_info:
+            issue.set_constraints({'dimensions': 'invalid'})
+        assert 'Value of constraint dimensions must be a dictionary' in str(exc_info.value)
+            
+        # Test with invalid dimension key
+        with pytest.raises(Exception) as exc_info:
+            issue.set_constraints({'dimensions': {'invalid_key': 100}})
+        assert 'Invalid dimension constraint: invalid_key' in str(exc_info.value)
+            
+        # Test with invalid dimension value (not an integer)
+        with pytest.raises(Exception) as exc_info:
+            issue.set_constraints({'dimensions': {'max_width': '1920'}})
+        assert 'Dimension values must be integers' in str(exc_info.value)
+            
+    def test_set_constraints_with_video_constraints(self):
+        """Test setting video-specific constraints."""
+        issue = HivemindIssue()
+        issue.answer_type = 'Video'
+        
+        # Test with valid video constraints
+        constraints = {
+            'formats': ['mp4', 'webm', 'mov'],
+            'max_size': 104857600,  # 100MB
+            'max_duration': 300  # 5 minutes
+        }
+        issue.set_constraints(constraints)
+        assert issue.constraints == constraints
+        
+        # Test with invalid max_duration (not an integer)
+        with pytest.raises(Exception) as exc_info:
+            issue.set_constraints({'max_duration': '300'})
+        assert 'Value of constraint max_duration must be an integer' in str(exc_info.value)
