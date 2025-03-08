@@ -7,6 +7,7 @@ from unittest.mock import patch, MagicMock, mock_open
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any
+from fastapi.testclient import TestClient
 
 # Add the project root to the Python path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -167,3 +168,87 @@ class TestStateManagement:
         
         # Verify load_state_mapping was called
         assert mock_load_state_mapping.call_count == 2
+
+
+@pytest.mark.unit
+class TestEndpoints:
+    """Test FastAPI endpoints."""
+    
+    def setup_method(self):
+        """Set up test client for each test."""
+        self.client = TestClient(app.app)
+    
+    def test_landing_page(self):
+        """Test the landing page endpoint."""
+        response = self.client.get("/")
+        assert response.status_code == 200
+        assert "text/html" in response.headers["content-type"]
+        # Check for expected content in the HTML
+        assert "<title>" in response.text
+        
+    def test_insights_page(self):
+        """Test the insights page endpoint."""
+        # Test without CID parameter
+        response = self.client.get("/insights")
+        assert response.status_code == 200
+        assert "text/html" in response.headers["content-type"]
+        assert "<title>" in response.text
+        
+        # Test with CID parameter
+        response = self.client.get("/insights?cid=test_cid")
+        assert response.status_code == 200
+        assert "text/html" in response.headers["content-type"]
+        assert "<title>" in response.text
+        
+    def test_create_page(self):
+        """Test the create page endpoint."""
+        response = self.client.get("/create")
+        assert response.status_code == 200
+        assert "text/html" in response.headers["content-type"]
+        assert "<title>" in response.text
+        
+    @patch("app.load_state_mapping")
+    def test_states_page(self, mock_load_state_mapping):
+        """Test the states page endpoint."""
+        # Setup mock data
+        mock_load_state_mapping.return_value = {
+            "test_id": {"state_hash": "test_hash", "name": "Test Name"},
+            "other_id": {"state_hash": "other_hash", "name": "Other Name"}
+        }
+        
+        # Mock Path.stat() for file modification times
+        with patch("pathlib.Path.stat") as mock_stat:
+            mock_stat.return_value = MagicMock(st_mtime=1234567890.0)
+            
+            # Test the endpoint
+            response = self.client.get("/states")
+            assert response.status_code == 200
+            assert "text/html" in response.headers["content-type"]
+            assert "<title>" in response.text
+            
+    def test_generate_keypair(self):
+        """Test the generate_keypair endpoint."""
+        response = self.client.get("/generate_keypair")
+        assert response.status_code == 200
+        data = response.json()
+        assert "private_key" in data
+        assert "address" in data
+        
+    def test_get_all_states(self):
+        """Test the get_all_states endpoint."""
+        with patch("app.load_state_mapping") as mock_load_state_mapping:
+            # Setup mock data
+            mock_load_state_mapping.return_value = {
+                "test_id": {"state_hash": "test_hash", "name": "Test Name"},
+                "other_id": {"state_hash": "other_hash", "name": "Other Name"}
+            }
+            
+            # Test the endpoint
+            response = self.client.get("/api/all_states")
+            assert response.status_code == 200
+            data = response.json()
+            assert "states" in data
+            states = data["states"]
+            assert len(states) == 2
+            assert any(state["hivemind_id"] == "test_id" for state in states)
+            assert any(state["hivemind_id"] == "other_id" for state in states)

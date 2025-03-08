@@ -243,20 +243,21 @@ class HivemindIssueCreate(BaseModel):
 @app.get("/", response_class=HTMLResponse)
 async def landing_page(request: Request):
     """Render the landing page."""
-    return templates.TemplateResponse("landing.html", {"request": request})
+    return templates.TemplateResponse(request, "landing.html")
 
 @app.get("/insights", response_class=HTMLResponse)
 async def insights_page(request: Request):
     """Render the insights page with IPFS data visualization."""
-    return templates.TemplateResponse("insights.html", {
-        "request": request,
-        "initial_cid": request.query_params.get("cid", "")
-    })
+    return templates.TemplateResponse(
+        request,
+        "insights.html",
+        {"initial_cid": request.query_params.get("cid", "")}
+    )
 
 @app.get("/create", response_class=HTMLResponse)
 async def create_page(request: Request):
     """Render the create page for new HivemindIssues."""
-    return templates.TemplateResponse("create.html", {"request": request})
+    return templates.TemplateResponse(request, "create.html")
 
 @app.get("/states", response_class=HTMLResponse)
 async def states_page(request: Request):
@@ -284,10 +285,11 @@ async def states_page(request: Request):
             state_info = mapping[hivemind_id]
             states.append(dict(state_info, hivemind_id=hivemind_id))
         
-        return templates.TemplateResponse("states.html", {
-            "request": request,
-            "states": states
-        })
+        return templates.TemplateResponse(
+            request,
+            "states.html",
+            {"states": states}
+        )
     except Exception as e:
         logger.error(f"Error loading states page: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -659,9 +661,9 @@ async def add_option_page(request: Request, hivemind_id: str):
         issue = await asyncio.to_thread(lambda: HivemindIssue(cid=hivemind_id))
         
         return templates.TemplateResponse(
+            request,
             "add_option.html",
             {
-                "request": request,
                 "hivemind_id": hivemind_id,
                 "issue": issue
             }
@@ -838,9 +840,9 @@ async def add_opinion_page(request: Request, cid: str):
                 })
         
         return templates.TemplateResponse(
+            request,
             "add_opinion.html",
             {
-                "request": request,
                 "state_cid": cid,
                 "hivemind_id": state.hivemind_id,
                 "issue_name": issue.name,
