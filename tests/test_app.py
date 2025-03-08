@@ -345,6 +345,38 @@ class TestEndpoints:
             assert "text/html" in response.headers["content-type"]
             assert "<title>" in response.text
             
+    @patch("app.load_state_mapping")
+    def test_states_page_with_stat_exception(self, mock_load_state_mapping):
+        """Test the states page endpoint when Path.stat() raises an exception."""
+        # Setup mock data
+        mock_load_state_mapping.return_value = {
+            "test_id": {"state_hash": "test_hash", "name": "Test Name"},
+            "error_id": {"state_hash": "error_hash", "name": "Error Name"}
+        }
+        
+        # Mock Path.stat() to raise an exception
+        with patch("pathlib.Path.stat") as mock_stat:
+            # First call succeeds, second call raises exception
+            mock_stat.side_effect = [
+                MagicMock(st_mtime=1234567890.0),
+                FileNotFoundError("Test exception")
+            ]
+            
+            # Mock logger to capture error messages
+            with patch("app.logger") as mock_logger:
+                # Test the endpoint
+                response = self.client.get("/states")
+                
+                # Verify the response was successful despite the error
+                assert response.status_code == 200
+                assert "text/html" in response.headers["content-type"]
+                
+                # Verify logger.error was called for the exception
+                assert mock_logger.error.call_count >= 1
+                # Check that at least one error log contains our expected message parts
+                error_calls = [call[0][0] for call in mock_logger.error.call_args_list]
+                assert any("Failed to get modification time" in msg and "Test exception" in msg for msg in error_calls)
+            
     def test_get_all_states(self):
         """Test the get_all_states endpoint."""
         with patch("app.load_state_mapping") as mock_load_state_mapping:
