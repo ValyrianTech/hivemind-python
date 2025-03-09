@@ -14,7 +14,9 @@ sys.path.insert(0, project_root)
 sys.path.append(os.path.join(project_root, "hivemind"))
 import app
 from app import active_connections
+from websocket_handlers import register_websocket_routes, websocket_endpoint
 
+from fastapi import FastAPI
 from fastapi.websockets import WebSocket, WebSocketDisconnect
 
 
@@ -103,6 +105,42 @@ class TestWebSocketEndpoint:
         assert len(active_connections[opinion_hash]) == 1
         assert mock_websocket1 in active_connections[opinion_hash]
         assert mock_websocket2 not in active_connections[opinion_hash]
+
+    async def test_route_registration(self):
+        """Test WebSocket route registration functionality."""
+        # Create a test FastAPI app
+        test_app = FastAPI()
+        
+        # Create a mock for the websocket_endpoint function
+        original_endpoint = websocket_endpoint
+        
+        # Create a mock WebSocket
+        mock_websocket = AsyncMock(spec=WebSocket)
+        opinion_hash = "test_registration_hash"
+        
+        # Register the WebSocket routes with our test app
+        register_websocket_routes(test_app)
+        
+        # Get the route handler that was registered
+        websocket_route = None
+        for route in test_app.routes:
+            if route.path == "/ws/opinion/{opinion_hash}":
+                websocket_route = route
+                break
+        
+        assert websocket_route is not None, "WebSocket route was not registered"
+        
+        # Create a patch to intercept calls to the original websocket_endpoint
+        with patch('websocket_handlers.websocket_endpoint') as mock_endpoint:
+            # Set up the mock to return immediately
+            mock_endpoint.return_value = None
+            
+            # Call the route handler directly with our mock WebSocket
+            # This simulates what FastAPI would do when a WebSocket connection is received
+            await websocket_route.endpoint(mock_websocket, opinion_hash)
+            
+            # Verify that the websocket_endpoint function was called with the correct arguments
+            mock_endpoint.assert_called_once_with(mock_websocket, opinion_hash)
 
 
 if __name__ == "__main__":
