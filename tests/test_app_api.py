@@ -92,6 +92,46 @@ class TestAPIEndpoints:
         # Verify logger was called with the expected error message
         mock_logger.error.assert_called_once_with("Error submitting opinion: Test error message")
 
+    @patch("app.load_state_mapping")
+    def test_get_latest_state_endpoint_success(self, mock_load_state_mapping):
+        """Test the /api/latest_state/{hivemind_id} endpoint with an existing hivemind ID."""
+        # Setup mock state mapping
+        mock_load_state_mapping.return_value = {
+            "test_hivemind_id": {
+                "state_hash": "test_hash",
+                "name": "Test Hivemind",
+                "description": "Test description"
+            }
+        }
+        
+        # Test the endpoint
+        response = self.client.get("/api/latest_state/test_hivemind_id")
+        
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+        assert data["hivemind_id"] == "test_hivemind_id"
+        assert data["state_hash"] == "test_hash"
+        assert data["name"] == "Test Hivemind"
+        assert data["description"] == "Test description"
+        
+    @patch("app.load_state_mapping")
+    def test_get_latest_state_endpoint_not_found(self, mock_load_state_mapping):
+        """Test the /api/latest_state/{hivemind_id} endpoint with a non-existent hivemind ID."""
+        # Setup mock state mapping
+        mock_load_state_mapping.return_value = {
+            "existing_id": {"state_hash": "some_hash", "name": "Some Name"}
+        }
+        
+        # Test the endpoint with non-existent ID
+        response = self.client.get("/api/latest_state/non_existent_id")
+        
+        # Verify response
+        assert response.status_code == 404
+        data = response.json()
+        assert "detail" in data
+        assert "Hivemind ID not found" in data["detail"]
+
 
 if __name__ == "__main__":
     pytest.main(["-xvs", "test_app_api.py"])
