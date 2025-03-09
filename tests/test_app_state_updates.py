@@ -218,5 +218,6 @@ class TestStateUpdateFunctionality:
         # Verify the mapping was not updated
         assert mock_load_state_mapping.return_value["test_id"]["results"] == [{"text": "Latest Result", "value": "latest_value", "score": 75.0}]
 
+
 if __name__ == "__main__":
     pytest.main(["-xvs", "test_app_state_updates.py"])
