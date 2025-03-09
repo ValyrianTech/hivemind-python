@@ -244,5 +244,36 @@ class TestErrorHandling:
         data = response.json()
         assert "Validation error in create_and_save" in data["detail"]
 
+    @patch("app.asyncio.to_thread")
+    @patch("app.logger")
+    def test_create_issue_exception_handling(self, mock_logger, mock_to_thread):
+        """Test exception handling in the create_issue endpoint (lines 652-654)."""
+        # Setup test client
+        client = TestClient(app.app)
+        
+        # Configure to_thread to raise an exception
+        test_exception = Exception("Test issue creation error")
+        mock_to_thread.side_effect = test_exception
+        
+        # Test data for creating an issue
+        issue_data = {
+            "name": "Test Issue",
+            "description": "Test description",
+            "questions": ["Test question?"],
+            "tags": ["test", "error-handling"],
+            "answer_type": "ranked"
+        }
+        
+        # Test the endpoint
+        response = client.post("/api/create_issue", json=issue_data)
+        
+        # Verify response
+        assert response.status_code == 400
+        data = response.json()
+        assert "Test issue creation error" in data["detail"]
+        
+        # Verify logger calls
+        mock_logger.error.assert_called_once_with("Failed to create issue: Test issue creation error")
+
 if __name__ == "__main__":
     pytest.main(["-xvs", "test_app_error_handling.py"])
