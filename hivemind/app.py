@@ -855,32 +855,6 @@ async def add_opinion_page(request: Request, cid: str):
         logger.error(f"Error rendering add opinion page: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/test_ipfs")
-async def test_ipfs():
-    """Test endpoint to verify IPFS connectivity."""
-    try:
-        from ipfs_dict_chain.IPFS import connect, get_json, IPFSError
-        
-        # Try to connect to IPFS
-        try:
-            connect('127.0.0.1', 5001)
-            logger.info("Successfully connected to IPFS daemon")
-            return {"status": "success", "message": "Successfully connected to IPFS daemon"}
-            
-        except Exception as e:
-            logger.error(f"Failed to connect to IPFS daemon: {str(e)}")
-            raise HTTPException(
-                status_code=500,
-                detail=f"Failed to connect to IPFS daemon: {str(e)}"
-            )
-            
-    except Exception as e:
-        logger.exception("Error testing IPFS connection")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Internal server error: {str(e)}"
-        )
-
 @app.get("/api/latest_state/{hivemind_id}")
 async def get_latest_state(hivemind_id: str):
     """Get the latest state hash for a given hivemind ID."""

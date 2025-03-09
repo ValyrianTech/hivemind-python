@@ -711,21 +711,6 @@ class TestEndpoints:
         # Verify the HivemindState was loaded with the correct CID
         mock_hivemind_state.assert_called_once_with(cid="test_state_cid")
     
-    def test_test_ipfs(self):
-        """Test the test_ipfs endpoint."""
-        # Test the endpoint
-        with patch("ipfs_dict_chain.IPFS.connect") as mock_connect:
-            # Configure mock to return successfully
-            mock_connect.return_value = True
-            
-            response = self.client.post("/api/test_ipfs")
-            
-            # Verify response
-            assert response.status_code == 200
-            data = response.json()
-            assert data["status"] == "success"
-            assert "message" in data
-    
     @patch("app.load_state_mapping")
     @patch("builtins.open")
     def test_update_state(self, mock_open_func, mock_load_state_mapping):
