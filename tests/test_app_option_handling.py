@@ -52,6 +52,32 @@ class TestOptionHandling:
         
         # Verify logger.error was called with the expected message
         mock_logger.error.assert_called_once_with("Error loading issue for add option page: Test error loading issue")
+    
+    @patch("app.load_state_mapping")
+    @patch("app.logger")
+    def test_create_option_no_state_found(self, mock_logger, mock_load_state_mapping):
+        """Test the create_option endpoint when no state is found for the given hivemind_id."""
+        # Configure the mock to return a mapping without the requested hivemind_id
+        mock_load_state_mapping.return_value = {"other_hivemind_id": {"state_hash": "some_hash"}}
+        
+        # Create test data
+        test_hivemind_id = "nonexistent_hivemind_id"
+        option_data = {
+            "hivemind_id": test_hivemind_id,
+            "value": "test_value",
+            "text": "Test option text"
+        }
+        
+        # Test the endpoint
+        response = self.client.post("/api/options/create", json=option_data)
+        
+        # Verify response
+        assert response.status_code == 404
+        assert response.json()["detail"] == "No state found for this hivemind ID"
+        
+        # Verify logger calls
+        mock_logger.error.assert_called_once_with(f"No state found for hivemind_id: {test_hivemind_id}")
+        mock_logger.debug.assert_called_once_with(f"Available hivemind IDs in mapping: {['other_hivemind_id']}")
 
 
 if __name__ == "__main__":
