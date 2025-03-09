@@ -499,6 +499,207 @@ class TestOptionTypeConversion:
         # Verify save was not called
         mock_option.save.assert_not_called()
         
+    @patch('app.update_state')
+    @patch('app.get_latest_state')
+    @patch('app.HivemindOption')
+    @patch('app.HivemindIssue')
+    @patch('app.HivemindState')
+    @patch('threading.Thread')
+    def test_option_validation_failure(self, mock_thread, mock_hivemind_state, mock_hivemind_issue, 
+                                      mock_hivemind_option, mock_get_latest_state, mock_update_state):
+        """Test option validation failure in create_option function (lines 738-739).
+        
+        This test verifies that when an option fails validation, an appropriate
+        HTTPException is raised with status code 400 and detail message.
+        """
+        # Mock load_state_mapping to return expected mapping
+        self.mock_load_state_mapping.return_value = {
+            "test_issue_cid": {
+                "state_hash": "test_state_cid",
+                "name": "Test Issue",
+                "description": "Test Description"
+            }
+        }
+        
+        # Setup mock for asyncio.to_thread
+        async def mock_to_thread_return(func, *args):
+            # Call the function directly without threading
+            func(*args)
+            # Return a mock result
+            return HTTPException(status_code=400, detail="Option validation failed")
+        
+        self.mock_to_thread.side_effect = mock_to_thread_return
+        
+        # Setup mock issue
+        mock_issue = MagicMock()
+        mock_issue.answer_type = "String"
+        mock_issue.constraints = {}
+        mock_issue.name = "Test Issue"
+        mock_issue.description = "Test Description"
+        mock_issue.questions = ["Test Question"]
+        mock_issue.tags = ["test"]
+        # Ensure the constructor returns our mock instance when given the specific CID
+        mock_hivemind_issue.side_effect = lambda cid=None, **kwargs: mock_issue if cid == "test_issue_cid" else MagicMock()
+        mock_hivemind_issue.return_value = mock_issue
+        
+        # Setup mock option that fails validation
+        mock_option = MagicMock()
+        # Set valid() to return False to trigger the validation failure
+        mock_option.valid.return_value = False
+        mock_option.hivemind_id = "test_issue_cid"
+        mock_hivemind_option.return_value = mock_option
+        
+        # Setup mock state
+        mock_state = MagicMock()
+        mock_state.opinions = [[]]
+        mock_state.options = []
+        mock_state.issue.name = "Test Issue"
+        mock_state.issue.description = "Test Description"
+        mock_state.issue.answer_type = "String"
+        mock_state.issue.questions = ["Test Question"]
+        mock_state.issue.tags = ["test"]
+        mock_state.load.return_value = None
+        mock_hivemind_state.return_value = mock_state
+        
+        # Setup mock for get_latest_state
+        async_mock = AsyncMock()
+        async_mock.return_value = {
+            "test_issue_cid": {
+                "state_hash": "test_state_cid"
+            }
+        }
+        mock_get_latest_state.side_effect = async_mock
+
+        # Setup mock for update_state
+        mock_update_state.return_value = AsyncMock()
+        
+        # Mock threading.Thread
+        mock_thread.side_effect = lambda target=None, args=(), kwargs=None, daemon=None, **extra_kwargs: self._mock_thread(target, args, kwargs)
+        
+        # Test data
+        option_data = {
+            "hivemind_id": "test_issue_cid",
+            "value": "test_value",
+            "text": "Test option"
+        }
+        
+        # Call the endpoint
+        response = self.client.post(
+            "/api/options/create", 
+            json=option_data
+        )
+        
+        # Verify error response - the app returns 400 as shown in the logs
+        assert response.status_code == 400
+        assert "Option validation failed" in response.json()["detail"]
+        
+        # Verify option.valid() was called
+        mock_option.valid.assert_called_once()
+        
+        # Verify save was not called
+        mock_option.save.assert_not_called()
+
+    @patch('app.update_state')
+    @patch('app.get_latest_state')
+    @patch('app.HivemindOption')
+    @patch('app.HivemindIssue')
+    @patch('app.HivemindState')
+    @patch('threading.Thread')
+    def test_option_validation_exception(self, mock_thread, mock_hivemind_state, mock_hivemind_issue, 
+                                        mock_hivemind_option, mock_get_latest_state, mock_update_state):
+        """Test option validation exception handling in create_option function (lines 741-743).
+        
+        This test verifies that when an exception occurs during option validation,
+        an appropriate HTTPException is raised with the exception message.
+        """
+        # Mock load_state_mapping to return expected mapping
+        self.mock_load_state_mapping.return_value = {
+            "test_issue_cid": {
+                "state_hash": "test_state_cid",
+                "name": "Test Issue",
+                "description": "Test Description"
+            }
+        }
+        
+        # Setup mock for asyncio.to_thread
+        async def mock_to_thread_return(func, *args):
+            # Call the function directly without threading
+            func(*args)
+            # Return a mock result
+            return HTTPException(status_code=400, detail="Option validation error: Custom validation error")
+        
+        self.mock_to_thread.side_effect = mock_to_thread_return
+        
+        # Setup mock issue
+        mock_issue = MagicMock()
+        mock_issue.answer_type = "String"
+        mock_issue.constraints = {}
+        mock_issue.name = "Test Issue"
+        mock_issue.description = "Test Description"
+        mock_issue.questions = ["Test Question"]
+        mock_issue.tags = ["test"]
+        # Ensure the constructor returns our mock instance when given the specific CID
+        mock_hivemind_issue.side_effect = lambda cid=None, **kwargs: mock_issue if cid == "test_issue_cid" else MagicMock()
+        mock_hivemind_issue.return_value = mock_issue
+        
+        # Setup mock option that raises an exception during validation
+        mock_option = MagicMock()
+        # Set valid() to raise an exception
+        validation_error = ValueError("Custom validation error")
+        mock_option.valid.side_effect = validation_error
+        mock_option.hivemind_id = "test_issue_cid"
+        mock_hivemind_option.return_value = mock_option
+        
+        # Setup mock state
+        mock_state = MagicMock()
+        mock_state.opinions = [[]]
+        mock_state.options = []
+        mock_state.issue.name = "Test Issue"
+        mock_state.issue.description = "Test Description"
+        mock_state.issue.answer_type = "String"
+        mock_state.issue.questions = ["Test Question"]
+        mock_state.issue.tags = ["test"]
+        mock_state.load.return_value = None
+        mock_hivemind_state.return_value = mock_state
+        
+        # Setup mock for get_latest_state
+        async_mock = AsyncMock()
+        async_mock.return_value = {
+            "test_issue_cid": {
+                "state_hash": "test_state_cid"
+            }
+        }
+        mock_get_latest_state.side_effect = async_mock
+
+        # Setup mock for update_state
+        mock_update_state.return_value = AsyncMock()
+        
+        # Mock threading.Thread
+        mock_thread.side_effect = lambda target=None, args=(), kwargs=None, daemon=None, **extra_kwargs: self._mock_thread(target, args, kwargs)
+        
+        # Test data
+        option_data = {
+            "hivemind_id": "test_issue_cid",
+            "value": "test_value",
+            "text": "Test option"
+        }
+        
+        # Call the endpoint
+        response = self.client.post(
+            "/api/options/create", 
+            json=option_data
+        )
+        
+        # Verify error response - the app returns 400 as shown in the logs
+        assert response.status_code == 400
+        assert "Option validation error: Custom validation error" in response.json()["detail"]
+        
+        # Verify option.valid() was called
+        mock_option.valid.assert_called_once()
+        
+        # Verify save was not called
+        mock_option.save.assert_not_called()
+
     def _mock_thread(self, target, args, kwargs):
         """Helper method to mock threading.Thread by executing the target function immediately."""
         if target:
