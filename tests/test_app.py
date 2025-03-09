@@ -1123,5 +1123,73 @@ class TestEndpoints:
         # Check that the response contains the expected data
         assert "results" in data
 
+    @patch("app.HivemindOpinion")
+    @patch("app.HivemindOption")
+    @patch("app.HivemindState")
+    @patch("app.HivemindIssue")
+    def test_fetch_state_calculate_results_exception(self, mock_hivemind_issue_class, mock_hivemind_state_class, mock_hivemind_option_class, mock_hivemind_opinion_class):
+        """Test the fetch_state endpoint when calculate_results raises an exception."""
+        # Setup mock state instance
+        mock_state = MagicMock()
+        mock_state.hivemind_id = "test_id"
+        mock_state.options = {"option1": "value1", "option2": "value2"}
+        mock_state.opinions = [
+            {"address1": {"opinion_cid": "opinion1", "timestamp": "2023-01-01", "ranking": ["option1", "option2"]}}
+        ]
+        mock_state.final = False
+        mock_state.get_questions.return_value = ["Question 1?"]
+        mock_state.get_options_for_question.return_value = [
+            {"id": "option1", "value": "value1", "text": "Option 1"},
+            {"id": "option2", "value": "value2", "text": "Option 2"}
+        ]
+        mock_state.get_rankings.return_value = {
+            "option1": {"rank": 1, "score": 1.0},
+            "option2": {"rank": 2, "score": 0.5}
+        }
+        mock_state.get_participants.return_value = ["participant1"]
+        
+        # Configure calculate_results to raise an exception
+        mock_state.calculate_results.side_effect = Exception("Error calculating results")
+        
+        # Setup mock issue instance
+        mock_issue = MagicMock()
+        mock_issue.name = "Test Issue"
+        mock_issue.description = "Test Description"
+        mock_issue.tags = ["test", "mock"]
+        mock_issue.questions = ["Question 1?"]
+        mock_issue.answer_type = "ranked"
+        mock_issue.constraints = {}
+        mock_issue.restrictions = {}
+        
+        # Setup mock option instance
+        mock_option = MagicMock()
+        mock_option.value = "test_value"
+        mock_option.text = "Test Option"
+        mock_option.cid.return_value = "option1"
+        
+        # Setup mock opinion instance
+        mock_opinion = MagicMock()
+        mock_opinion.ranking = ["option1", "option2"]
+        
+        # Configure the mock classes to return our mock instances
+        mock_hivemind_state_class.return_value = mock_state
+        mock_hivemind_issue_class.return_value = mock_issue
+        mock_hivemind_option_class.return_value = mock_option
+        mock_hivemind_opinion_class.return_value = mock_opinion
+        
+        # Test the endpoint
+        with patch("app.logger") as mock_logger:
+            response = self.client.post(
+                "/fetch_state",
+                json={"cid": "test_cid"}
+            )
+            
+            # Verify logger was called with expected error message
+            mock_logger.error.assert_any_call("Failed to calculate results for question 0: Error calculating results")
+        
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+      
 if __name__ == "__main__":
     pytest.main(["-xvs", "test_app.py"])
