@@ -727,8 +727,8 @@ class TestEndpoints:
             assert "message" in data
     
     @patch("app.load_state_mapping")
-    @patch("builtins.open", new_callable=mock_open)
-    def test_update_state(self, mock_file, mock_load_state_mapping):
+    @patch("builtins.open")
+    def test_update_state(self, mock_open_func, mock_load_state_mapping):
         """Test the update_state endpoint."""
         # Setup mock data
         mock_load_state_mapping.return_value = {
@@ -763,7 +763,51 @@ class TestEndpoints:
         assert data["name"] == "New Name"
         
         # Verify file was written
-        mock_file.assert_called_once()
+        mock_open_func.assert_called_once()
+    
+    @patch("app.load_state_mapping")
+    @patch("builtins.open")
+    def test_update_state_save_exception(self, mock_open_func, mock_load_state_mapping):
+        """Test the update_state endpoint when saving the state file fails."""
+        # Setup mock data
+        mock_load_state_mapping.return_value = {
+            "test_id": {"state_hash": "old_hash", "name": "Old Name"}
+        }
+        
+        # Make open raise an exception only when called with the specific state file
+        def side_effect(*args, **kwargs):
+            # Only raise exception for the specific file we're trying to save
+            if len(args) > 0 and "test_id.json" in str(args[0]):
+                raise Exception("Test file write error")
+            # For all other calls, return the original mock_open result
+            return mock_open_func.return_value
+            
+        mock_open_func.side_effect = side_effect
+        
+        # Setup test data
+        state_update = {
+            "hivemind_id": "test_id",
+            "state_hash": "new_hash",
+            "name": "New Name",
+            "description": "New Description",
+            "num_options": 5,
+            "num_opinions": 10,
+            "answer_type": "ranked",
+            "questions": ["New Question?"],
+            "tags": ["new", "tags"]
+        }
+        
+        # Test the endpoint
+        response = self.client.post(
+            "/api/update_state",
+            json=state_update
+        )
+        
+        # Verify response indicates an error
+        assert response.status_code == 500
+        data = response.json()
+        assert "detail" in data
+        assert "Failed to save state" in data["detail"]
     
     @patch("app.HivemindOpinion")
     @patch("app.HivemindState")
