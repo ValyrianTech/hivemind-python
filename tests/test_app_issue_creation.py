@@ -468,6 +468,55 @@ class TestIssueCreationFunctionality:
         }
         mock_issue_instance.set_constraints.assert_called_once_with(expected_partial_constraints)
 
+    @patch("app.HivemindIssue")
+    def test_create_issue_exception_handling(self, mock_hivemind_issue):
+        """Test exception handling in create_issue function (lines 645-647).
+        
+        This test verifies that when an exception occurs during issue creation,
+        it is properly logged and re-raised to the caller.
+        """
+        # Setup mock issue instance to raise an exception during save
+        mock_issue_instance = MagicMock()
+        test_exception = ValueError("Test exception during issue save")
+        mock_issue_instance.save.side_effect = test_exception
+        mock_hivemind_issue.return_value = mock_issue_instance
+        
+        # Setup test data
+        issue_data = {
+            "name": "Exception Test Issue",
+            "description": "Test Description for Exception Handling",
+            "questions": ["Will this throw an exception?"],
+            "tags": ["test", "exception"],
+            "answer_type": "Text",
+            "constraints": None,
+            "restrictions": None,
+            "on_selection": None
+        }
+        
+        # Test the endpoint with logger patched to verify error logging
+        with patch("app.HivemindState"), patch("app.logger") as mock_logger:
+            # When testing through FastAPI TestClient, exceptions are converted to HTTP responses
+            response = self.client.post(
+                "/api/create_issue",
+                json=issue_data
+            )
+            
+            # Verify the response indicates an error
+            assert response.status_code == 400
+            
+            # Verify that the error was logged
+            # The logger.error is called twice with different messages
+            assert mock_logger.error.call_count == 2
+            
+            # Check for our specific error message (lines 645-647)
+            create_and_save_error_call = False
+            for call in mock_logger.error.call_args_list:
+                if "Error in create_and_save:" in call[0][0] and str(test_exception) in call[0][0]:
+                    create_and_save_error_call = True
+                    break
+            
+            assert create_and_save_error_call, "Expected error log message not found"
+
 
 if __name__ == "__main__":
     pytest.main(["-xvs", "test_app_issue_creation.py"])
