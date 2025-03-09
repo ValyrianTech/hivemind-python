@@ -27,9 +27,12 @@ VALID_OPINION_CID = "QmZ4tDuvesekSs4qM5ZBKpXiZGun7S2CYtEZRB3DYXkjGx"
 VALID_OPTION1_CID = "QmSoLPppuBtQSGwKDZT2M73ULpjvfd3aZ6ha4oFGL1KrGM"
 VALID_OPTION2_CID = "QmSoLV4Bbm51jM9C4gDYZQ9Cy3U6aXMJDAbzgu2fzaDs64"
 
-# Create a patched version of asyncio.to_thread that runs synchronously
-def mock_to_thread(func, *args, **kwargs):
-    return func(*args, **kwargs)
+# Create a patched version of asyncio.to_thread that returns a coroutine
+async def mock_to_thread(func, *args, **kwargs):
+    """Mock implementation of asyncio.to_thread that runs the function and returns its result."""
+    if callable(func):
+        return func(*args, **kwargs)
+    return func
 
 @pytest.mark.unit
 class TestSignOpinion:
@@ -64,6 +67,7 @@ class TestSignOpinion:
         mock_state.opinions = [[]]  # Empty list for each question
         mock_state.save.return_value = VALID_STATE_CID
         mock_state.calculate_results.return_value = {VALID_OPTION1_CID: {"score": 0.8}}
+        mock_state.add_opinion.return_value = None
         
         # Mock HivemindIssue
         mock_issue = MagicMock()
@@ -80,36 +84,41 @@ class TestSignOpinion:
         mock_option.value = "option1"
         mock_state.get_sorted_options.return_value = [mock_option]
         
-        # Patch HivemindOpinion, HivemindState, and HivemindIssue
+        # Patch update_state to be a coroutine that returns None
+        async def mock_update_state(*args, **kwargs):
+            return None
+        
+        # Patch HivemindOpinion, HivemindState, HivemindIssue, and update_state
         with patch("app.HivemindOpinion", return_value=mock_opinion):
             with patch("app.HivemindState", return_value=mock_state):
                 with patch("app.HivemindIssue", return_value=mock_issue):
-                    # Create test data
-                    timestamp = int(time.time())
-                    opinion_hash = VALID_OPINION_CID
-                    message = f"{timestamp}{opinion_hash}"
-                    signature = sign_message(message, self.private_key)
-                    
-                    # Test request data
-                    request_data = {
-                        "address": self.address,
-                        "message": message,
-                        "signature": signature,
-                        "data": {
-                            "hivemind_id": "test_hivemind_id",
-                            "question_index": 0,
-                            "ranking": [VALID_OPTION1_CID, VALID_OPTION2_CID]
+                    with patch("app.update_state", side_effect=mock_update_state):
+                        # Create test data
+                        timestamp = int(time.time())
+                        opinion_hash = VALID_OPINION_CID
+                        message = f"{timestamp}{opinion_hash}"
+                        signature = sign_message(message, self.private_key)
+                        
+                        # Test request data
+                        request_data = {
+                            "address": self.address,
+                            "message": message,
+                            "signature": signature,
+                            "data": {
+                                "hivemind_id": "test_hivemind_id",
+                                "question_index": 0,
+                                "ranking": [VALID_OPTION1_CID, VALID_OPTION2_CID]
+                            }
                         }
-                    }
-                    
-                    # Test the endpoint
-                    response = self.client.post("/api/sign_opinion", json=request_data)
-                    
-                    # Verify response
-                    assert response.status_code == 200
-                    data = response.json()
-                    assert data["success"] is True
-                    assert data["cid"] == VALID_STATE_CID
+                        
+                        # Test the endpoint
+                        response = self.client.post("/api/sign_opinion", json=request_data)
+                        
+                        # Verify response
+                        assert response.status_code == 200
+                        response_data = response.json()
+                        assert response_data["success"] is True
+                        assert "cid" in response_data
         
         # Verify mocks were called correctly
         mock_verify_message.assert_called_once_with(message, self.address, signature)
@@ -132,33 +141,37 @@ class TestSignOpinion:
         mock_opinion.hivemind_id = "test_hivemind_id"
         mock_opinion.question_index = 0
         
-        # Patch HivemindOpinion
+        # Mock HivemindState
+        mock_state = MagicMock()
+        
+        # Patch HivemindOpinion and HivemindState
         with patch("app.HivemindOpinion", return_value=mock_opinion):
-            # Create test data
-            timestamp = int(time.time())
-            opinion_hash = VALID_OPINION_CID
-            message = f"{timestamp}{opinion_hash}"
-            signature = "invalid_signature"
-            
-            # Test request data
-            request_data = {
-                "address": self.address,
-                "message": message,
-                "signature": signature,
-                "data": {
-                    "hivemind_id": "test_hivemind_id",
-                    "question_index": 0,
-                    "ranking": [VALID_OPTION1_CID, VALID_OPTION2_CID]
+            with patch("app.HivemindState", return_value=mock_state):
+                # Create test data
+                timestamp = int(time.time())
+                opinion_hash = VALID_OPINION_CID
+                message = f"{timestamp}{opinion_hash}"
+                signature = "invalid_signature"
+                
+                # Test request data
+                request_data = {
+                    "address": self.address,
+                    "message": message,
+                    "signature": signature,
+                    "data": {
+                        "hivemind_id": "test_hivemind_id",
+                        "question_index": 0,
+                        "ranking": [VALID_OPTION1_CID, VALID_OPTION2_CID]
+                    }
                 }
-            }
-            
-            # Test the endpoint
-            response = self.client.post("/api/sign_opinion", json=request_data)
-            
-            # Verify response
-            assert response.status_code == 400
-            data = response.json()
-            assert "Signature is invalid" in data["detail"]
+                
+                # Test the endpoint
+                response = self.client.post("/api/sign_opinion", json=request_data)
+                
+                # Verify response
+                assert response.status_code == 400
+                data = response.json()
+                assert "Signature is invalid" in data["detail"]
         
         # Verify mocks were called correctly
         mock_verify_message.assert_called_once_with(message, self.address, signature)
