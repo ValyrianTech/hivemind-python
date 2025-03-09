@@ -135,6 +135,7 @@ class TestIssueCreationFunctionality:
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
+        assert data["issue_cid"] == "test_issue_cid"
         
         # Verify the default labels were used
         expected_default_constraints = {
@@ -142,6 +143,71 @@ class TestIssueCreationFunctionality:
             "false_value": "False"
         }
         mock_issue_instance.set_constraints.assert_called_once_with(expected_default_constraints)
+
+    @patch("app.HivemindIssue")
+    def test_create_issue_bool_no_constraints(self, mock_hivemind_issue):
+        """Test Boolean issue creation without constraints (lines 594-596).
+        
+        This test verifies that when a Boolean issue type is created without any constraints,
+        default 'True' and 'False' labels are automatically applied.
+        """
+        # Setup mock issue instance
+        mock_issue_instance = MagicMock()
+        mock_issue_instance.save.return_value = "test_bool_no_constraints_cid"
+        mock_hivemind_issue.return_value = mock_issue_instance
+        
+        # Setup test data with Bool answer_type but NO constraints
+        issue_data = {
+            "name": "Bool Issue Without Constraints",
+            "description": "Test Description for Bool Issue Without Constraints",
+            "questions": ["Do you agree with the proposal?"],
+            "tags": ["test", "boolean", "no-constraints"],
+            "answer_type": "Bool",
+            "constraints": None,  # No constraints provided
+            "restrictions": None,
+            "on_selection": None
+        }
+        
+        # Test the endpoint
+        with patch("app.HivemindState") as mock_hivemind_state:
+            # Configure mock state to return a successful save
+            mock_state_instance = MagicMock()
+            mock_state_instance.save.return_value = "test_state_cid"
+            mock_hivemind_state.return_value = mock_state_instance
+            
+            response = self.client.post(
+                "/api/create_issue",
+                json=issue_data
+            )
+        
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["issue_cid"] == "test_bool_no_constraints_cid"
+        
+        # Verify the HivemindIssue was created with correct attributes
+        mock_hivemind_issue.assert_called_once()
+        
+        # Verify attributes were set correctly
+        assert mock_issue_instance.name == issue_data["name"]
+        assert mock_issue_instance.description == issue_data["description"]
+        assert mock_issue_instance.tags == issue_data["tags"]
+        assert mock_issue_instance.answer_type == issue_data["answer_type"]
+        
+        # Verify add_question was called for the question
+        mock_issue_instance.add_question.assert_called_once_with(issue_data["questions"][0])
+        
+        # Most importantly, verify set_constraints was called with the default Bool constraints
+        # This specifically tests lines 594-596 where default Bool constraints are applied
+        expected_default_constraints = {
+            "true_value": "True",
+            "false_value": "False"
+        }
+        mock_issue_instance.set_constraints.assert_called_once_with(expected_default_constraints)
+        
+        # Verify save was called
+        mock_issue_instance.save.assert_called_once()
 
     @patch("app.HivemindIssue")
     def test_create_issue_image_constraints(self, mock_hivemind_issue):
