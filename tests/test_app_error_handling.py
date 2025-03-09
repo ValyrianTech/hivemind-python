@@ -89,5 +89,66 @@ class TestErrorHandling:
         mock_hivemind_option.assert_any_call(cid="option1")
         mock_hivemind_option.assert_any_call(cid="option2")
 
+    @patch("app.load_state_mapping")
+    @patch("app.asyncio.to_thread")
+    @patch("app.logger")
+    def test_create_option_unexpected_exception(self, mock_logger, mock_to_thread, mock_load_state_mapping):
+        """Test the create_option endpoint when an unexpected exception occurs (lines 809-814)."""
+        # Setup test client
+        client = TestClient(app.app)
+        
+        # Configure mocks
+        mock_mapping = {"test_hivemind_id": {"state_hash": "test_state_cid"}}
+        mock_load_state_mapping.return_value = mock_mapping
+        
+        # Configure to_thread to raise an exception
+        test_exception = Exception("Test unexpected error")
+        mock_to_thread.side_effect = test_exception
+        
+        # Test the endpoint
+        option_data = {
+            "hivemind_id": "test_hivemind_id",
+            "value": "test_value",
+            "text": "Test option text"
+        }
+        response = client.post("/api/options/create", json=option_data)
+        
+        # Verify response
+        assert response.status_code == 500
+        data = response.json()
+        assert "Internal error: Test unexpected error" in data["detail"]
+        
+        # Verify logger calls
+        mock_logger.error.assert_any_call("Unexpected error in create_option: Test unexpected error")
+        mock_logger.exception.assert_called_once_with("Full traceback:")
+
+    @patch("app.load_state_mapping")
+    @patch("app.asyncio.to_thread")
+    def test_create_option_http_exception(self, mock_to_thread, mock_load_state_mapping):
+        """Test the create_option endpoint when an HTTPException is raised (line 810)."""
+        # Setup test client
+        client = TestClient(app.app)
+        
+        # Configure mocks
+        mock_mapping = {"test_hivemind_id": {"state_hash": "test_state_cid"}}
+        mock_load_state_mapping.return_value = mock_mapping
+        
+        # Configure to_thread to raise an HTTPException
+        http_exception = HTTPException(status_code=422, detail="Test HTTP exception")
+        mock_to_thread.side_effect = http_exception
+        
+        # Test the endpoint
+        option_data = {
+            "hivemind_id": "test_hivemind_id",
+            "value": "test_value",
+            "text": "Test option text"
+        }
+        response = client.post("/api/options/create", json=option_data)
+        
+        # Verify response
+        assert response.status_code == 422
+        data = response.json()
+        assert "Test HTTP exception" in data["detail"]
+
 if __name__ == "__main__":
     pytest.main(["-xvs", "test_app_error_handling.py"])
