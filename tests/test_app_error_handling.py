@@ -150,5 +150,99 @@ class TestErrorHandling:
         data = response.json()
         assert "Test HTTP exception" in data["detail"]
 
+    @patch("app.load_state_mapping")
+    @patch("app.HivemindState")
+    @patch("app.HivemindIssue")
+    @patch("app.HivemindOption")
+    @patch("app.asyncio.to_thread")
+    @patch("app.logger")
+    def test_create_and_save_exception_handling(self, mock_logger, mock_to_thread, mock_hivemind_option, 
+                                               mock_hivemind_issue, mock_hivemind_state, mock_load_state_mapping):
+        """Test exception handling in the create_and_save function (lines 776-781)."""
+        # Setup test client
+        client = TestClient(app.app)
+        
+        # Configure state mapping mock
+        mock_mapping = {"test_hivemind_id": {"state_hash": "test_state_cid"}}
+        mock_load_state_mapping.return_value = mock_mapping
+        
+        # Configure mocks to allow the function to enter create_and_save
+        # but then raise an exception inside it
+        def side_effect_function(func, *args, **kwargs):
+            # This simulates calling the create_and_save function
+            # but with mocks that will cause an exception
+            return func(*args, **kwargs)
+        
+        mock_to_thread.side_effect = side_effect_function
+        
+        # Make HivemindState constructor work but then cause an exception later
+        mock_state = MagicMock()
+        mock_hivemind_state.return_value = mock_state
+        
+        # Make HivemindIssue raise an exception after state is loaded
+        test_exception = Exception("Test error in create_and_save")
+        mock_hivemind_issue.side_effect = test_exception
+        
+        # Test the endpoint
+        option_data = {
+            "hivemind_id": "test_hivemind_id",
+            "value": "test_value",
+            "text": "Test option text"
+        }
+        response = client.post("/api/options/create", json=option_data)
+        
+        # Verify response
+        assert response.status_code == 500
+        data = response.json()
+        assert "Internal error: Test error in create_and_save" in data["detail"]
+        
+        # Verify logger calls specific to create_and_save function
+        mock_logger.error.assert_any_call("Unexpected error in create_and_save: Test error in create_and_save")
+        mock_logger.exception.assert_called_with("Full traceback:")
+
+    @patch("app.load_state_mapping")
+    @patch("app.HivemindState")
+    @patch("app.HivemindIssue")
+    @patch("app.asyncio.to_thread")
+    def test_create_and_save_http_exception_handling(self, mock_to_thread, mock_hivemind_issue, 
+                                                    mock_hivemind_state, mock_load_state_mapping):
+        """Test HTTPException handling in the create_and_save function (line 777)."""
+        # Setup test client
+        client = TestClient(app.app)
+        
+        # Configure state mapping mock
+        mock_mapping = {"test_hivemind_id": {"state_hash": "test_state_cid"}}
+        mock_load_state_mapping.return_value = mock_mapping
+        
+        # Configure mocks to allow the function to enter create_and_save
+        # but then raise an HTTPException inside it
+        def side_effect_function(func, *args, **kwargs):
+            # This simulates calling the create_and_save function
+            # but with mocks that will cause an HTTPException
+            return func(*args, **kwargs)
+        
+        mock_to_thread.side_effect = side_effect_function
+        
+        # Make HivemindState constructor work
+        mock_state = MagicMock()
+        mock_hivemind_state.return_value = mock_state
+        
+        # Make HivemindIssue raise an HTTPException after state is loaded
+        http_exception = HTTPException(status_code=422, detail="Validation error in create_and_save")
+        mock_hivemind_issue.side_effect = http_exception
+        
+        # Test the endpoint
+        option_data = {
+            "hivemind_id": "test_hivemind_id",
+            "value": "test_value",
+            "text": "Test option text"
+        }
+        response = client.post("/api/options/create", json=option_data)
+        
+        # Verify response
+        assert response.status_code == 422
+        data = response.json()
+        assert "Validation error in create_and_save" in data["detail"]
+
 if __name__ == "__main__":
     pytest.main(["-xvs", "test_app_error_handling.py"])
