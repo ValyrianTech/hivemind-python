@@ -278,6 +278,130 @@ class TestIssueCreationFunctionality:
         }
         mock_issue_instance.set_constraints.assert_called_once_with(expected_partial_constraints)
 
+    @patch("app.HivemindIssue")
+    def test_create_issue_video_constraints(self, mock_hivemind_issue):
+        """Test Video constraint handling in create_issue function (lines 576-591).
+        
+        This test verifies that when a Video issue type is created with various constraints
+        (formats, max_size, and max_duration), these constraints are properly validated and
+        set on the HivemindIssue instance.
+        """
+        # Setup mock issue instance
+        mock_issue_instance = MagicMock()
+        mock_issue_instance.save.return_value = "test_video_issue_cid"
+        mock_hivemind_issue.return_value = mock_issue_instance
+        
+        # Setup test data with Video answer_type and various constraints
+        issue_data = {
+            "name": "Video Test Issue",
+            "description": "Test Description for Video Issue",
+            "questions": ["Upload a video that demonstrates your idea"],
+            "tags": ["test", "video"],
+            "answer_type": "Video",
+            "constraints": {
+                "formats": ["mp4", "mov", "avi"],
+                "max_size": 104857600,  # 100MB in bytes
+                "max_duration": 300  # 5 minutes in seconds
+            },
+            "restrictions": None,
+            "on_selection": None
+        }
+        
+        # Test the endpoint
+        with patch("app.HivemindState") as mock_hivemind_state:
+            # Configure mock state to return a successful save
+            mock_state_instance = MagicMock()
+            mock_state_instance.save.return_value = "test_state_cid"
+            mock_hivemind_state.return_value = mock_state_instance
+            
+            response = self.client.post(
+                "/api/create_issue",
+                json=issue_data
+            )
+        
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["issue_cid"] == "test_video_issue_cid"
+        
+        # Verify the HivemindIssue was created with correct attributes
+        mock_hivemind_issue.assert_called_once()
+        
+        # Verify attributes were set correctly
+        assert mock_issue_instance.name == issue_data["name"]
+        assert mock_issue_instance.description == issue_data["description"]
+        assert mock_issue_instance.tags == issue_data["tags"]
+        assert mock_issue_instance.answer_type == issue_data["answer_type"]
+        
+        # Verify add_question was called for the question
+        mock_issue_instance.add_question.assert_called_once_with(issue_data["questions"][0])
+        
+        # Most importantly, verify set_constraints was called with the expected video constraints
+        # This specifically tests lines 576-591 where the Video constraints are processed
+        expected_video_constraints = {
+            "formats": ["mp4", "mov", "avi"],
+            "max_size": 104857600,
+            "max_duration": 300
+        }
+        mock_issue_instance.set_constraints.assert_called_once_with(expected_video_constraints)
+        
+        # Verify save was called
+        mock_issue_instance.save.assert_called_once()
+
+    @patch("app.HivemindIssue")
+    def test_create_issue_partial_video_constraints(self, mock_hivemind_issue):
+        """Test Video constraint handling with partial constraints in create_issue function.
+        
+        This test verifies that when a Video issue type is created with only some of the
+        possible constraints, only the valid constraints are included in the final constraints
+        object passed to set_constraints.
+        """
+        # Setup mock issue instance
+        mock_issue_instance = MagicMock()
+        mock_issue_instance.save.return_value = "test_partial_video_cid"
+        mock_hivemind_issue.return_value = mock_issue_instance
+        
+        # Setup test data with Video answer_type and only some constraints
+        issue_data = {
+            "name": "Partial Video Test Issue",
+            "description": "Test Description for Partial Video Constraints",
+            "questions": ["Upload a short video clip"],
+            "tags": ["test", "video", "partial"],
+            "answer_type": "Video",
+            "constraints": {
+                "formats": ["mp4"],
+                # No max_size provided
+                "max_duration": 60  # 1 minute in seconds
+            },
+            "restrictions": None,
+            "on_selection": None
+        }
+        
+        # Test the endpoint
+        with patch("app.HivemindState") as mock_hivemind_state:
+            # Configure mock state to return a successful save
+            mock_state_instance = MagicMock()
+            mock_state_instance.save.return_value = "test_state_cid"
+            mock_hivemind_state.return_value = mock_state_instance
+            
+            response = self.client.post(
+                "/api/create_issue",
+                json=issue_data
+            )
+        
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        
+        # Verify the expected partial constraints were used
+        expected_partial_constraints = {
+            "formats": ["mp4"],
+            "max_duration": 60
+        }
+        mock_issue_instance.set_constraints.assert_called_once_with(expected_partial_constraints)
+
 
 if __name__ == "__main__":
     pytest.main(["-xvs", "test_app_issue_creation.py"])
