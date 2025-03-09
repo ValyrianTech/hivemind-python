@@ -33,6 +33,8 @@ from hivemind.option import HivemindOption
 from hivemind.utils import get_bitcoin_address
 from hivemind.ranking import Ranking
 
+from websocket_handlers import websocket_endpoint, active_connections, register_websocket_routes
+
 class StateLoadingStats:
     def __init__(self):
         self.timestamp = datetime.now().isoformat()
@@ -199,26 +201,6 @@ class SignOpinionRequest(BaseModel):
 
 # Initialize FastAPI app
 app = FastAPI(title="Hivemind Insights")
-
-# Store active WebSocket connections
-active_connections: Dict[str, List[WebSocket]] = {}
-
-# WebSocket endpoint for opinion notifications
-@app.websocket("/ws/opinion/{opinion_hash}")
-async def websocket_endpoint(websocket: WebSocket, opinion_hash: str):
-    await websocket.accept()
-    
-    if opinion_hash not in active_connections:
-        active_connections[opinion_hash] = []
-    active_connections[opinion_hash].append(websocket)
-    
-    try:
-        while True:
-            await websocket.receive_text()  # Keep connection alive
-    except:
-        active_connections[opinion_hash].remove(websocket)
-        if not active_connections[opinion_hash]:
-            del active_connections[opinion_hash]
 
 # Mount static files and templates
 static_dir = os.path.join(os.path.dirname(__file__), "static")
@@ -1081,3 +1063,5 @@ async def sign_opinion(request: Request):
             
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON data")
+
+register_websocket_routes(app)
