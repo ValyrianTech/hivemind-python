@@ -88,18 +88,6 @@
                     </select>
                 </div>
 
-                <!-- On Selection -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-300">On Selection Action</label>
-                    <select id="on_selection"
-                            class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                        <option value="">None</option>
-                        <option value="Finalize">Finalize</option>
-                        <option value="Exclude">Exclude</option>
-                        <option value="Reset">Reset</option>
-                    </select>
-                </div>
-
                 <!-- Advanced Options Toggle -->
                 <div>
                     <button type="button" onclick="toggleAdvancedOptions()" 
@@ -110,6 +98,18 @@
 
                 <!-- Advanced Options (Initially Hidden) -->
                 <div id="advancedOptions" class="hidden space-y-4">
+                    <!-- On Selection -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300">On Selection Action</label>
+                        <select id="on_selection"
+                                class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <option value="">None</option>
+                            <option value="Finalize">Finalize</option>
+                            <option value="Exclude">Exclude</option>
+                            <option value="Reset">Reset</option>
+                        </select>
+                    </div>
+
                     <!-- Constraints -->
                     <div>
                         <label class="block text-sm font-medium text-gray-300">Constraints</label>
