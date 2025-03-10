@@ -120,12 +120,22 @@
 
                     <!-- Restrictions -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-300">Restrictions (JSON)</label>
-                        <textarea id="restrictions" rows="4" placeholder='{
-  "addresses": ["addr1", "addr2"],
-  "options_per_address": 1
-}'
-                                  class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white font-mono text-sm"></textarea>
+                        <label class="block text-sm font-medium text-gray-300">Restrictions</label>
+                        <div class="space-y-4">
+                            <!-- Addresses field -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300">Allowed Addresses (one per line)</label>
+                                <textarea id="restriction_addresses" rows="4" placeholder="addr1&#10;addr2&#10;addr3"
+                                          class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white font-mono text-sm"></textarea>
+                            </div>
+                            
+                            <!-- Options per address field -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300">Options Per Address</label>
+                                <input type="number" id="restriction_options_per_address" min="1" value="1"
+                                       class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white font-mono text-sm">
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -531,12 +541,16 @@
             // Get restrictions
             let restrictions = null;
             try {
-                const restrictionsText = document.getElementById('restrictions').value;
-                if (restrictionsText) {
-                    restrictions = JSON.parse(restrictionsText);
+                const restrictionAddresses = document.getElementById('restriction_addresses').value.trim();
+                const restrictionOptionsPerAddress = document.getElementById('restriction_options_per_address').value;
+                if (restrictionAddresses || restrictionOptionsPerAddress) {
+                    restrictions = {
+                        addresses: restrictionAddresses ? restrictionAddresses.split('\n').map(addr => addr.trim()).filter(addr => addr) : [],
+                        options_per_address: parseInt(restrictionOptionsPerAddress)
+                    };
                 }
             } catch (error) {
-                alert('Invalid JSON in restrictions');
+                alert('Invalid restrictions');
                 return;
             }
             
