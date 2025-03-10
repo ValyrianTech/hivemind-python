@@ -4,6 +4,9 @@ import sys
 import pytest
 import json
 import threading
+import tempfile
+import shutil
+from pathlib import Path
 from datetime import datetime
 from unittest.mock import patch, MagicMock, mock_open, call, AsyncMock
 from fastapi.testclient import TestClient
@@ -22,6 +25,21 @@ sys.path.append(os.path.join(project_root, "src"))
 from hivemind.option import HivemindOption
 from hivemind.issue import HivemindIssue
 from hivemind.state import HivemindState
+
+# Create a fixture for temporary directory
+@pytest.fixture(scope="session")
+def temp_states_dir():
+    """Create a temporary directory for test state files."""
+    temp_dir = tempfile.mkdtemp()
+    yield Path(temp_dir)
+    # Clean up after tests
+    shutil.rmtree(temp_dir)
+
+@pytest.fixture(autouse=True)
+def patch_states_dir(temp_states_dir):
+    """Patch the STATES_DIR constant in app.py to use the temporary directory."""
+    with patch("app.STATES_DIR", temp_states_dir):
+        yield
 
 @pytest.mark.unit
 class TestOptionTypeConversion:

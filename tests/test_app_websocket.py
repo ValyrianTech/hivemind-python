@@ -3,6 +3,9 @@ import os
 import sys
 import pytest
 import asyncio
+import tempfile
+import shutil
+from pathlib import Path
 from unittest.mock import patch, MagicMock, AsyncMock
 from typing import Dict, List, Any
 
@@ -19,6 +22,20 @@ from websocket_handlers import register_websocket_routes, websocket_endpoint
 from fastapi import FastAPI
 from fastapi.websockets import WebSocket, WebSocketDisconnect
 
+# Create a fixture for temporary directory
+@pytest.fixture(scope="session")
+def temp_states_dir():
+    """Create a temporary directory for test state files."""
+    temp_dir = tempfile.mkdtemp()
+    yield Path(temp_dir)
+    # Clean up after tests
+    shutil.rmtree(temp_dir)
+
+@pytest.fixture(autouse=True)
+def patch_states_dir(temp_states_dir):
+    """Patch the STATES_DIR constant in app.py to use the temporary directory."""
+    with patch("app.STATES_DIR", temp_states_dir):
+        yield
 
 @pytest.mark.asyncio
 class TestWebSocketEndpoint:
