@@ -299,7 +299,13 @@
                 
                 resultsSection.innerHTML = `
                     <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-2xl font-semibold text-white">Results</h2>
+                        <h2 class="text-2xl font-semibold text-white">Results
+                            <span class="inline-block ml-1 cursor-pointer" onclick="showResultsInfo()">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </span>
+                        </h2>
                         <div class="flex space-x-4">
                             ${stateData.issue && stateData.issue.answer_type !== 'Bool' ? `
                             <a href="/options/add?hivemind_id=${stateData.hivemind_id}" 
@@ -463,6 +469,44 @@
                 `;
                 document.body.appendChild(contributionInfoModal);
 
+                // Add the results info modal to the page
+                const resultsInfoModal = document.createElement('div');
+                resultsInfoModal.id = 'resultsInfoModal';
+                resultsInfoModal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] hidden';
+                resultsInfoModal.innerHTML = `
+                    <div class="bg-gray-800 rounded-lg p-6 max-w-md mx-auto shadow-xl">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold text-white">Results Calculation</h3>
+                            <button onclick="hideResultsInfo()" class="text-gray-400 hover:text-white">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="space-y-4 text-gray-300">
+                            <p>The results show the consensus ranking of options based on all submitted opinions. Here's how they're calculated:</p>
+                            
+                            <div class="bg-gray-700 p-3 rounded">
+                                <h4 class="font-semibold mb-2 text-blue-300">Condorcet Method</h4>
+                                <p>The Hivemind Protocol uses a Condorcet-style ranked choice voting system to determine the winning options.</p>
+                            </div>
+                            
+                            <div class="bg-gray-700 p-3 rounded">
+                                <h4 class="font-semibold mb-2 text-blue-300">Pairwise Comparisons</h4>
+                                <p>Each option is compared against every other option based on voter preferences to determine which is preferred.</p>
+                            </div>
+                            
+                            <div class="bg-gray-700 p-3 rounded">
+                                <h4 class="font-semibold mb-2 text-blue-300">Score Calculation</h4>
+                                <p>The score represents how strongly an option is preferred over all other options in the set.</p>
+                            </div>
+                            
+                            <p class="text-sm italic">Higher scores indicate options that were more consistently ranked higher by participants.</p>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(resultsInfoModal);
+
                 loadingDiv.style.display = 'none';
             } catch (error) {
                 showError('Error fetching state: ' + error.message);
@@ -521,6 +565,14 @@
 
         function hideContributionInfo() {
             document.getElementById('contributionInfoModal').classList.add('hidden');
+        }
+
+        function showResultsInfo() {
+            document.getElementById('resultsInfoModal').classList.remove('hidden');
+        }
+
+        function hideResultsInfo() {
+            document.getElementById('resultsInfoModal').classList.add('hidden');
         }
     </script>
 </body>
