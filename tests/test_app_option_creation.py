@@ -1167,6 +1167,13 @@ class TestOptionTypeConversion:
         mock_hivemind_issue.side_effect = lambda cid=None, **kwargs: mock_issue if cid == "test_issue_cid" else MagicMock()
         mock_hivemind_issue.return_value = mock_issue
         
+        # First, test successful JSON parsing
+        mock_option_success = MagicMock()
+        mock_option_success.valid.return_value = True
+        mock_option_success.save.return_value = "test_option_cid"
+        mock_option_success.hivemind_id = "test_issue_cid"
+        mock_option_success.value = '{"name": "Product", "price": 10.99, "quantity": 5}'
+        
         # Setup mock option with a value that will trigger TypeError
         mock_option = MagicMock()
         mock_option.valid.return_value = True
@@ -1176,7 +1183,9 @@ class TestOptionTypeConversion:
         # Set value to a number to trigger TypeError when json.loads tries to parse it
         # json.loads() can only parse strings, so a number will cause TypeError
         mock_option.value = 12345
-        mock_hivemind_option.return_value = mock_option
+        
+        # Return the success mock first, then the error mock
+        mock_hivemind_option.side_effect = [mock_option_success, mock_option]
         
         # Setup mock state
         mock_state = MagicMock()
@@ -1206,6 +1215,23 @@ class TestOptionTypeConversion:
         # Mock threading.Thread to allow accepting arbitrary kwargs
         mock_thread.side_effect = lambda target=None, args=(), kwargs=None, daemon=None, **extra_kwargs: self._mock_thread(target, args, kwargs)
         
+        # First, test successful JSON parsing
+        option_data_success = {
+            "hivemind_id": "test_issue_cid",
+            "value": '{"name": "Product", "price": 10.99, "quantity": 5}',
+            "text": "Test Complex Option with Valid JSON"
+        }
+        
+        # Call the endpoint with valid JSON
+        response_success = self.client.post(
+            "/api/options/create", 
+            json=option_data_success
+        )
+        
+        # Verify response - should be successful
+        assert response_success.status_code == 200
+        
+        # Now test the error case
         # Test data with a numeric value (not a string or dict)
         option_data = {
             "hivemind_id": "test_issue_cid",
@@ -1225,7 +1251,8 @@ class TestOptionTypeConversion:
         # Verify the error message contains information about the TypeError
         assert "Invalid format for Complex answer type" in response.json()["detail"]
         
-        # Verify save was not called since an error was raised
+        # Verify save was called for the successful case but not for the error case
+        mock_option_success.save.assert_called_once()
         mock_option.save.assert_not_called()
 
     def _mock_thread(self, target, args, kwargs):
