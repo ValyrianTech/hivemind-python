@@ -186,15 +186,13 @@
             }
         });
 
-        {% if issue.answer_type == 'Complex' %}
-        (function() {
-            {% if issue.constraints %}
-            const constraints = {{ issue.constraints|tojson }};
-            {% else %}
-            const constraints = {};
-            {% endif %}
+        // Set constraints from server-side data
+        const issueConstraints = {{ issue.constraints|tojson }};
+        
+        if (issueConstraints && issueConstraints.specs) {
+            const constraints = issueConstraints;
             
-            if (constraints && constraints.specs) {
+            (function() {
                 const complexFieldsContainer = document.getElementById('complexFields');
                 
                 // Create form fields for each spec
@@ -253,9 +251,8 @@
                     fieldContainer.appendChild(inputElement);
                     complexFieldsContainer.appendChild(fieldContainer);
                 });
-            }
-        })();
-        {% endif %}
+            })();
+        }
     </script>
 </body>
 </html>
