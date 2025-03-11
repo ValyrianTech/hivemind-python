@@ -134,8 +134,8 @@ class HivemindState(IPFSDictChain):
         if self._hivemind_issue.answer_type == 'Bool':
             true_option = HivemindOption()
             true_option.set_hivemind_issue(self.hivemind_id)
-            true_option.set(value=True)
             true_option.text = self._hivemind_issue.constraints['true_value']
+            true_option.set(value=True)
             true_option_hash = true_option.save()
             if isinstance(true_option, HivemindOption) and true_option.valid():
                 if true_option_hash not in self.options:
@@ -144,8 +144,8 @@ class HivemindState(IPFSDictChain):
 
             false_option = HivemindOption()
             false_option.set_hivemind_issue(self.hivemind_id)
-            false_option.set(value=False)
             false_option.text = self._hivemind_issue.constraints['false_value']
+            false_option.set(value=False)
             false_option_hash = false_option.save()
             if isinstance(false_option, HivemindOption) and false_option.valid():
                 if false_option_hash not in self.options:
@@ -156,8 +156,8 @@ class HivemindState(IPFSDictChain):
             for choice in self._hivemind_issue.constraints['choices']:
                 option = HivemindOption()
                 option.set_hivemind_issue(self.hivemind_id)
-                option.set(value=choice['value'])
                 option.text = choice['text']
+                option.set(value=choice['value'])
                 option_hash = option.save()
                 if isinstance(option, HivemindOption) and option.valid():
                     if option_hash not in self.options:

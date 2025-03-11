@@ -117,7 +117,7 @@ def test_bool_answer_type_constraints() -> None:
     log_step(4, 'Testing Valid Bool Options')
     
     valid_options = [True, False]
-    option_texts = ['Agree Option', 'Disagree Option']
+    option_texts = ['Agree', 'Disagree']  
     proposer_key, proposer_address = voter_keys[0]
     
     for i, option_value in enumerate(valid_options):
@@ -125,8 +125,8 @@ def test_bool_answer_type_constraints() -> None:
         option = HivemindOption()
         option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
         option._answer_type = option_type
+        option.text = option_texts[i]  # Set the text before validating
         option.set(value=option_value)
-        option.text = option_texts[i]
         option_hash = option.save()
         print(f'Option saved with IPFS hash: {option.cid()}')
 

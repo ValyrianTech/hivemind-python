@@ -205,6 +205,21 @@ class HivemindOption(IPFSDict):
             LOG.error('Option value %s is not a boolean value but instead is a %s' % (self.value, type(self.value)))
             return False
 
+        # Validate that the text matches the constraints
+        if self._hivemind_issue.constraints is not None:
+            if 'true_value' in self._hivemind_issue.constraints and self.value is True:
+                expected_text = self._hivemind_issue.constraints['true_value']
+                if self.text != expected_text:
+                    LOG.error('Bool option text for True value must match the true_value constraint: %s, got: %s' % 
+                              (expected_text, self.text))
+                    return False
+            elif 'false_value' in self._hivemind_issue.constraints and self.value is False:
+                expected_text = self._hivemind_issue.constraints['false_value']
+                if self.text != expected_text:
+                    LOG.error('Bool option text for False value must match the false_value constraint: %s, got: %s' % 
+                              (expected_text, self.text))
+                    return False
+
         return True
 
     def is_valid_hivemind_option(self) -> bool:
