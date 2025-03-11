@@ -693,6 +693,35 @@ async def create_option(option: OptionCreate):
                 new_option = HivemindOption()
                 new_option.set_hivemind_issue(hivemind_issue_hash=option.hivemind_id)
                 
+                # Handle complex answer type conversion
+                if issue.answer_type == 'Complex' and isinstance(option.value, dict):
+                    specs = issue.constraints.get('specs', {})
+                    for field_name, field_type in specs.items():
+                        if field_name in option.value:
+                            field_value = option.value[field_name]
+                            
+                            # Convert field values to the correct type
+                            if field_type == 'Integer':
+                                if isinstance(field_value, str) and field_value.isdigit():
+                                    option.value[field_name] = int(field_value)
+                                elif isinstance(field_value, float) and field_value.is_integer():
+                                    option.value[field_name] = int(field_value)
+                            
+                            elif field_type == 'Float':
+                                if isinstance(field_value, str):
+                                    try:
+                                        option.value[field_name] = float(field_value)
+                                    except ValueError:
+                                        pass  # Let validation handle the error
+                                elif isinstance(field_value, int):
+                                    option.value[field_name] = float(field_value)
+                            
+                            elif field_type == 'Bool' and isinstance(field_value, str):
+                                if field_value.lower() in ('true', 'yes', '1'):
+                                    option.value[field_name] = True
+                                elif field_value.lower() in ('false', 'no', '0'):
+                                    option.value[field_name] = False
+
                 # Set the option value based on the answer type
                 try:
                     if issue.answer_type == 'Integer':

@@ -330,11 +330,9 @@ class HivemindOption(IPFSDict):
 
         # If there are no specs in the constraints, any dictionary is valid
         if 'specs' not in self._hivemind_issue.constraints:
-            LOG.error('No specs found in constraints: %s' % self._hivemind_issue.constraints)
             return True
 
         specs = self._hivemind_issue.constraints['specs']
-        LOG.debug('Validating complex option against specs: %s' % specs)
 
         # Check if the option has all the fields specified in the constraints
         for spec_key in specs:
@@ -349,48 +347,19 @@ class HivemindOption(IPFSDict):
                 return False
 
         # Check if the types of the fields match the specs
-        for spec_key, spec_type in specs.items():
-            spec_value = self.value[spec_key]
-            LOG.debug('Validating field %s with value %s against type %s' % (spec_key, spec_value, spec_type))
-            
-            if spec_type == 'String' and not isinstance(spec_value, str):
+        for spec_key, spec_value in self.value.items():
+            if specs[spec_key] == 'String' and not isinstance(spec_value, str):
                 LOG.error('Field %s should be String but is %s' % (spec_key, type(spec_value).__name__))
                 return False
-            elif spec_type == 'Integer':
-                # Handle the case where the value might be a float or string that can be converted to int
-                if isinstance(spec_value, int):
-                    pass  # Already an int, so it's valid
-                elif isinstance(spec_value, float) and spec_value.is_integer():
-                    # Convert float to int if it's a whole number
-                    self.value[spec_key] = int(spec_value)
-                elif isinstance(spec_value, str) and spec_value.isdigit():
-                    # Convert string to int if it's all digits
-                    self.value[spec_key] = int(spec_value)
-                else:
-                    LOG.error('Field %s should be Integer but is %s with value %s' % (spec_key, type(spec_value).__name__, spec_value))
-                    return False
-            elif spec_type == 'Float':
-                # Handle the case where the value might be an int or string that can be converted to float
-                if isinstance(spec_value, float):
-                    pass  # Already a float, so it's valid
-                elif isinstance(spec_value, int):
-                    # Convert int to float
-                    self.value[spec_key] = float(spec_value)
-                elif isinstance(spec_value, str):
-                    try:
-                        # Try to convert string to float
-                        self.value[spec_key] = float(spec_value)
-                    except ValueError:
-                        LOG.error('Field %s should be Float but string value %s cannot be converted' % (spec_key, spec_value))
-                        return False
-                else:
-                    LOG.error('Field %s should be Float but is %s with value %s' % (spec_key, type(spec_value).__name__, spec_value))
-                    return False
-            elif spec_type == 'Bool' and not isinstance(spec_value, bool):
+            elif specs[spec_key] == 'Integer' and not isinstance(spec_value, int):
+                LOG.error('Field %s should be Integer but is %s' % (spec_key, type(spec_value).__name__))
+                return False
+            elif specs[spec_key] == 'Float' and not isinstance(spec_value, float):
+                LOG.error('Field %s should be Float but is %s' % (spec_key, type(spec_value).__name__))
+                return False
+            elif specs[spec_key] == 'Bool' and not isinstance(spec_value, bool):
                 LOG.error('Field %s should be Bool but is %s' % (spec_key, type(spec_value).__name__))
                 return False
-        
-        LOG.debug('Complex option validation successful')
         return True
 
     def is_valid_address_option(self) -> bool:
