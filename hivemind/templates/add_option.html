@@ -187,7 +187,7 @@
         });
 
         // Set constraints from server-side data
-        const issueConstraints = {{ issue.constraints|tojson }};
+        const issueConstraints = JSON.parse('{{ issue.constraints|tojson|safe }}');
         
         if (issueConstraints && issueConstraints.specs) {
             const constraints = issueConstraints;
