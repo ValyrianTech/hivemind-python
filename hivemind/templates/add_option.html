@@ -155,14 +155,14 @@
                     text: document.getElementById('text').value
                 };
                 
-                {% if issue.answer_type == 'Complex' %}
-                // For Complex type, we've already set the JSON string in the hidden input
-                // Parse it back to an object for the API
-                formData.value = JSON.parse(document.getElementById('value').value);
-                {% else %}
-                // For other types, use the raw value
-                formData.value = document.getElementById('value').value;
-                {% endif %}
+                if (document.getElementById('complexValueEditor')) {
+                    // For Complex type, we've already set the JSON string in the hidden input
+                    // Parse it back to an object for the API
+                    formData.value = JSON.parse(document.getElementById('value').value);
+                } else {
+                    // For other types, use the raw value
+                    formData.value = document.getElementById('value').value;
+                }
                 
                 const response = await fetch('/api/options/create', {
                     method: 'POST',
