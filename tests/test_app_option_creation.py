@@ -455,7 +455,10 @@ class TestOptionTypeConversion:
                 'name': 'String',
                 'price': 'Float',
                 'quantity': 'Integer',
-                'available': 'Bool'
+                'available': 'Bool',
+                'rating': 'Float',
+                'count': 'Integer',
+                'in_stock': 'Bool'
             }
         }
         mock_issue.name = "Test Issue"
@@ -473,11 +476,15 @@ class TestOptionTypeConversion:
         mock_option.hivemind_id = "test_issue_cid"  # Set hivemind_id for the mapping lookup
         
         # Create a dictionary that will be modified by the field conversion logic
+        # Include values that will trigger the uncovered lines
         complex_value = {
             'name': 'Laptop',
             'price': '999.99',  # String that should be converted to float
             'quantity': '10',   # String that should be converted to integer
-            'available': 'yes'  # String that should be converted to boolean
+            'available': 'yes', # String that should be converted to boolean True
+            'rating': 4,        # Integer that should be converted to float (line 716)
+            'count': 10.0,      # Float that should be converted to integer (line 707)
+            'in_stock': 'no'    # String that should be converted to boolean False (line 722)
         }
         
         # Set the option value to our complex dictionary
@@ -534,10 +541,8 @@ class TestOptionTypeConversion:
         # Verify save was called
         mock_option.save.assert_called_once()
         
-        # Most importantly, verify the field values were converted to their correct types
+        # Verify the field values were converted to their correct types
         # This specifically tests the Complex field conversions
-        # We need to check if the mock_option.value dictionary was modified correctly
-        # Since we're using a MagicMock, we need to check if the __setitem__ method was called with the right arguments
         
         # Check that price was converted to float
         assert mock_option.value['price'] == 999.99
@@ -547,6 +552,56 @@ class TestOptionTypeConversion:
         
         # Check that available was converted to boolean
         assert mock_option.value['available'] is True
+        
+        # Check that rating was converted from integer to float (line 716)
+        assert mock_option.value['rating'] == 4.0
+        assert isinstance(mock_option.value['rating'], float)
+        
+        # Check that count was converted from float to integer (line 707)
+        assert mock_option.value['count'] == 10
+        assert isinstance(mock_option.value['count'], int)
+        
+        # Check that in_stock was converted from 'no' to False (line 722)
+        assert mock_option.value['in_stock'] is False
+        
+        # Now test JSON string parsing for Complex answer type (lines 742-747)
+        # Create a new test with a JSON string value
+        mock_option_json = MagicMock()
+        mock_option_json.valid.return_value = True
+        mock_option_json.save.return_value = "test_option_json_cid"
+        mock_option_json.hivemind_id = "test_issue_cid"
+        
+        # JSON string that should be parsed
+        json_string = '{"name":"Laptop","price":999.99,"quantity":10,"available":true}'
+        mock_option_json.value = json_string
+        
+        # Update the mock to return our new mock_option_json
+        mock_hivemind_option.return_value = mock_option_json
+        
+        # Test data with JSON string value
+        option_data_json = {
+            "hivemind_id": "test_issue_cid",
+            "value": json_string,
+            "text": "Test Complex JSON Option"
+        }
+        
+        # Call the endpoint
+        response_json = self.client.post(
+            "/api/options/create", 
+            json=option_data_json
+        )
+        
+        # Verify response
+        assert response_json.status_code == 200
+        
+        # Verify the JSON string was parsed correctly
+        expected_parsed = {
+            "name": "Laptop",
+            "price": 999.99,
+            "quantity": 10,
+            "available": True
+        }
+        assert mock_option_json.value == expected_parsed
 
     @patch('app.update_state')
     @patch('app.get_latest_state')
