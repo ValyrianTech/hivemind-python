@@ -185,7 +185,7 @@ class StateHashUpdate(BaseModel):
 class OptionCreate(BaseModel):
     """Pydantic model for creating a new option."""
     hivemind_id: str
-    value: Union[str, int, float]
+    value: Union[str, int, float, Dict[str, Any]]
     text: Optional[str] = None
 
 class OpinionCreate(BaseModel):
@@ -701,6 +701,24 @@ async def create_option(option: OptionCreate):
                     elif issue.answer_type == 'Float':
                         logger.info(f"Converting value to float: {option.value}")
                         new_option.value = float(option.value)
+                    elif issue.answer_type == 'Complex':
+                        logger.info(f"Converting value to dictionary: {option.value}")
+                        try:
+                            # If the value is already a dictionary, use it directly
+                            if isinstance(option.value, dict):
+                                new_option.value = option.value
+                                logger.info(f"Used complex value as dictionary: {new_option.value}")
+                            else:
+                                # Otherwise, try to parse it as a JSON string
+                                import json
+                                new_option.value = json.loads(option.value)
+                                logger.info(f"Parsed complex value from JSON: {new_option.value}")
+                        except (json.JSONDecodeError, TypeError) as e:
+                            logger.error(f"Failed to convert value to Complex: {str(e)}")
+                            raise HTTPException(
+                                status_code=400,
+                                detail=f"Invalid format for Complex answer type: {str(e)}"
+                            )
                     else:
                         logger.info(f"Using value as string: {option.value}")
                         new_option.value = str(option.value)
@@ -718,11 +736,16 @@ async def create_option(option: OptionCreate):
                 try:
                     if not new_option.valid():
                         logger.error("Option validation failed")
+                        # Get the validation method name for the answer type
+                        validation_method = f"is_valid_{issue.answer_type.lower()}_option"
+                        if hasattr(new_option, validation_method):
+                            # Call the specific validation method to get more detailed error info
+                            getattr(new_option, validation_method)()
                         raise HTTPException(status_code=400, detail="Option validation failed")
                     logger.info("Option validation successful")
                 except Exception as e:
-                    logger.error(f"Option validation error: {str(e)}")
-                    raise HTTPException(status_code=400, detail=f"Option validation error: {str(e)}")
+                    logger.error(f"Option validation error: {e}")
+                    raise HTTPException(status_code=400, detail=f"Option validation error: {e}")
 
                 # Save the option to IPFS
                 logger.info("Saving new option to IPFS...")
