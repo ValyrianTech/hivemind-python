@@ -133,7 +133,7 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-300">Options Per Address</label>
                                 <input type="number" id="restriction_options_per_address" min="1" value="1"
-                                       class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white font-mono text-sm">
+                                       class="mt-1 block w-24 rounded-md border-gray-600 bg-gray-700 text-white font-mono text-sm">
                             </div>
                         </div>
                     </div>
@@ -543,9 +543,11 @@
             try {
                 const restrictionAddresses = document.getElementById('restriction_addresses').value.trim();
                 const restrictionOptionsPerAddress = document.getElementById('restriction_options_per_address').value;
-                if (restrictionAddresses || restrictionOptionsPerAddress) {
+                
+                // Only set restrictions if addresses are provided
+                if (restrictionAddresses) {
                     restrictions = {
-                        addresses: restrictionAddresses ? restrictionAddresses.split('\n').map(addr => addr.trim()).filter(addr => addr) : [],
+                        addresses: restrictionAddresses.split('\n').map(addr => addr.trim()).filter(addr => addr),
                         options_per_address: parseInt(restrictionOptionsPerAddress)
                     };
                 }
