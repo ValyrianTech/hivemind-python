@@ -272,28 +272,34 @@ class TestHivemindOption:
         option.value = value
         assert option.is_valid_integer_option() is expected
 
-    @pytest.mark.parametrize("value, expected", [
-        (True, True),
-        (False, True),
-        ('True', False),
-        ('true', False),
-        ('False', False),
-        ('false', False),
-        (0, False),
-        (1.12, False),
-
+    @pytest.mark.parametrize("value, text, constraints, expected", [
+        (True, None, {}, True),
+        (False, None, {}, True),
+        ('True', None, {}, False),
+        ('true', None, {}, False),
+        ('False', None, {}, False),
+        ('false', None, {}, False),
+        (0, None, {}, False),
+        (1.12, None, {}, False),
+        # Test cases for text validation with constraints
+        (True, 'Agree', {'true_value': 'Agree', 'false_value': 'Disagree'}, True),
+        (True, 'Wrong Text', {'true_value': 'Agree', 'false_value': 'Disagree'}, False),
+        (False, 'Disagree', {'true_value': 'Agree', 'false_value': 'Disagree'}, True),
+        (False, 'Wrong Text', {'true_value': 'Agree', 'false_value': 'Disagree'}, False),
     ])
-    def test_is_valid_bool_option(self, value, expected):
+    def test_is_valid_bool_option(self, value, text, constraints, expected):
         option = HivemindOption()
         issue = HivemindIssue()
         issue.name = 'Test'
         issue.add_question('What?')
         issue.answer_type = 'Bool'
-        issue.set_constraints({})
+        issue.set_constraints(constraints)
         
         option._hivemind_issue = issue
         option._answer_type = issue.answer_type
         option.value = value
+        if text is not None:
+            option.text = text
         assert option.is_valid_bool_option() is expected
 
     @pytest.mark.parametrize("value, expected", [
