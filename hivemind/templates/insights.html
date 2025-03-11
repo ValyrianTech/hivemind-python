@@ -301,10 +301,12 @@
                     <div class="flex items-center justify-between mb-4">
                         <h2 class="text-2xl font-semibold text-white">Results</h2>
                         <div class="flex space-x-4">
+                            ${stateData.issue && stateData.issue.answer_type !== 'Bool' ? `
                             <a href="/options/add?hivemind_id=${stateData.hivemind_id}" 
                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
                                 Add Option
                             </a>
+                            ` : ''}
                             <a href="#" onclick="goToAddOpinion()" 
                                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
                                 Add Opinion
