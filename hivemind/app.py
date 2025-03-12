@@ -526,51 +526,21 @@ async def create_issue(issue: HivemindIssueCreate):
                         'false_value': false_label
                     }
                     new_issue.set_constraints(modified_constraints)
-                # Special handling for Image type constraints
-                elif issue.answer_type == 'Image':
-                    # Validate and prepare image constraints
-                    image_constraints = {}
+                # Special handling for File type constraints
+                elif issue.answer_type == 'File':
+                    # Validate and prepare file constraints
+                    file_constraints = {}
                     
-                    # Handle formats
-                    if 'formats' in issue.constraints and isinstance(issue.constraints['formats'], list):
-                        image_constraints['formats'] = issue.constraints['formats']
+                    # Handle filetype (for UI rendering purposes only)
+                    if 'filetype' in issue.constraints and isinstance(issue.constraints['filetype'], str):
+                        file_constraints['filetype'] = issue.constraints['filetype']
                     
-                    # Handle max_size
-                    if 'max_size' in issue.constraints and isinstance(issue.constraints['max_size'], int):
-                        image_constraints['max_size'] = issue.constraints['max_size']
+                    # Handle choices if provided
+                    if 'choices' in issue.constraints and isinstance(issue.constraints['choices'], list):
+                        file_constraints['choices'] = issue.constraints['choices']
                     
-                    # Handle dimensions
-                    if 'dimensions' in issue.constraints and isinstance(issue.constraints['dimensions'], dict):
-                        dimensions = {}
-                        if 'max_width' in issue.constraints['dimensions'] and isinstance(issue.constraints['dimensions']['max_width'], int):
-                            dimensions['max_width'] = issue.constraints['dimensions']['max_width']
-                        if 'max_height' in issue.constraints['dimensions'] and isinstance(issue.constraints['dimensions']['max_height'], int):
-                            dimensions['max_height'] = issue.constraints['dimensions']['max_height']
-                        
-                        if dimensions:
-                            image_constraints['dimensions'] = dimensions
-                    
-                    if image_constraints:
-                        new_issue.set_constraints(image_constraints)
-                # Special handling for Video type constraints
-                elif issue.answer_type == 'Video':
-                    # Validate and prepare video constraints
-                    video_constraints = {}
-                    
-                    # Handle formats
-                    if 'formats' in issue.constraints and isinstance(issue.constraints['formats'], list):
-                        video_constraints['formats'] = issue.constraints['formats']
-                    
-                    # Handle max_size
-                    if 'max_size' in issue.constraints and isinstance(issue.constraints['max_size'], int):
-                        video_constraints['max_size'] = issue.constraints['max_size']
-                    
-                    # Handle max_duration
-                    if 'max_duration' in issue.constraints and isinstance(issue.constraints['max_duration'], int):
-                        video_constraints['max_duration'] = issue.constraints['max_duration']
-                    
-                    if video_constraints:
-                        new_issue.set_constraints(video_constraints)
+                    if file_constraints:
+                        new_issue.set_constraints(file_constraints)
                 else:
                     new_issue.set_constraints(issue.constraints)
             elif issue.answer_type == 'Bool':

@@ -100,7 +100,8 @@ class HivemindIssue(IPFSDict):
         # Updated list of valid constraint keys
         valid_constraints = [
             'min_length', 'max_length', 'min_value', 'max_value', 'decimals', 
-            'regex', 'true_value', 'false_value', 'specs', 'choices', 'block_height'
+            'regex', 'true_value', 'false_value', 'specs', 'choices', 'block_height',
+            'filetype'
         ]
             
         if all([key in valid_constraints for key in constraints.keys()]):
