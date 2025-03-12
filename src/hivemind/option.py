@@ -117,9 +117,7 @@ class HivemindOption(IPFSDict):
             return True
         elif self._answer_type == 'Hivemind' and self.is_valid_hivemind_option():
             return True
-        elif self._answer_type == 'Image' and self.is_valid_image_option():
-            return True
-        elif self._answer_type == 'Video' and self.is_valid_video_option():
+        elif self._answer_type == 'File' and self.is_valid_file_option():
             return True
         elif self._answer_type == 'Complex' and self.is_valid_complex_option():
             return True
@@ -236,8 +234,8 @@ class HivemindOption(IPFSDict):
 
         return True
 
-    def is_valid_image_option(self) -> bool:
-        """Check if the option is a valid image option.
+    def is_valid_file_option(self) -> bool:
+        """Check if the option is a valid file option.
 
         :return: True if valid, False otherwise
         :rtype: bool
@@ -250,63 +248,6 @@ class HivemindOption(IPFSDict):
         if not self._is_valid_ipfs_hash(self.value):
             LOG.error('Option value %s is not a valid IPFS hash' % self.value)
             return False
-
-        # Check image-specific constraints if they exist
-        if self._hivemind_issue.constraints is not None:
-            # Check for allowed image formats if specified
-            if 'formats' in self._hivemind_issue.constraints:
-                # This would require fetching the image from IPFS and checking its format
-                # For now, we'll just log that this validation would happen here
-                LOG.debug('Image format validation would occur here')
-                
-            # Check for max file size if specified
-            if 'max_size' in self._hivemind_issue.constraints:
-                # This would require fetching the image from IPFS and checking its size
-                # For now, we'll just log that this validation would happen here
-                LOG.debug('Image size validation would occur here')
-                
-            # Check for image dimensions if specified
-            if 'dimensions' in self._hivemind_issue.constraints:
-                # This would require fetching the image from IPFS and checking its dimensions
-                # For now, we'll just log that this validation would happen here
-                LOG.debug('Image dimension validation would occur here')
-
-        return True
-
-    def is_valid_video_option(self) -> bool:
-        """Check if the option is a valid video option.
-
-        :return: True if valid, False otherwise
-        :rtype: bool
-        """
-        if not isinstance(self.value, str):
-            LOG.error('Option value %s is not a string value but instead is a %s' % (self.value, type(self.value)))
-            return False
-
-        # Check if it's a valid IPFS hash format
-        if not self._is_valid_ipfs_hash(self.value):
-            LOG.error('Option value %s is not a valid IPFS hash' % self.value)
-            return False
-
-        # Check video-specific constraints if they exist
-        if self._hivemind_issue.constraints is not None:
-            # Check for allowed video formats if specified
-            if 'formats' in self._hivemind_issue.constraints:
-                # This would require fetching the video from IPFS and checking its format
-                # For now, we'll just log that this validation would happen here
-                LOG.debug('Video format validation would occur here')
-                
-            # Check for max file size if specified
-            if 'max_size' in self._hivemind_issue.constraints:
-                # This would require fetching the video from IPFS and checking its size
-                # For now, we'll just log that this validation would happen here
-                LOG.debug('Video size validation would occur here')
-                
-            # Check for video duration if specified
-            if 'max_duration' in self._hivemind_issue.constraints:
-                # This would require fetching the video from IPFS and checking its duration
-                # For now, we'll just log that this validation would happen here
-                LOG.debug('Video duration validation would occur here')
 
         return True
 

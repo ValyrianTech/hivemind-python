@@ -531,12 +531,12 @@ class TestHivemindOption:
         info = option.info()
         assert "Value: None" in info
 
-    def test_valid_image_option(self, issue: HivemindIssue, option: HivemindOption) -> None:
-        """Test validation of image option"""
-        issue.answer_type = 'Image'
-        option._answer_type = 'Image'
+    def test_valid_file_option(self, issue: HivemindIssue, option: HivemindOption) -> None:
+        """Test validation of file option"""
+        issue.answer_type = 'File'
+        option._answer_type = 'File'
 
-        # Valid IPFS hash for an image
+        # Valid IPFS hash for a file
         option.value = "QmT78zSuBmuS4z925WZfrqQ1qHaJ56DQaTfyMUF7F8ff5o"
         assert option.valid() is True
 
@@ -544,74 +544,8 @@ class TestHivemindOption:
         option.value = 42
         assert option.valid() is False
 
-    def test_valid_video_option(self, issue: HivemindIssue, option: HivemindOption) -> None:
-        """Test validation of video option"""
-        issue.answer_type = 'Video'
-        option._answer_type = 'Video'
-
-        # Valid IPFS hash for a video
-        option.value = "QmT78zSuBmuS4z925WZfrqQ1qHaJ56DQaTfyMUF7F8ff5o"
-        assert option.valid() is True
-
-        # Invalid type (not a string)
-        option.value = 42
-        assert option.valid() is False
-
-    def test_valid_complex_option(self, issue: HivemindIssue, option: HivemindOption) -> None:
-        """Test validation of complex option"""
-        issue.answer_type = 'Complex'
-        option._answer_type = 'Complex'
-
-        # Set up constraints with required specs
-        issue.constraints = {
-            'specs': {
-                'name': 'string',
-                'age': 'integer'
-            }
-        }
-
-        # Valid complex option with all required specs
-        option.value = {
-            'name': 'John',
-            'age': 30
-        }
-        assert option.valid() is True
-
-        # Missing required spec
-        option.value = {
-            'name': 'John'
-            # missing 'age'
-        }
-        assert option.valid() is False
-
-        # Not a dictionary
-        option.value = 'not a dict'
-        assert option.valid() is False
-
-    def test_valid_hivemind_option(self, issue: HivemindIssue, option: HivemindOption, string_question_hash) -> None:
-        """Test hivemind option validation"""
-        # First create a valid hivemind issue
-        test_issue = HivemindIssue()
-        test_issue.name = "Test Issue"
-        test_issue.add_question("Test Question?")
-        test_issue.answer_type = "String"
-        hivemind_cid = test_issue.save()
-        
-        # Now test the hivemind option
-        issue.answer_type = 'Hivemind'
-        option._answer_type = 'Hivemind'
-        option._hivemind_issue = issue
-        
-        # Test with valid CID
-        option.value = hivemind_cid
-        assert option.valid() is True
-        
-        # Test with invalid CID
-        option.value = "QmInvalidCIDThatDoesNotExist"
-        assert option.valid() is False
-        
-        # Test with wrong type
-        option.value = 123
+        # Invalid IPFS hash format
+        option.value = "not-an-ipfs-hash"
         assert option.valid() is False
 
     def test_valid_complex_option(self, issue: HivemindIssue, option: HivemindOption) -> None:

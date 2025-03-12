@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Tests for image and video option validation in the HivemindOption class."""
+"""Tests for file option validation in the HivemindOption class."""
 
 import pytest
 from src.hivemind.issue import HivemindIssue
@@ -21,8 +21,8 @@ def option(issue):
     return option
 
 
-class TestMediaOptions:
-    """Test class for image and video option validation."""
+class TestFileOptions:
+    """Test class for file option validation."""
 
     def test_is_valid_ipfs_hash_cidv0(self, option):
         """Test validation of CIDv0 IPFS hashes."""
@@ -67,80 +67,15 @@ class TestMediaOptions:
         # Random string
         assert option._is_valid_ipfs_hash("not-an-ipfs-hash") is False
 
-    def test_image_option_with_constraints(self, issue, option):
-        """Test image option validation with constraints."""
-        issue.answer_type = 'Image'
-        option._answer_type = 'Image'
-        option.value = "QmT78zSuBmuS4z925WZfrqQ1qHaJ56DQaTfyMUF7F8ff5o"
-        
-        # Test with formats constraint
-        issue.constraints = {'formats': ['jpg', 'png']}
-        assert option.is_valid_image_option() is True
-        
-        # Test with max_size constraint
-        issue.constraints = {'max_size': 1024 * 1024}  # 1MB
-        assert option.is_valid_image_option() is True
-        
-        # Test with dimensions constraint
-        issue.constraints = {'dimensions': {'max_width': 1920, 'max_height': 1080}}
-        assert option.is_valid_image_option() is True
-        
-        # Test with multiple constraints
-        issue.constraints = {
-            'formats': ['jpg', 'png'],
-            'max_size': 1024 * 1024,
-            'dimensions': {'max_width': 1920, 'max_height': 1080}
-        }
-        assert option.is_valid_image_option() is True
-
-    def test_video_option_with_constraints(self, issue, option):
-        """Test video option validation with constraints."""
-        issue.answer_type = 'Video'
-        option._answer_type = 'Video'
-        option.value = "QmT78zSuBmuS4z925WZfrqQ1qHaJ56DQaTfyMUF7F8ff5o"
-        
-        # Test with formats constraint
-        issue.constraints = {'formats': ['mp4', 'webm']}
-        assert option.is_valid_video_option() is True
-        
-        # Test with max_size constraint
-        issue.constraints = {'max_size': 100 * 1024 * 1024}  # 100MB
-        assert option.is_valid_video_option() is True
-        
-        # Test with max_duration constraint
-        issue.constraints = {'max_duration': 300}  # 5 minutes
-        assert option.is_valid_video_option() is True
-        
-        # Test with multiple constraints
-        issue.constraints = {
-            'formats': ['mp4', 'webm'],
-            'max_size': 100 * 1024 * 1024,
-            'max_duration': 300
-        }
-        assert option.is_valid_video_option() is True
-        
-    def test_invalid_image_option(self, issue, option):
-        """Test invalid image option validation."""
-        issue.answer_type = 'Image'
-        option._answer_type = 'Image'
+    def test_invalid_file_option(self, issue, option):
+        """Test invalid file option validation."""
+        issue.answer_type = 'File'
+        option._answer_type = 'File'
         
         # Test with non-string value
         option.value = 123
-        assert option.is_valid_image_option() is False
+        assert option.is_valid_file_option() is False
         
         # Test with invalid IPFS hash
         option.value = "not-an-ipfs-hash"
-        assert option.is_valid_image_option() is False
-        
-    def test_invalid_video_option(self, issue, option):
-        """Test invalid video option validation."""
-        issue.answer_type = 'Video'
-        option._answer_type = 'Video'
-        
-        # Test with non-string value
-        option.value = 123
-        assert option.is_valid_video_option() is False
-        
-        # Test with invalid IPFS hash
-        option.value = "not-an-ipfs-hash"
-        assert option.is_valid_video_option() is False
+        assert option.is_valid_file_option() is False
