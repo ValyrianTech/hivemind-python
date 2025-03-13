@@ -50,6 +50,16 @@ def bool_issue(basic_issue) -> HivemindIssue:
     return basic_issue
 
 @pytest.fixture
+def integer_issue(basic_issue) -> HivemindIssue:
+    """Create an integer issue for testing."""
+    basic_issue.answer_type = "Integer"
+    basic_issue.set_constraints({
+        "min_value": 0,
+        "max_value": 100
+    })
+    return basic_issue
+
+@pytest.fixture
 def test_keypair() -> Tuple[CBitcoinSecret, str]:
     """Generate a consistent test keypair."""
     return generate_bitcoin_keypair()

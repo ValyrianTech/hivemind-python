@@ -4,7 +4,7 @@ import time
 import pytest
 from hivemind import HivemindState, HivemindIssue, HivemindOption, HivemindOpinion
 from .test_state_common import (
-    state, basic_issue, test_keypair,
+    state, basic_issue, integer_issue, test_keypair,
     TestHelper, sign_message
 )
 import logging
@@ -13,22 +13,22 @@ import logging
 class TestHivemindStateCompare:
     """Tests for the compare method in HivemindState."""
     
-    def test_compare_with_auto_ranking(self, state: HivemindState, basic_issue: HivemindIssue, test_keypair) -> None:
+    def test_compare_with_auto_ranking(self, state: HivemindState, integer_issue: HivemindIssue, test_keypair) -> None:
         """Test the compare method with auto_high ranking type to cover line 687."""
         private_key, address = test_keypair
-        issue_hash = basic_issue.save()
+        issue_hash = integer_issue.save()
         state.set_hivemind_issue(issue_hash)
         
-        # Create three options
+        # Create three options with integer values
         helper = TestHelper()
         first_hash = helper.create_and_sign_option(
-            state, issue_hash, "10", "First Option", private_key, address, int(time.time())
+            state, issue_hash, 10, "First Option", private_key, address, int(time.time())
         )
         second_hash = helper.create_and_sign_option(
-            state, issue_hash, "20", "Second Option", private_key, address, int(time.time())
+            state, issue_hash, 20, "Second Option", private_key, address, int(time.time())
         )
         third_hash = helper.create_and_sign_option(
-            state, issue_hash, "30", "Third Option", private_key, address, int(time.time())
+            state, issue_hash, 30, "Third Option", private_key, address, int(time.time())
         )
         
         # Create an opinion with auto_high ranking
