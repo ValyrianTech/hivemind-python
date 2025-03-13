@@ -159,3 +159,34 @@ class TestRanking:
         expected_values = [20, 30, 10, 40]
         actual_values = [next(opt.value for opt in options if opt.cid() == cid) for cid in ranked_cids]
         assert actual_values == expected_values
+
+    def test_auto_ranking_calculation_exception(self, ranking: Ranking) -> None:
+        """Test exception handling during auto ranking calculation"""
+        from hivemind import HivemindOption
+        import unittest.mock as mock
+        
+        # Create a valid preferred option
+        preferred = HivemindOption()
+        preferred.value = 25
+        preferred.save()
+        ranking.set_auto_high(preferred.cid())
+        
+        # Create test options with invalid values that will cause an exception during calculation
+        options = []
+        opt = HivemindOption()
+        opt.value = "not_a_number"  # This will cause a TypeError during comparison
+        opt.save()
+        options.append(opt)
+        
+        # Add a valid option as well
+        valid_opt = HivemindOption()
+        valid_opt.value = 30
+        valid_opt.save()
+        options.append(valid_opt)
+        
+        # The get method should raise an exception
+        with pytest.raises(Exception) as exc_info:
+            ranking.get(options)
+        
+        # Verify the exception message contains the original error
+        assert "Error during auto ranking calculation" in str(exc_info.value)
