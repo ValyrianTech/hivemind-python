@@ -11,6 +11,7 @@ LOG = logging.getLogger(__name__)
 from .issue import HivemindIssue
 from .option import HivemindOption
 from .opinion import HivemindOpinion
+from .ranking import Ranking
 from bitcoin.signmessage import VerifyMessage, BitcoinMessage
 
 
@@ -42,17 +43,38 @@ def compare(a, b, opinion_hash):
     If both Options are not in the Opinion object, None is returned
     """
     opinion = HivemindOpinion(cid=opinion_hash)
-    ranked_choice = opinion.ranking.get()
-    if a in ranked_choice and b in ranked_choice:
-        if ranked_choice.index(a) < ranked_choice.index(b):
+    
+    # Handle different ranking types
+    try:
+        if hasattr(opinion.ranking, 'type') and opinion.ranking.type in ['auto_high', 'auto_low']:
+            # For auto rankings, we need to get all options from the state
+            state = HivemindState()
+            state.load(opinion.hivemind_id)
+            options = state.get_options()
+            ranked_choice = opinion.ranking.get(options=options)
+        else:
+            # For fixed rankings, we can get the ranking directly
+            ranked_choice = opinion.ranking.get()
+            
+        # Normalize option CIDs by removing '/ipfs/' prefix if present
+        ranked_choice = [option_hash.replace('/ipfs/', '') if option_hash.startswith('/ipfs/') else option_hash 
+                         for option_hash in ranked_choice]
+        a_normalized = a.replace('/ipfs/', '') if a.startswith('/ipfs/') else a
+        b_normalized = b.replace('/ipfs/', '') if b.startswith('/ipfs/') else b
+        
+        if a_normalized in ranked_choice and b_normalized in ranked_choice:
+            if ranked_choice.index(a_normalized) < ranked_choice.index(b_normalized):
+                return a
+            elif ranked_choice.index(a_normalized) > ranked_choice.index(b_normalized):
+                return b
+        elif a_normalized in ranked_choice:
             return a
-        elif ranked_choice.index(a) > ranked_choice.index(b):
+        elif b_normalized in ranked_choice:
             return b
-    elif a in ranked_choice:
-        return a
-    elif b in ranked_choice:
-        return b
-    else:
+        else:
+            return None
+    except Exception as e:
+        LOG.error(f"Error comparing options: {str(e)}")
         return None
 
 class HivemindState(IPFSDictChain):
@@ -270,20 +292,72 @@ class HivemindState(IPFSDictChain):
             if address not in self._hivemind_issue.restrictions['addresses']:
                 raise Exception('Can not add opinion: there are address restrictions on this hivemind issue and address %s is not allowed to add opinions' % address)
 
-        if isinstance(opinion, HivemindOpinion) and not any(option_hash not in self.options for option_hash in opinion.ranking.get(options=self.get_options())):
+        if isinstance(opinion, HivemindOpinion):
+            # Log the opinion details for debugging
+            LOG.info(f"Opinion details - hivemind_id: {opinion.hivemind_id}, question_index: {opinion.question_index}")
+            LOG.info(f"Opinion ranking type: {type(opinion.ranking)}")
+            if hasattr(opinion.ranking, 'type'):
+                LOG.info(f"Ranking type: {opinion.ranking.type}")
+            if hasattr(opinion.ranking, 'fixed'):
+                LOG.info(f"Ranking fixed: {opinion.ranking.fixed}")
+            if hasattr(opinion.ranking, 'auto'):
+                LOG.info(f"Ranking auto: {opinion.ranking.auto}")
+            
+            # Get the ranking as a list of options
+            ranking_options = []
             try:
-                self.add_signature(address=address, timestamp=timestamp, message=opinion_hash, signature=signature)
-            except Exception as ex:
-                raise Exception('Invalid signature: %s' % ex)
+                # For auto rankings, we need to extract the preferred option
+                if isinstance(opinion.ranking, dict):
+                    LOG.info(f"Ranking is a dictionary: {opinion.ranking}")
+                    # If it's a dictionary, we need to convert it to a Ranking object first
+                    temp_ranking = Ranking()
+                    if 'auto_high' in opinion.ranking:
+                        temp_ranking.set_auto_high(opinion.ranking['auto_high'])
+                    elif 'auto_low' in opinion.ranking:
+                        temp_ranking.set_auto_low(opinion.ranking['auto_low'])
+                    elif 'fixed' in opinion.ranking:
+                        temp_ranking.set_fixed(opinion.ranking['fixed'])
+                    
+                    opinion.ranking = temp_ranking
+                
+                LOG.info(f"Getting ranking options with {len(self.get_options())} available options")
+                ranking_options = opinion.ranking.get(options=self.get_options())
+                LOG.info(f"Ranking options: {ranking_options}")
+            except Exception as e:
+                LOG.error(f"Error getting ranking options: {str(e)}")
+                raise Exception(f"Error validating opinion: {str(e)}")
+                
+            # Check if all options in the ranking exist in the state
+            # Strip '/ipfs/' prefix from option hashes if present for comparison
+            normalized_ranking_options = [option_hash.replace('/ipfs/', '') if option_hash.startswith('/ipfs/') else option_hash 
+                                         for option_hash in ranking_options]
+            normalized_state_options = [option_hash.replace('/ipfs/', '') if option_hash.startswith('/ipfs/') else option_hash 
+                                       for option_hash in self.options]
+            
+            LOG.info(f"Normalized ranking options: {normalized_ranking_options}")
+            LOG.info(f"Normalized state options: {normalized_state_options}")
+            
+            invalid_options = [option_hash for option_hash in normalized_ranking_options 
+                              if option_hash not in normalized_state_options]
+            if invalid_options:
+                LOG.error(f"Invalid options found: {invalid_options}")
+                LOG.error(f"Available options: {normalized_state_options}")
+                raise Exception(f"Opinion is invalid: contains options that do not exist in the hivemind state: {invalid_options}")
+            
+            if not invalid_options:
+                try:
+                    self.add_signature(address=address, timestamp=timestamp, message=opinion_hash, signature=signature)
+                except Exception as ex:
+                    raise Exception('Invalid signature: %s' % ex)
 
-            # Ensure we have enough dictionaries in the opinions list
-            while len(self.opinions) <= opinion.question_index:
-                self.opinions.append({})
+                # Ensure we have enough dictionaries in the opinions list
+                while len(self.opinions) <= opinion.question_index:
+                    self.opinions.append({})
 
-            self.opinions[opinion.question_index][address] = {'opinion_cid': opinion_hash, 'timestamp': timestamp}
-
+                self.opinions[opinion.question_index][address] = {'opinion_cid': opinion_hash, 'timestamp': timestamp}
+            
         else:
-            raise Exception('Opinion is invalid: contains options that do not exist in the hivemind state')
+            raise Exception('Opinion is invalid: not a HivemindOpinion object')
 
     def get_opinion(self, opinionator: str, question_index: int = 0) -> Optional[HivemindOpinion]:
         """Get the opinion of a participant.
