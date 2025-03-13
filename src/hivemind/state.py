@@ -247,59 +247,56 @@ class HivemindState(IPFSDictChain):
             if address not in self._hivemind_issue.restrictions['addresses']:
                 raise Exception('Can not add opinion: there are address restrictions on this hivemind issue and address %s is not allowed to add opinions' % address)
 
-        if isinstance(opinion, HivemindOpinion):
-            # Log the opinion details for debugging
-            LOG.info(f"Opinion details - hivemind_id: {opinion.hivemind_id}, question_index: {opinion.question_index}")
-            LOG.info(f"Opinion ranking type: {type(opinion.ranking)}")
-            if hasattr(opinion.ranking, 'type'):
-                LOG.info(f"Ranking type: {opinion.ranking.type}")
-            if hasattr(opinion.ranking, 'fixed'):
-                LOG.info(f"Ranking fixed: {opinion.ranking.fixed}")
-            if hasattr(opinion.ranking, 'auto'):
-                LOG.info(f"Ranking auto: {opinion.ranking.auto}")
-            
-            # Get the ranking as a list of options
-            ranking_options = []
+
+        # Log the opinion details for debugging
+        LOG.info(f"Opinion details - hivemind_id: {opinion.hivemind_id}, question_index: {opinion.question_index}")
+        LOG.info(f"Opinion ranking type: {type(opinion.ranking)}")
+        if hasattr(opinion.ranking, 'type'):
+            LOG.info(f"Ranking type: {opinion.ranking.type}")
+        if hasattr(opinion.ranking, 'fixed'):
+            LOG.info(f"Ranking fixed: {opinion.ranking.fixed}")
+        if hasattr(opinion.ranking, 'auto'):
+            LOG.info(f"Ranking auto: {opinion.ranking.auto}")
+
+        # Get the ranking as a list of options
+        ranking_options = []
+        try:
+            # For auto rankings, we need to extract the preferred option
+            LOG.info(f"Getting ranking options with {len(self.get_options())} available options")
+            ranking_options = opinion.ranking.get(options=self.get_options())
+            LOG.info(f"Ranking options: {ranking_options}")
+        except Exception as e:
+            LOG.error(f"Error getting ranking options: {str(e)}")
+            raise Exception(f"Error validating opinion: {str(e)}")
+
+        # Check if all options in the ranking exist in the state
+        # Strip '/ipfs/' prefix from option hashes if present for comparison
+        normalized_ranking_options = [option_hash.replace('/ipfs/', '') if option_hash.startswith('/ipfs/') else option_hash
+                                     for option_hash in ranking_options]
+        normalized_state_options = [option_hash.replace('/ipfs/', '') if option_hash.startswith('/ipfs/') else option_hash
+                                   for option_hash in self.options]
+
+        LOG.info(f"Normalized ranking options: {normalized_ranking_options}")
+        LOG.info(f"Normalized state options: {normalized_state_options}")
+
+        invalid_options = [option_hash for option_hash in normalized_ranking_options
+                          if option_hash not in normalized_state_options]
+        if invalid_options:
+            LOG.error(f"Invalid options found: {invalid_options}")
+            LOG.error(f"Available options: {normalized_state_options}")
+            raise Exception(f"Opinion is invalid: contains options that do not exist in the hivemind state: {invalid_options}")
+
+        if not invalid_options:
             try:
-                # For auto rankings, we need to extract the preferred option
-                LOG.info(f"Getting ranking options with {len(self.get_options())} available options")
-                ranking_options = opinion.ranking.get(options=self.get_options())
-                LOG.info(f"Ranking options: {ranking_options}")
-            except Exception as e:
-                LOG.error(f"Error getting ranking options: {str(e)}")
-                raise Exception(f"Error validating opinion: {str(e)}")
-                
-            # Check if all options in the ranking exist in the state
-            # Strip '/ipfs/' prefix from option hashes if present for comparison
-            normalized_ranking_options = [option_hash.replace('/ipfs/', '') if option_hash.startswith('/ipfs/') else option_hash 
-                                         for option_hash in ranking_options]
-            normalized_state_options = [option_hash.replace('/ipfs/', '') if option_hash.startswith('/ipfs/') else option_hash 
-                                       for option_hash in self.options]
-            
-            LOG.info(f"Normalized ranking options: {normalized_ranking_options}")
-            LOG.info(f"Normalized state options: {normalized_state_options}")
-            
-            invalid_options = [option_hash for option_hash in normalized_ranking_options 
-                              if option_hash not in normalized_state_options]
-            if invalid_options:
-                LOG.error(f"Invalid options found: {invalid_options}")
-                LOG.error(f"Available options: {normalized_state_options}")
-                raise Exception(f"Opinion is invalid: contains options that do not exist in the hivemind state: {invalid_options}")
-            
-            if not invalid_options:
-                try:
-                    self.add_signature(address=address, timestamp=timestamp, message=opinion_hash, signature=signature)
-                except Exception as ex:
-                    raise Exception('Invalid signature: %s' % ex)
+                self.add_signature(address=address, timestamp=timestamp, message=opinion_hash, signature=signature)
+            except Exception as ex:
+                raise Exception('Invalid signature: %s' % ex)
 
-                # Ensure we have enough dictionaries in the opinions list
-                while len(self.opinions) <= opinion.question_index:
-                    self.opinions.append({})
+            # Ensure we have enough dictionaries in the opinions list
+            while len(self.opinions) <= opinion.question_index:
+                self.opinions.append({})
 
-                self.opinions[opinion.question_index][address] = {'opinion_cid': opinion_hash, 'timestamp': timestamp}
-            
-        else:
-            raise Exception('Opinion is invalid: not a HivemindOpinion object')
+            self.opinions[opinion.question_index][address] = {'opinion_cid': opinion_hash, 'timestamp': timestamp}
 
     def get_opinion(self, opinionator: str, question_index: int = 0) -> Optional[HivemindOpinion]:
         """Get the opinion of a participant.
