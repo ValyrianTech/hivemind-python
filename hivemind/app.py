@@ -193,6 +193,7 @@ class OpinionCreate(BaseModel):
     hivemind_id: str
     question_index: int
     ranking: List[str]
+    ranking_type: str = "fixed"  # Can be "fixed", "auto_high", or "auto_low"
 
 class SignOpinionRequest(BaseModel):
     """Pydantic model for signing an opinion."""
@@ -852,7 +853,8 @@ async def add_opinion_page(request: Request, cid: str):
                 "issue_name": issue.name,
                 "issue_description": issue.description,
                 "questions": issue.questions,
-                "options": options
+                "options": options,
+                "answer_type": issue.answer_type  # Pass the answer_type to the template
             }
         )
     except Exception as e:
@@ -915,9 +917,21 @@ async def submit_opinion(opinion: OpinionCreate) -> Dict[str, Any]:
             hivemind_opinion.hivemind_id = opinion.hivemind_id
             hivemind_opinion.question_index = opinion.question_index
             
-            # Create ranking from option list
+            # Create ranking based on the ranking type
             ranking = Ranking()
-            ranking.set_fixed(opinion.ranking)
+            if opinion.ranking_type == "fixed":
+                ranking.set_fixed(opinion.ranking)
+            elif opinion.ranking_type == "auto_high":
+                if not opinion.ranking or len(opinion.ranking) != 1:
+                    raise ValueError("Auto ranking requires exactly one preferred option")
+                ranking.set_auto_high(opinion.ranking[0])
+            elif opinion.ranking_type == "auto_low":
+                if not opinion.ranking or len(opinion.ranking) != 1:
+                    raise ValueError("Auto ranking requires exactly one preferred option")
+                ranking.set_auto_low(opinion.ranking[0])
+            else:
+                raise ValueError(f"Invalid ranking type: {opinion.ranking_type}")
+                
             hivemind_opinion.ranking = ranking.get()
             
             # Save and return CID
