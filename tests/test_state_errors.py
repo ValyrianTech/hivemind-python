@@ -134,3 +134,50 @@ class TestHivemindStateErrors:
         invalid_signature = "invalid_signature"
         with pytest.raises(Exception):
             state.add_opinion(timestamp, valid_opinion_hash, invalid_signature, address)
+
+    def test_ranking_options_error_handling(self, state: HivemindState, basic_issue: HivemindIssue, test_keypair, monkeypatch) -> None:
+        """Test error handling when getting ranking options in add_opinion."""
+        private_key, address = test_keypair
+        issue_hash = basic_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Add options first
+        option = HivemindOption()
+        option.set_hivemind_issue(issue_hash)
+        option.set("Test Option")
+        option_hash = option.save()
+        
+        timestamp = int(time.time())
+        message = f"{timestamp}{option_hash}"
+        signature = sign_message(message, private_key)
+        state.add_option(timestamp, option_hash, address, signature)
+        
+        # Create a valid opinion
+        opinion = HivemindOpinion()
+        opinion.hivemind_id = issue_hash
+        opinion.question_index = 0
+        opinion.ranking.set_fixed([option_hash])  # Set a valid ranking
+        opinion.ranking = opinion.ranking.to_dict()  # Use to_dict() to make it JSON serializable
+        opinion_hash = opinion.save()
+        
+        # Sign the opinion
+        message = f"{timestamp}{opinion_hash}"
+        signature = sign_message(message, private_key)
+        
+        # Create a patched version of the ranking.get method that raises an exception
+        def mock_get(*args, **kwargs):
+            raise ValueError("Mock error in ranking.get()")
+        
+        # Create a patched version of the Ranking class
+        from hivemind.ranking import Ranking
+        original_get = Ranking.get
+        
+        # Patch the Ranking.get method to raise an exception
+        monkeypatch.setattr(Ranking, 'get', mock_get)
+        
+        # Test that the error in ranking.get() is properly handled
+        with pytest.raises(Exception, match="Error validating opinion: Mock error in ranking.get()"):
+            state.add_opinion(timestamp, opinion_hash, signature, address)
+            
+        # Restore the original method
+        monkeypatch.setattr(Ranking, 'get', original_get)
