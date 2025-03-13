@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 from typing import List, Optional, Union
 from .option import HivemindOption
+import logging
+
+LOG = logging.getLogger(__name__)
 
 class Ranking:
     """A class for managing ranked choice voting.
@@ -85,22 +88,38 @@ class Ranking:
         """
         ranking = None
         if self.type is None:
+            LOG.error('No ranking was set')
             raise Exception('No ranking was set')
         elif self.type == 'fixed':
+            LOG.info(f"Using fixed ranking: {self.fixed}")
             ranking = self.fixed
         elif self.type in ['auto_high', 'auto_low']:
+            LOG.info(f"Processing auto ranking type: {self.type}, preferred option: {self.auto}")
             # auto complete the ranking based on given options
             if options is None:
+                LOG.error('No options given for auto ranking')
                 raise Exception('No options given for auto ranking')
             elif not isinstance(options, list) or not all(isinstance(option, HivemindOption) for option in options):
+                LOG.error(f'Invalid list of options given for auto ranking: {options}')
                 raise Exception('Invalid list of options given for auto ranking')
 
-            choice = HivemindOption(cid=self.auto)
-            if self.type == 'auto_high':
-                ranking = [option.cid() for option in sorted(options, key=lambda x: (abs(x.value - choice.value), -x.value))]
-
-            elif self.type == 'auto_low':
-                ranking = [option.cid() for option in sorted(options, key=lambda x: (abs(x.value - choice.value), x.value))]
+            LOG.info(f"Auto ranking with {len(options)} options: {[option.cid() for option in options]}")
+            
+            try:
+                choice = HivemindOption(cid=self.auto)
+                LOG.info(f"Preferred choice loaded: {choice.cid()}, value: {choice.value}")
+                
+                if self.type == 'auto_high':
+                    LOG.info("Using auto_high sorting (higher values preferred when equidistant)")
+                    ranking = [option.cid() for option in sorted(options, key=lambda x: (abs(x.value - choice.value), -x.value))]
+                elif self.type == 'auto_low':
+                    LOG.info("Using auto_low sorting (lower values preferred when equidistant)")
+                    ranking = [option.cid() for option in sorted(options, key=lambda x: (abs(x.value - choice.value), x.value))]
+                
+                LOG.info(f"Final auto ranking result: {ranking}")
+            except Exception as e:
+                LOG.error(f"Error during auto ranking calculation: {str(e)}")
+                raise Exception(f"Error during auto ranking calculation: {str(e)}")
 
         return ranking
 
@@ -111,8 +130,11 @@ class Ranking:
         :rtype: dict
         """
         if self.type == 'fixed':
+            LOG.info(f"Converting fixed ranking to dict: {{'fixed': {self.fixed}}}")
             return {'fixed': self.fixed}
         elif self.type == 'auto_high':
+            LOG.info(f"Converting auto_high ranking to dict: {{'auto_high': {self.auto}}}")
             return {'auto_high': self.auto}
         elif self.type == 'auto_low':
+            LOG.info(f"Converting auto_low ranking to dict: {{'auto_low': {self.auto}}}")
             return {'auto_low': self.auto}
