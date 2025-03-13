@@ -27,6 +27,21 @@
             cursor: move;
             user-select: none;
         }
+        .tab {
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-bottom: 2px solid transparent;
+        }
+        .tab.active {
+            border-bottom: 2px solid #4299e1;
+            color: #4299e1;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-gray-900 to-gray-800 min-h-screen text-white">
@@ -53,6 +68,7 @@
             <form id="opinionForm" class="space-y-6">
                 <input type="hidden" id="hivemind_id" name="hivemind_id" value="{{ hivemind_id }}">
                 <input type="hidden" id="state_cid" name="state_cid" value="{{ state_cid }}">
+                <input type="hidden" id="answer_type" name="answer_type" value="{{ answer_type }}">
                 
                 <div class="space-y-4">
                     <label class="block text-lg font-medium">Issue</label>
@@ -68,6 +84,98 @@
                     <p class="text-gray-300">{{ question }}</p>
                     {% set question_index = loop.index0 %}
                     
+                    {% if answer_type == 'Integer' or answer_type == 'Float' %}
+                    <!-- Tab Navigation for Numeric Types -->
+                    <div class="flex border-b border-gray-700 mb-4">
+                        <div class="tab active" data-tab="manual-{{ question_index }}">Manual Ranking</div>
+                        <div class="tab" data-tab="auto-{{ question_index }}">Auto Ranking</div>
+                    </div>
+                    
+                    <!-- Tab Content -->
+                    <div class="tab-content active" id="manual-{{ question_index }}">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Unranked Options -->
+                            <div class="bg-gray-800 rounded-lg p-4" id="unranked-{{ question_index }}">
+                                <h4 class="text-lg font-medium mb-4">Available Options</h4>
+                                <div class="unranked-options space-y-2">
+                                    {% for option in options %}
+                                    <div class="bg-gray-700 p-4 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors mb-2" 
+                                         data-option-cid="{{ option.cid }}"
+                                         data-option-index="{{ loop.index0 }}"
+                                         data-question-index="{{ question_index }}"
+                                         data-option-value="{{ option.value }}">
+                                        <div>
+                                            <p class="font-medium">{{ option.text or option.value }}</p>
+                                            {% if option.text and option.value != option.text %}
+                                            <p class="text-sm text-gray-400">Value: {{ option.value }}</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- Ranked Options -->
+                            <div class="bg-gray-800 rounded-lg p-4">
+                                <h4 class="text-lg font-medium mb-4">Your Ranking</h4>
+                                <div class="ranked-options space-y-2" id="ranking-{{ question_index }}">
+                                    <!-- Ranked options will be added here -->
+                                </div>
+                                <button type="button" 
+                                        onclick="submitOpinion('{{ question_index }}', 'fixed')"
+                                        class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full transition-colors">
+                                    Submit Manual Ranking
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-content" id="auto-{{ question_index }}">
+                        <div class="bg-gray-800 rounded-lg p-4">
+                            <h4 class="text-lg font-medium mb-4">Select Your Preferred Option</h4>
+                            <p class="text-gray-300 mb-4">Choose one option and the system will automatically rank all options based on proximity to your selected value.</p>
+                            
+                            <div class="mb-4">
+                                <label class="block text-gray-300 mb-2">Ranking Preference:</label>
+                                <div class="flex space-x-4">
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="ranking-type-{{ question_index }}" value="auto_high" class="form-radio" checked>
+                                        <span class="ml-2">Higher is Better</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" name="ranking-type-{{ question_index }}" value="auto_low" class="form-radio">
+                                        <span class="ml-2">Lower is Better</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                {% for option in options %}
+                                <div class="bg-gray-700 p-4 rounded-lg hover:bg-gray-600 transition-colors mb-2">
+                                    <label class="flex items-center cursor-pointer">
+                                        <input type="radio" name="preferred-option-{{ question_index }}" 
+                                               value="{{ option.cid }}" 
+                                               class="form-radio mr-3">
+                                        <div>
+                                            <p class="font-medium">{{ option.text or option.value }}</p>
+                                            {% if option.text and option.value != option.text %}
+                                            <p class="text-sm text-gray-400">Value: {{ option.value }}</p>
+                                            {% endif %}
+                                        </div>
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <button type="button" 
+                                    onclick="submitAutoRanking('{{ question_index }}')"
+                                    class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full transition-colors">
+                                Submit Auto Ranking
+                            </button>
+                        </div>
+                    </div>
+                    {% else %}
+                    <!-- Standard Interface for Non-Numeric Types -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <!-- Unranked Options -->
                         <div class="bg-gray-800 rounded-lg p-4" id="unranked-{{ question_index }}">
@@ -96,18 +204,20 @@
                                 <!-- Ranked options will be added here -->
                             </div>
                             <button type="button" 
-                                    onclick="submitOpinion('{{ question_index }}')"
+                                    onclick="submitOpinion('{{ question_index }}', 'fixed')"
                                     class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full transition-colors">
                                 Submit Opinion for Question {{ loop.index }}
                             </button>
-                            <div id="qrCodeContainer-{{ question_index }}" class="hidden mt-4">
-                                <div class="text-center mb-4">
-                                    <h3 class="text-xl font-semibold">Opinion Submitted Successfully!</h3>
-                                    <p class="text-gray-300 mt-2">Scan this QR code to verify your opinion</p>
-                                </div>
-                                <div id="qrcode-{{ question_index }}" class="mx-auto bg-white p-4 rounded-lg w-64 h-64 flex items-center justify-center"></div>
-                            </div>
                         </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div id="qrCodeContainer-{{ question_index }}" class="hidden mt-4">
+                        <div class="text-center mb-4">
+                            <h3 class="text-xl font-semibold">Opinion Submitted Successfully!</h3>
+                            <p class="text-gray-300 mt-2">Scan this QR code to verify your opinion</p>
+                        </div>
+                        <div id="qrcode-{{ question_index }}" class="mx-auto bg-white p-4 rounded-lg w-64 h-64 flex items-center justify-center"></div>
                     </div>
                 </div>
                 {% endfor %}
@@ -131,8 +241,11 @@
             // Add click handlers for all unranked options
             initializeUnrankedOptions();
             
+            // Initialize tabs
+            initializeTabs();
+            
             // Function to submit opinion for a specific question
-            window.submitOpinion = async function(questionIndex) {
+            window.submitOpinion = async function(questionIndex, rankingType = 'fixed') {
                 const hivemindId = document.getElementById('hivemind_id').value;
                 const stateCid = document.getElementById('state_cid').value;
                 
@@ -156,7 +269,8 @@
                         body: JSON.stringify({
                             hivemind_id: hivemindId,
                             question_index: questionIndex,
-                            ranking: rankedOptions
+                            ranking: rankedOptions,
+                            ranking_type: rankingType
                         })
                     });
                     
@@ -195,159 +309,237 @@
                                 notificationDiv.className = 'bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mt-4';
                                 notificationDiv.innerHTML = `
                                     <strong class="font-bold">Success!</strong>
-                                    <p class="block sm:inline">Your opinion has been successfully signed and added to the hivemind.</p>
-                                    <div class="mt-2">
-                                        <strong>Current Results:</strong>
-                                        ${notification.results.map(result => `
-                                            <p>${result.text || result.value}: ${result.score}%</p>
-                                        `).join('')}
-                                    </div>
-                                    <a href="/insights?cid=${notification.state_cid}" class="text-blue-500 hover:text-blue-700 mt-2 inline-block">
-                                        View Full Results →
-                                    </a>
+                                    <span class="block sm:inline"> ${notification.message}</span>
                                 `;
-                                
-                                // Add notification to the QR code container
                                 qrContainer.appendChild(notificationDiv);
                                 
                                 // Close WebSocket connection
                                 ws.close();
                             }
                         };
-                        
-                        ws.onerror = function(error) {
-                            console.error('WebSocket error:', error);
-                        };
-                        
-                        // Disable the submit button for this question
-                        const button = rankingContainer.nextElementSibling;
-                        button.disabled = true;
-                        button.classList.add('opacity-50', 'cursor-not-allowed');
-                        button.textContent = `Opinion Submitted for Question ${questionIndex + 1}`;
                     } else {
-                        alert('Error submitting opinion. Please try again.');
+                        alert('Error submitting opinion: ' + (data.detail || 'Unknown error'));
                     }
                 } catch (error) {
                     console.error('Error:', error);
-                    alert('Error submitting opinion. Please try again.');
+                    alert('Error submitting opinion: ' + error.message);
                 }
             };
+            
+            // Function to submit auto ranking for a specific question
+            window.submitAutoRanking = async function(questionIndex) {
+                const hivemindId = document.getElementById('hivemind_id').value;
+                const stateCid = document.getElementById('state_cid').value;
+                
+                // Get the selected preferred option
+                const selectedOption = document.querySelector(`input[name="preferred-option-${questionIndex}"]:checked`);
+                if (!selectedOption) {
+                    alert('Please select a preferred option before submitting.');
+                    return;
+                }
+                
+                // Get the ranking type (auto_high or auto_low)
+                const rankingType = document.querySelector(`input[name="ranking-type-${questionIndex}"]:checked`).value;
+                
+                try {
+                    const response = await fetch('/api/submit_opinion', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            hivemind_id: hivemindId,
+                            question_index: questionIndex,
+                            ranking: [selectedOption.value],
+                            ranking_type: rankingType
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        // Create QR code data
+                        const timestamp = Math.floor(Date.now() / 1000);  // Convert to Unix timestamp
+                        const qrData = {
+                            msg: `${timestamp}${data.cid}`,
+                            url: `${window.location.protocol}//${window.location.hostname}:8000/api/sign_opinion`
+                        };
+                        
+                        // Show QR code container for this question
+                        const qrContainer = document.getElementById(`qrCodeContainer-${questionIndex}`);
+                        qrContainer.classList.remove('hidden');
+                        
+                        // Clear any existing QR code
+                        const qrElement = document.getElementById(`qrcode-${questionIndex}`);
+                        qrElement.innerHTML = '';
+                        
+                        // Generate new QR code
+                        new QRCode(qrElement, {
+                            text: JSON.stringify(qrData),
+                            width: 256,
+                            height: 256
+                        });
 
+                        // Connect to WebSocket for signature notification
+                        const ws = new WebSocket(`ws://${window.location.hostname}:8000/ws/opinion/${data.cid}`);
+                        
+                        ws.onmessage = function(event) {
+                            const notification = JSON.parse(event.data);
+                            if (notification.success) {
+                                // Create success notification
+                                const notificationDiv = document.createElement('div');
+                                notificationDiv.className = 'bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mt-4';
+                                notificationDiv.innerHTML = `
+                                    <strong class="font-bold">Success!</strong>
+                                    <span class="block sm:inline"> ${notification.message}</span>
+                                `;
+                                qrContainer.appendChild(notificationDiv);
+                                
+                                // Close WebSocket connection
+                                ws.close();
+                            }
+                        };
+                    } else {
+                        alert('Error submitting opinion: ' + (data.detail || 'Unknown error'));
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error submitting opinion: ' + error.message);
+                }
+            };
+            
+            // Function to initialize tabs
+            function initializeTabs() {
+                document.querySelectorAll('.tab').forEach(tab => {
+                    tab.addEventListener('click', function() {
+                        const tabId = this.getAttribute('data-tab');
+                        const questionIndex = tabId.split('-')[1];
+                        
+                        // Remove active class from all tabs in this question group
+                        document.querySelectorAll(`.tab[data-tab$="-${questionIndex}"]`).forEach(t => {
+                            t.classList.remove('active');
+                        });
+                        
+                        // Add active class to clicked tab
+                        this.classList.add('active');
+                        
+                        // Hide all tab content for this question
+                        document.querySelectorAll(`#manual-${questionIndex}, #auto-${questionIndex}`).forEach(content => {
+                            content.classList.remove('active');
+                        });
+                        
+                        // Show the selected tab content
+                        document.getElementById(tabId).classList.add('active');
+                    });
+                });
+            }
+            
+            // Function to initialize all unranked options
             function initializeUnrankedOptions() {
                 document.querySelectorAll('.unranked-options > div').forEach(option => {
                     addClickHandlerToUnrankedOption(option);
                 });
             }
-
+            
+            // Function to add click handler to an unranked option
             function addClickHandlerToUnrankedOption(option) {
                 option.addEventListener('click', function() {
-                    const questionIndex = this.dataset.questionIndex;
+                    const questionIndex = this.getAttribute('data-question-index');
                     addToRanking(this, questionIndex);
                 });
             }
-
+            
+            // Function to add an option to the ranking
             function addToRanking(element, questionIndex) {
+                const optionCid = element.getAttribute('data-option-cid');
+                const optionIndex = element.getAttribute('data-option-index');
+                
+                // Check if the option is already in the ranking
                 const rankingContainer = document.getElementById(`ranking-${questionIndex}`);
+                const existingOption = rankingContainer.querySelector(`[data-option-cid="${optionCid}"]`);
                 
-                // Create new ranked option element
-                const rankedOption = document.createElement('div');
-                rankedOption.className = 'bg-gray-700 p-4 rounded-lg mb-2 cursor-move option';
-                rankedOption.draggable = true;
-                rankedOption.dataset.optionCid = element.dataset.optionCid;
-                rankedOption.dataset.index = element.dataset.optionIndex;
-                rankedOption.dataset.questionIndex = questionIndex;
+                if (existingOption) {
+                    return; // Option already in ranking
+                }
                 
-                rankedOption.innerHTML = `
-                    <div class="flex items-center">
-                        <span class="text-gray-400 mr-4 drag-handle">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
-                            </svg>
-                        </span>
-                        <div class="flex-1">
-                            ${element.innerHTML}
-                        </div>
-                        <button type="button" onclick="removeFromRanking(this.parentElement.parentElement, ${questionIndex})" 
-                                class="ml-2 text-gray-400 hover:text-red-500">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
-                        </button>
-                    </div>
-                `;
+                // Clone the option element
+                const clone = element.cloneNode(true);
                 
-                // Add to ranking and remove from unranked
-                rankingContainer.appendChild(rankedOption);
-                element.remove();
-
-                // Initialize drag and drop for the new element
-                initDragAndDropForElement(rankedOption);
+                // Add drag handle and remove button
+                const controlsDiv = document.createElement('div');
+                controlsDiv.className = 'flex justify-between items-center mb-2';
+                
+                const dragHandle = document.createElement('div');
+                dragHandle.className = 'drag-handle text-gray-400';
+                dragHandle.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>';
+                
+                const removeButton = document.createElement('button');
+                removeButton.className = 'text-red-400 hover:text-red-500';
+                removeButton.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>';
+                removeButton.onclick = function(e) {
+                    e.stopPropagation();
+                    removeFromRanking(clone, questionIndex);
+                };
+                
+                controlsDiv.appendChild(dragHandle);
+                controlsDiv.appendChild(removeButton);
+                
+                // Add the controls to the clone
+                clone.prepend(controlsDiv);
+                
+                // Make the clone draggable
+                clone.setAttribute('draggable', 'true');
+                initDragAndDropForElement(clone);
+                
+                // Add the clone to the ranking
+                rankingContainer.appendChild(clone);
+                
+                // Hide the original option in the unranked list
+                element.style.display = 'none';
             }
-
+            
+            // Function to initialize drag and drop for a single element
             function initDragAndDropForElement(element) {
-                element.addEventListener('dragstart', function(e) {
-                    e.stopPropagation();
+                element.addEventListener('dragstart', function() {
                     this.classList.add('dragging');
-                    e.dataTransfer.effectAllowed = 'move';
-                    e.dataTransfer.setData('text/plain', ''); // Required for Firefox
                 });
-
-                element.addEventListener('dragend', function(e) {
-                    e.stopPropagation();
+                
+                element.addEventListener('dragend', function() {
                     this.classList.remove('dragging');
                 });
             }
-
+            
+            // Function to initialize drag and drop for a container
             function initDragAndDrop(container) {
                 container.addEventListener('dragover', function(e) {
                     e.preventDefault();
-                    e.stopPropagation();
-                    
-                    const draggingElement = document.querySelector('.dragging');
-                    if (!draggingElement) return;
-                    
-                    // Get the immediate children of the container that are draggable
-                    const siblings = [...container.querySelectorAll('[draggable="true"]')];
                     const afterElement = getDragAfterElement(container, e.clientY);
-                    
-                    if (afterElement) {
-                        container.insertBefore(draggingElement, afterElement);
-                    } else {
-                        container.appendChild(draggingElement);
+                    const draggable = document.querySelector('.dragging');
+                    if (draggable) {
+                        if (afterElement) {
+                            container.insertBefore(draggable, afterElement);
+                        } else {
+                            container.appendChild(draggable);
+                        }
                     }
                 });
-
+                
                 container.addEventListener('dragenter', function(e) {
                     e.preventDefault();
-                    e.stopPropagation();
                     this.classList.add('drag-over');
                 });
-
-                container.addEventListener('dragleave', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
+                
+                container.addEventListener('dragleave', function() {
                     this.classList.remove('drag-over');
                 });
-
-                container.addEventListener('drop', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
+                
+                container.addEventListener('drop', function() {
                     this.classList.remove('drag-over');
-                    
-                    // Update all indices after a drop
-                    const options = [...container.querySelectorAll('[draggable="true"]')];
-                    options.forEach((option, index) => {
-                        option.dataset.index = index;
-                    });
                 });
-
-                // Initialize drag and drop for existing ranked options
-                container.querySelectorAll('[draggable="true"]').forEach(initDragAndDropForElement);
             }
-
+            
+            // Function to determine where to place the dragged element
             function getDragAfterElement(container, y) {
-                // Only consider immediate draggable children
-                const draggableElements = [...container.querySelectorAll('[draggable="true"]:not(.dragging)')];
+                const draggableElements = [...container.querySelectorAll('[draggable]:not(.dragging)')];
                 
                 return draggableElements.reduce((closest, child) => {
                     const box = child.getBoundingClientRect();
@@ -360,25 +552,22 @@
                     }
                 }, { offset: Number.NEGATIVE_INFINITY }).element;
             }
-
+            
+            // Function to remove an option from the ranking
             function removeFromRanking(element, questionIndex) {
-                // Get the unranked container for this question
-                const unrankedContainer = document.getElementById(`unranked-${questionIndex}`).querySelector('.unranked-options');
+                const optionCid = element.getAttribute('data-option-cid');
+                const optionIndex = element.getAttribute('data-option-index');
                 
-                // Create unranked option element
-                const unrankedOption = document.createElement('div');
-                unrankedOption.className = 'bg-gray-700 p-4 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors mb-2';
-                unrankedOption.dataset.optionCid = element.dataset.optionCid;
-                unrankedOption.dataset.optionIndex = element.dataset.index;
-                unrankedOption.dataset.questionIndex = questionIndex;
-                unrankedOption.innerHTML = element.querySelector('.flex-1').innerHTML;
-                
-                // Add click handler to the new unranked option
-                addClickHandlerToUnrankedOption(unrankedOption);
-                
-                // Add to unranked and remove from ranking
-                unrankedContainer.appendChild(unrankedOption);
+                // Remove the element from the ranking
                 element.remove();
+                
+                // Show the original option in the unranked list
+                const unrankedContainer = document.getElementById(`unranked-${questionIndex}`);
+                const originalOption = unrankedContainer.querySelector(`[data-option-cid="${optionCid}"]`);
+                
+                if (originalOption) {
+                    originalOption.style.display = 'block';
+                }
             }
         });
     </script>
