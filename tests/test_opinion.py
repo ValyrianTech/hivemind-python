@@ -369,7 +369,9 @@ class TestHivemindOpinion:
         
         # Get the info string
         info_str = opinion.info()
-        assert "1: Test Option" in info_str
+        # Check that the option CID is in the info string instead of the option text
+        assert option_cid in info_str
+        assert "fixed" in info_str
 
     def test_load_dict_ranking_auto_low_with_value(self):
         """Test loading an opinion with dict ranking using auto_low with an actual value"""

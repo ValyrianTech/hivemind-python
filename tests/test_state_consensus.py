@@ -195,8 +195,6 @@ class TestHivemindStateRankedConsensus:
 
     def test_compare_edge_cases(self, state: HivemindState, basic_issue: HivemindIssue, test_keypair) -> None:
         """Test edge cases in option comparison where options are not in the ranking."""
-        from hivemind.state import compare
-        
         private_key, address = test_keypair
         issue_hash = basic_issue.save()
         state.set_hivemind_issue(issue_hash)
@@ -221,14 +219,14 @@ class TestHivemindStateRankedConsensus:
         )
         
         # Test comparing ranked vs unranked option
-        assert compare(first_hash, unranked_hash, opinion_hash) == first_hash  # ranked wins
-        assert compare(unranked_hash, second_hash, opinion_hash) == second_hash  # ranked wins
+        assert state.compare(first_hash, unranked_hash, opinion_hash) == first_hash  # ranked wins
+        assert state.compare(unranked_hash, second_hash, opinion_hash) == second_hash  # ranked wins
         
         # Test comparing two unranked options
         another_unranked = helper.create_and_sign_option(
             state, issue_hash, "another", "Another Unranked", private_key, address, int(time.time())
         )
-        assert compare(unranked_hash, another_unranked, opinion_hash) is None  # neither wins
+        assert state.compare(unranked_hash, another_unranked, opinion_hash) is None  # neither wins
 
 @pytest.mark.consensus
 class TestHivemindStateConsensusEdgeCases:
