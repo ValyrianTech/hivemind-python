@@ -930,19 +930,14 @@ async def submit_opinion(opinion: OpinionCreate) -> Dict[str, Any]:
                 state = HivemindState()
                 state.load(opinion.hivemind_id)
                 
-                # Load options for auto-ranking
-                options = []
-                for option_cid in state.options:
-                    option = HivemindOption(cid=option_cid)
-                    options.append(option)
-                
                 # Set the appropriate ranking type
                 if opinion.ranking_type == "auto_high":
                     ranking.set_auto_high(opinion.ranking[0])
                 else:  # auto_low
                     ranking.set_auto_low(opinion.ranking[0])
                 
-                hivemind_opinion.ranking = ranking.get(options)
+                # Store the ranking as a dictionary for auto rankings
+                hivemind_opinion.ranking = ranking.to_dict()
             else:
                 raise ValueError(f"Invalid ranking type: {opinion.ranking_type}")
             
