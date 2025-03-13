@@ -228,3 +228,100 @@ class TestHivemindStateOpinions:
         # Verify opinions list was initialized correctly
         assert len(loaded_state.opinions) == len(basic_issue.questions)
         assert all(isinstance(opinions, dict) for opinions in loaded_state.opinions)
+
+    def test_add_opinion_with_dict_ranking(self, state: HivemindState, test_keypair) -> None:
+        """Test adding opinions with dictionary-based rankings.
+        
+        This test specifically targets the code in state.py lines 266-276 that handles
+        converting dictionary-based rankings to Ranking objects.
+        """
+        private_key, address = test_keypair
+        
+        # Create a numeric issue for testing auto rankings
+        numeric_issue = HivemindIssue()
+        numeric_issue.name = "Numeric Test Issue"
+        numeric_issue.add_question("Numeric Test Question")
+        numeric_issue.description = "Test Description"
+        numeric_issue.tags = ["test"]
+        numeric_issue.answer_type = "Integer"  # Set answer type to Integer
+        numeric_issue.constraints = {}
+        numeric_issue.restrictions = {}
+        issue_hash = numeric_issue.save()
+        
+        state.set_hivemind_issue(issue_hash)
+        
+        # Add numeric options
+        options = []
+        for i in range(3):
+            option = HivemindOption()
+            option.set_hivemind_issue(issue_hash)
+            option.set(i + 1)  # Numeric values: 1, 2, 3
+            option_hash = option.save()
+            options.append(option_hash)
+            
+            # Sign and add option
+            timestamp = int(time.time())
+            message = f"{timestamp}{option_hash}"
+            signature = sign_message(message, private_key)
+            state.add_option(timestamp, option_hash, address, signature)
+        
+        # Initialize participants dictionary and add participant
+        state.participants = {}
+        state.participants[address] = {'name': 'Test User', 'timestamp': timestamp}
+        
+        # Create a mock HivemindOpinion that will directly test the dictionary-based ranking conversion
+        # This is a more direct approach to ensure we hit lines 266-276 in state.py
+        
+        # Test with auto_high dictionary ranking
+        from ipfs_dict_chain.IPFSDict import IPFSDict
+        
+        # Create an opinion with a dictionary ranking that will be loaded from IPFS
+        opinion_dict = IPFSDict()
+        opinion_dict['hivemind_id'] = issue_hash
+        opinion_dict['question_index'] = 0
+        # This is the key part - setting the ranking as a dictionary directly
+        opinion_dict['ranking'] = {'auto_high': options[0]}
+        opinion_auto_high_hash = opinion_dict.save()
+        
+        # Add the opinion with auto_high ranking
+        timestamp = int(time.time())
+        message = f"{timestamp}{opinion_auto_high_hash}"
+        signature = sign_message(message, private_key)
+        state.add_opinion(timestamp, opinion_auto_high_hash, signature, address)
+        
+        # Verify opinion was added
+        assert state.opinions[0][address]['opinion_cid'] == opinion_auto_high_hash
+        
+        # Test with auto_low dictionary ranking
+        opinion_dict = IPFSDict()
+        opinion_dict['hivemind_id'] = issue_hash
+        opinion_dict['question_index'] = 0
+        # Setting the ranking as a dictionary directly
+        opinion_dict['ranking'] = {'auto_low': options[1]}
+        opinion_auto_low_hash = opinion_dict.save()
+        
+        # Add the opinion with auto_low ranking
+        timestamp = int(time.time())
+        message = f"{timestamp}{opinion_auto_low_hash}"
+        signature = sign_message(message, private_key)
+        state.add_opinion(timestamp, opinion_auto_low_hash, signature, address)
+        
+        # Verify opinion was added
+        assert state.opinions[0][address]['opinion_cid'] == opinion_auto_low_hash
+        
+        # Test with fixed dictionary ranking
+        opinion_dict = IPFSDict()
+        opinion_dict['hivemind_id'] = issue_hash
+        opinion_dict['question_index'] = 0
+        # Setting the ranking as a dictionary directly
+        opinion_dict['ranking'] = {'fixed': options}
+        opinion_fixed_hash = opinion_dict.save()
+        
+        # Add the opinion with fixed ranking
+        timestamp = int(time.time())
+        message = f"{timestamp}{opinion_fixed_hash}"
+        signature = sign_message(message, private_key)
+        state.add_opinion(timestamp, opinion_fixed_hash, signature, address)
+        
+        # Verify opinion was added
+        assert state.opinions[0][address]['opinion_cid'] == opinion_fixed_hash

@@ -262,19 +262,6 @@ class HivemindState(IPFSDictChain):
             ranking_options = []
             try:
                 # For auto rankings, we need to extract the preferred option
-                if isinstance(opinion.ranking, dict):
-                    LOG.info(f"Ranking is a dictionary: {opinion.ranking}")
-                    # If it's a dictionary, we need to convert it to a Ranking object first
-                    temp_ranking = Ranking()
-                    if 'auto_high' in opinion.ranking:
-                        temp_ranking.set_auto_high(opinion.ranking['auto_high'])
-                    elif 'auto_low' in opinion.ranking:
-                        temp_ranking.set_auto_low(opinion.ranking['auto_low'])
-                    elif 'fixed' in opinion.ranking:
-                        temp_ranking.set_fixed(opinion.ranking['fixed'])
-                    
-                    opinion.ranking = temp_ranking
-                
                 LOG.info(f"Getting ranking options with {len(self.get_options())} available options")
                 ranking_options = opinion.ranking.get(options=self.get_options())
                 LOG.info(f"Ranking options: {ranking_options}")
