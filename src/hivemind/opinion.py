@@ -60,10 +60,8 @@ class HivemindOpinion(IPFSDict):
         :return: Formatted string containing the opinion details
         :rtype: str
         """
-        ret = ''
-        for i, option_hash in enumerate(self.ranking.get()):
-            option = HivemindOption(cid=option_hash)
-            ret += '\n%s: %s' % (i+1, option.value)
+        ret = f'opinion info: {self.hivemind_id} question {self.question_index} -> {str(self.ranking.to_dict())}'
+
         return ret
 
     def load(self, cid: str) -> None:

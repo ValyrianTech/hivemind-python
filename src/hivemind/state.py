@@ -31,51 +31,6 @@ def verify_message(message: str, address: str, signature: str) -> bool:
     except Exception:
         return False
 
-def compare(a, b, opinion_hash):
-    """
-    Helper function to compare 2 Option objects against each other based on a given Opinion
-
-    :param a: The first Option object
-    :param b: The second Option object
-    :param opinion_hash: The Opinion object
-    :return: The Option that is considered better by the Opinion
-    If one of the Options is not given in the Opinion object, the other option wins by default
-    If both Options are not in the Opinion object, None is returned
-    """
-    opinion = HivemindOpinion(cid=opinion_hash)
-    
-    # Handle different ranking types
-    try:
-        if hasattr(opinion.ranking, 'type') and opinion.ranking.type in ['auto_high', 'auto_low']:
-            # For auto rankings, we need to get all options from the state
-            state = HivemindState()
-            state.load(opinion.hivemind_id)
-            options = state.get_options()
-            ranked_choice = opinion.ranking.get(options=options)
-        else:
-            # For fixed rankings, we can get the ranking directly
-            ranked_choice = opinion.ranking.get()
-            
-        # Normalize option CIDs by removing '/ipfs/' prefix if present
-        ranked_choice = [option_hash.replace('/ipfs/', '') if option_hash.startswith('/ipfs/') else option_hash 
-                         for option_hash in ranked_choice]
-        a_normalized = a.replace('/ipfs/', '') if a.startswith('/ipfs/') else a
-        b_normalized = b.replace('/ipfs/', '') if b.startswith('/ipfs/') else b
-        
-        if a_normalized in ranked_choice and b_normalized in ranked_choice:
-            if ranked_choice.index(a_normalized) < ranked_choice.index(b_normalized):
-                return a
-            elif ranked_choice.index(a_normalized) > ranked_choice.index(b_normalized):
-                return b
-        elif a_normalized in ranked_choice:
-            return a
-        elif b_normalized in ranked_choice:
-            return b
-        else:
-            return None
-    except Exception as e:
-        LOG.error(f"Error comparing options: {str(e)}")
-        return None
 
 class HivemindState(IPFSDictChain):
     """A class representing the current state of a Hivemind voting issue.
@@ -410,7 +365,6 @@ class HivemindState(IPFSDictChain):
         for i, question in enumerate(self._hivemind_issue.questions):
             ret += '\nHivemind question %s: %s' % (i, self._hivemind_issue.questions[i])
             ret += '\n' + self.opinions_info(question_index=i)
-
             results = self.calculate_results(question_index=i)
             ret += '\n' + self.results_info(results=results, question_index=i)
 
@@ -460,8 +414,6 @@ class HivemindState(IPFSDictChain):
         :rtype: Dict[str, Dict[str, float]]
         :raises Exception: If question_index is invalid
         """
-        LOG.info('Calculating results for question %s...' % question_index)
-
         # if selection mode is 'Exclude', we must exclude previously selected options from the results
         if self._hivemind_issue.on_selection == 'Exclude':
             selected_options = [selection[question_index] for selection in self.selected]
@@ -473,7 +425,7 @@ class HivemindState(IPFSDictChain):
 
         for a, b in combinations(available_options, 2):
             for opinionator in self.opinions[question_index]:
-                winner = compare(a, b, self.opinions[question_index][opinionator]['opinion_cid'])
+                winner = self.compare(a, b, self.opinions[question_index][opinionator]['opinion_cid'])
                 weight = self.get_weight(opinionator=opinionator)
                 if winner == a:
                     results[a]['win'] += weight
@@ -731,3 +683,39 @@ class HivemindState(IPFSDictChain):
                 self.participants[address] = {'name': name}
             else:
                 raise Exception('Invalid signature')
+
+    def compare(self, a, b, opinion_hash):
+        """
+        Helper function to compare 2 Option objects against each other based on a given Opinion
+
+        :param a: The first Option object
+        :param b: The second Option object
+        :param opinion_hash: The Opinion object
+        :return: The Option that is considered better by the Opinion
+        If one of the Options is not given in the Opinion object, the other option wins by default
+        If both Options are not in the Opinion object, None is returned
+        """
+        opinion = HivemindOpinion(cid=opinion_hash)
+        # Handle different ranking types
+        try:
+            if hasattr(opinion.ranking, 'type') and opinion.ranking.type in ['auto_high', 'auto_low']:
+                # For auto rankings, we need to get all options from the state
+                ranked_choice = opinion.ranking.get(options=self.get_options())
+            else:
+                # For fixed rankings, we can get the ranking directly
+                ranked_choice = opinion.ranking.get()
+
+            if a in ranked_choice and b in ranked_choice:
+                if ranked_choice.index(a) < ranked_choice.index(b):
+                    return a
+                elif ranked_choice.index(a) > ranked_choice.index(b):
+                    return b
+            elif a in ranked_choice:
+                return a
+            elif b in ranked_choice:
+                return b
+            else:
+                return None
+        except Exception as e:
+            LOG.error(f"Error comparing options: {str(e)}")
+            return None
