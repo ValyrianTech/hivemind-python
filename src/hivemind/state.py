@@ -681,25 +681,22 @@ class HivemindState(IPFSDictChain):
         """
         opinion = HivemindOpinion(cid=opinion_hash)
         # Handle different ranking types
-        try:
-            if hasattr(opinion.ranking, 'type') and opinion.ranking.type in ['auto_high', 'auto_low']:
-                # For auto rankings, we need to get all options from the state
-                ranked_choice = opinion.ranking.get(options=self.get_options())
-            else:
-                # For fixed rankings, we can get the ranking directly
-                ranked_choice = opinion.ranking.get()
+        if hasattr(opinion.ranking, 'type') and opinion.ranking.type in ['auto_high', 'auto_low']:
+            # For auto rankings, we need to get all options from the state
+            ranked_choice = opinion.ranking.get(options=self.get_options())
+        else:
+            # For fixed rankings, we can get the ranking directly
+            ranked_choice = opinion.ranking.get()
 
-            if a in ranked_choice and b in ranked_choice:
-                if ranked_choice.index(a) < ranked_choice.index(b):
-                    return a
-                elif ranked_choice.index(a) > ranked_choice.index(b):
-                    return b
-            elif a in ranked_choice:
+        if a in ranked_choice and b in ranked_choice:
+            if ranked_choice.index(a) < ranked_choice.index(b):
                 return a
-            elif b in ranked_choice:
+            elif ranked_choice.index(a) > ranked_choice.index(b):
                 return b
-            else:
-                return None
-        except Exception as e:
-            LOG.error(f"Error comparing options: {str(e)}")
+        elif a in ranked_choice:
+            return a
+        elif b in ranked_choice:
+            return b
+        else:
             return None
+
