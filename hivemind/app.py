@@ -451,22 +451,7 @@ async def fetch_state(request: IPFSHashRequest):
                 full_results.append(formatted_results)
                 
                 # Store just the winning option for the state mapping
-                if sorted_options:
-                    winning_option = sorted_options[0]
-                    cid = winning_option.cid()
-                    if cid.startswith('/ipfs/'):
-                        cid = cid[6:]
-                    score = question_results.get(cid, {}).get('score', 0)
-                    if score is None:
-                        score = 0
-                        
-                    results.append({
-                        'text': winning_option.text if hasattr(winning_option, 'text') else str(winning_option.value) if hasattr(winning_option, 'value') else 'Unnamed Option',
-                        'value': winning_option.value if hasattr(winning_option, 'value') else None,
-                        'score': round(score * 100, 2)
-                    })
-                else:
-                    results.append(None)
+                results.append(process_winning_option(sorted_options, question_results))
                         
             except Exception as e:
                 logger.error(f"Failed to calculate results for question {question_index}: {str(e)}")
@@ -517,6 +502,34 @@ async def fetch_state(request: IPFSHashRequest):
     except Exception as e:
         logger.error(f"Error processing state {cid}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+def process_winning_option(sorted_options, question_results):
+    """
+    Process the winning option from sorted options to extract relevant data.
+    
+    Args:
+        sorted_options: List of sorted option objects
+        question_results: Dictionary of results from calculate_results
+        
+    Returns:
+        Dict containing text, value, and score of the winning option, or None if no options
+    """
+    if sorted_options:
+        winning_option = sorted_options[0]
+        cid = winning_option.cid()
+        if cid.startswith('/ipfs/'):
+            cid = cid[6:]
+        score = question_results.get(cid, {}).get('score', 0)
+        if score is None:
+            score = 0
+            
+        return {
+            'text': winning_option.text if hasattr(winning_option, 'text') else str(winning_option.value) if hasattr(winning_option, 'value') else 'Unnamed Option',
+            'value': winning_option.value if hasattr(winning_option, 'value') else None,
+            'score': round(score * 100, 2)
+        }
+    else:
+        return None
 
 @app.post("/api/create_issue")
 async def create_issue(issue: HivemindIssueCreate):
