@@ -384,25 +384,6 @@ async def fetch_state(request: IPFSHashRequest):
                             if isinstance(opinion.ranking, list):
                                 ranking = opinion.ranking
                                 logger.debug(f"List ranking detected for {address}: {ranking}")
-                            elif isinstance(opinion.ranking, dict):
-                                logger.debug(f"Dict ranking detected for {address}: {opinion.ranking}")
-                                # Check for auto_high or auto_low
-                                if 'type' in opinion.ranking:
-                                    logger.debug(f"Ranking type from dict: {opinion.ranking['type']}")
-                                    if opinion.ranking['type'] == 'auto_high' or opinion.ranking['type'] == 'auto_low':
-                                        # For auto rankings, we need to extract the preferred option
-                                        preferred_option = opinion.ranking.get('auto')
-                                        logger.debug(f"Auto ranking preferred option: {preferred_option}")
-                                        if preferred_option:
-                                            # Create a list with the preferred option for display
-                                            ranking = [preferred_option]
-                                            logger.debug(f"Created ranking list from preferred option: {ranking}")
-                                else:
-                                    ranking = opinion.ranking.get('fixed')
-                                    logger.debug(f"Fixed ranking from dict: {ranking}")
-                            elif hasattr(opinion.ranking, 'fixed'):
-                                ranking = opinion.ranking.fixed
-                                logger.debug(f"Ranking from fixed attribute: {ranking}")
                     
                     logger.info(f"Loaded opinion for {address} in question {question_index}")
                     question_data[address] = {
