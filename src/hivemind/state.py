@@ -323,8 +323,23 @@ class HivemindState(IPFSDictChain):
         :rtype: float
         """
         weight = 1.0
-        if self._hivemind_issue.restrictions is not None and opinionator in self._hivemind_issue.restrictions and 'weight' in self._hivemind_issue.restrictions[opinionator]:
-            weight = self._hivemind_issue.restrictions[opinionator]['weight']
+
+        if self._hivemind_issue.restrictions is not None and 'addresses' in self._hivemind_issue.restrictions:
+            weight = 0.0  # Default weight if there are addresses in restrictions
+            for address in self._hivemind_issue.restrictions['addresses']:
+                if address.startswith(opinionator):
+                    weight = 1.0
+                    # Check if the address has a weight specification (e.g., "address@2")
+                    if '@' in address:
+                        parts = address.split('@', 1)
+                        try:
+                            specified_weight = float(parts[1].strip())
+                            if specified_weight >= 0:
+                                weight = specified_weight
+                        except ValueError:
+                            # If weight parsing fails, use default weight
+                            pass
+                    break
 
         return weight
 
