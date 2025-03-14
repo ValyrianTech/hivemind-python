@@ -357,27 +357,13 @@ async def fetch_state(request: IPFSHashRequest):
                     
                     # Extract ranking based on the data format
                     ranking = None
+                    ranking_type = None
                     logger.debug(f"Opinion ranking raw data for {address}: {opinion.ranking}")
                     logger.debug(f"Opinion ranking type: {type(opinion.ranking)}")
                     
                     if hasattr(opinion, 'ranking'):
-                        # Inspect the Ranking object's attributes
-                        if hasattr(opinion.ranking, '__dict__'):
-                            logger.debug(f"Ranking object attributes: {opinion.ranking.__dict__}")
-                            
-                            # Handle different ranking types
-                            ranking_dict = opinion.ranking.__dict__
-                            ranking_type = ranking_dict.get('type')
-                            
-                            if ranking_type == 'fixed' and ranking_dict.get('fixed'):
-                                # For fixed rankings, use the list of options
-                                ranking = ranking_dict['fixed']
-                                logger.debug(f"Using fixed ranking: {ranking}")
-                            elif ranking_type in ['auto_high', 'auto_low'] and ranking_dict.get('auto'):
-                                # For auto rankings, create a list with just the preferred option
-                                preferred_option = ranking_dict['auto']
-                                ranking = [preferred_option]
-                                logger.debug(f"Created ranking list from auto {ranking_type}: {ranking}")
+                        # Extract ranking using the helper function
+                        ranking, ranking_type = extract_ranking_from_opinion_object(opinion.ranking)
                         
                         # Fallback to previous methods if the above didn't work
                         if ranking is None:
@@ -1128,5 +1114,38 @@ async def sign_opinion(request: Request):
             
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON data")
+
+# Extract ranking from an opinion object based on its ranking type
+def extract_ranking_from_opinion_object(opinion_ranking):
+    """
+    Extract the ranking list from an opinion object based on its ranking type.
+    
+    Args:
+        opinion_ranking: The ranking attribute of a HivemindOpinion object
+        
+    Returns:
+        tuple: (ranking list, ranking_type)
+    """
+    ranking = None
+    ranking_type = None
+    
+    if hasattr(opinion_ranking, '__dict__'):
+        logger.debug(f"Ranking object attributes: {opinion_ranking.__dict__}")
+        
+        # Handle different ranking types
+        ranking_dict = opinion_ranking.__dict__
+        ranking_type = ranking_dict.get('type')
+        
+        if ranking_type == 'fixed' and ranking_dict.get('fixed'):
+            # For fixed rankings, use the list of options
+            ranking = ranking_dict['fixed']
+            logger.debug(f"Using fixed ranking: {ranking}")
+        elif ranking_type in ['auto_high', 'auto_low'] and ranking_dict.get('auto'):
+            # For auto rankings, create a list with just the preferred option
+            preferred_option = ranking_dict['auto']
+            ranking = [preferred_option]
+            logger.debug(f"Created ranking list from auto {ranking_type}: {ranking}")
+    
+    return ranking, ranking_type
 
 register_websocket_routes(app)
