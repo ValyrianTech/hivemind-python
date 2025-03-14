@@ -293,5 +293,44 @@ class TestErrorHandling:
         # Verify logger calls
         mock_logger.error.assert_called_once_with("Failed to create issue: Test issue creation error")
 
+    @pytest.mark.asyncio
+    @patch("app.asyncio.to_thread")
+    @patch("app.logger")
+    @patch("app.HivemindOpinion")
+    async def test_load_opinions_for_question_exception(self, mock_hivemind_opinion, mock_logger, mock_to_thread):
+        """Test exception handling in the load_opinions_for_question function (lines 320-322)."""
+        # Create test data for question_opinions
+        question_index = 0
+        question_opinions = {
+            "test_address": {
+                "opinion_cid": "test_opinion_cid",
+                "timestamp": "2023-01-01T12:00:00Z"
+            }
+        }
+        
+        # Configure HivemindOpinion mock to raise an exception
+        test_exception = Exception("Test opinion loading error")
+        mock_hivemind_opinion.side_effect = test_exception
+        
+        # Configure to_thread to pass through the lambda function
+        mock_to_thread.side_effect = lambda f, *args, **kwargs: f(*args, **kwargs)
+        
+        # Call the function
+        result = await app.load_opinions_for_question(question_index, question_opinions)
+        
+        # Verify the result contains the error information
+        assert "test_address" in result
+        assert result["test_address"]["opinion_cid"] == "test_opinion_cid"
+        assert result["test_address"]["timestamp"] == "2023-01-01T12:00:00Z"
+        assert result["test_address"]["ranking"] is None
+        assert result["test_address"]["ranking_type"] is None
+        assert "error" in result["test_address"]
+        assert "Test opinion loading error" in result["test_address"]["error"]
+        
+        # Verify logger.error was called with the expected message
+        mock_logger.error.assert_called_once_with(
+            f"Failed to load opinion for test_address in question {question_index}: Test opinion loading error"
+        )
+
 if __name__ == "__main__":
     pytest.main(["-xvs", "test_app_error_handling.py"])
