@@ -187,9 +187,15 @@
                 issueInfoSection.innerHTML = `
                     <div class="flex items-center justify-between mb-4">
                         <h2 class="text-2xl font-semibold text-white">Issue Information</h2>
-                        <span class="px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-medium">
-                            ${data.total_opinions} Opinion${data.total_opinions !== 1 ? 's' : ''}
-                        </span>
+                        <div class="flex space-x-2">
+                            <span class="px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-medium">
+                                ${data.total_opinions} Opinion${data.total_opinions !== 1 ? 's' : ''}
+                            </span>
+                            <button onclick="updateParticipantName()"
+                                    class="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded-full text-sm font-medium transition-colors">
+                                Update Name
+                            </button>
+                        </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="bg-gray-700 rounded-lg p-4">
@@ -383,7 +389,9 @@
                                             <tbody class="bg-gray-800 divide-y divide-gray-700">
                                                 ${opinionEntries.map(([address, opinion]) => `
                                                     <tr class="hover:bg-gray-700 cursor-pointer" onclick="toggleOpinionDetails(this, ${questionIndex}, '${address}')">
-                                                        <td class="px-4 py-3 text-sm font-mono text-gray-300">${address}</td>
+                                                        <td class="px-4 py-3 text-sm font-mono text-gray-300">
+                                                            ${address}
+                                                        </td>
                                                         <td class="px-4 py-3">
                                                             <div class="flex items-center">
                                                                 <div class="flex-1 w-32 bg-gray-600 rounded-full h-2 mr-2">
@@ -589,6 +597,16 @@
 
         function hideResultsInfo() {
             document.getElementById('resultsInfoModal').classList.add('hidden');
+        }
+
+        function updateParticipantName() {
+            const cid = document.getElementById('cid').value.trim();
+            if (!cid || !stateData) {
+                showError('Please load a state first');
+                return;
+            }
+            
+            window.location.href = `/update_name?state_cid=${cid}&hivemind_id=${stateData.hivemind_id}`;
         }
     </script>
 </body>

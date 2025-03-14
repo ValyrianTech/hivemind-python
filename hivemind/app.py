@@ -1142,6 +1142,179 @@ async def sign_opinion(request: Request):
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON data")
 
+@app.get("/update_name")
+async def update_name_page(request: Request, state_cid: str, hivemind_id: str):
+    """Render the page for updating a participant's name.
+    
+    Args:
+        request: The request object
+        state_cid: The CID of the current state
+        hivemind_id: The ID of the hivemind
+        
+    Returns:
+        TemplateResponse: The rendered template
+    """
+    return templates.TemplateResponse(
+        "update_name.html", 
+        {
+            "request": request, 
+            "state_cid": state_cid,
+            "hivemind_id": hivemind_id
+        }
+    )
+
+@app.post("/api/prepare_name_update")
+async def prepare_name_update(request: Request):
+    """Prepare for updating a participant's name.
+    
+    Args:
+        request: Raw request containing name, hivemind_id, and state_cid
+        
+    Returns:
+        Dict indicating success status
+    """
+    try:
+        data = await request.json()
+        name = data.get('name')
+        hivemind_id = data.get('hivemind_id')
+        state_cid = data.get('state_cid')
+        
+        if not all([name, hivemind_id, state_cid]):
+            raise HTTPException(status_code=400, detail="Missing required fields")
+            
+        # Register the name for WebSocket connections
+        if name not in active_connections:
+            active_connections[name] = []
+            
+        return {"success": True}
+        
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON data")
+
+@app.websocket("/ws/name_update/{name}")
+async def websocket_name_update(websocket: WebSocket, name: str):
+    """WebSocket endpoint for name update notifications.
+    
+    Args:
+        websocket: The WebSocket connection
+        name: The name being updated
+    """
+    await websocket.accept()
+    
+    if name not in active_connections:
+        active_connections[name] = []
+    
+    active_connections[name].append(websocket)
+    logger.info(f"WebSocket connection established for name update: {name}")
+    
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        logger.info(f"WebSocket disconnected for name update: {name}")
+        active_connections[name].remove(websocket)
+        if not active_connections[name]:
+            del active_connections[name]
+
+@app.post("/api/sign_name_update")
+async def sign_name_update(request: Request):
+    """Update a participant's name with a signed message.
+    
+    Args:
+        request: Raw request containing address, message, signature, and data
+        
+    Returns:
+        Dict indicating success status and any error message
+    """
+    try:
+        data = await request.json()
+        
+        # Extract required fields
+        address = data.get('address')
+        message = data.get('message')
+        signature = data.get('signature')
+        name_data = data.get('data')
+        
+        if not all([address, message, signature, name_data]):
+            raise HTTPException(status_code=400, detail="Missing required fields")
+            
+        # Parse timestamp and name from message format: "timestampName"
+        try:
+            # First 10 chars are timestamp, rest is name
+            timestamp_str = message[:10]
+            name = message[10:]
+            timestamp = int(timestamp_str)
+            logger.info(f"Parsed timestamp: {timestamp}, name: {name}")
+        except ValueError:
+            logger.error(f"Failed to parse message format: {message}")
+            raise HTTPException(status_code=400, detail="Invalid message format")
+            
+        # Get hivemind state from the name data
+        try:
+            hivemind_id = name_data.get('hivemind_id')
+            state_cid = name_data.get('state_cid')
+            
+            if not all([hivemind_id, state_cid]):
+                raise HTTPException(status_code=400, detail="Missing hivemind ID or state CID in data")
+                
+            # Use to_thread to run the synchronous HivemindState operations
+            state = await asyncio.to_thread(lambda: HivemindState(cid=state_cid))
+            
+            # Update the participant name
+            await asyncio.to_thread(
+                lambda: state.update_participant_name(
+                    timestamp=timestamp,
+                    name=name,
+                    address=address,
+                    signature=signature
+                )
+            )
+            
+            # Save the state
+            new_cid = await asyncio.to_thread(lambda: state.save())
+            
+            # Update the state mapping
+            issue = await asyncio.to_thread(lambda: HivemindIssue(cid=hivemind_id))
+            
+            await update_state(StateHashUpdate(
+                hivemind_id=hivemind_id,
+                state_hash=new_cid,
+                name=issue.name,
+                description=issue.description,
+                num_options=len(state.options),
+                num_opinions=len(state.opinions[0]) if state.opinions else 0,
+                answer_type=issue.answer_type,
+                questions=issue.questions,
+                tags=issue.tags
+            ))
+            
+            # Send notification to connected WebSocket clients
+            if name in active_connections:
+                notification_data = {
+                    "success": True,
+                    "message": "Name updated successfully",
+                    "state_cid": new_cid,
+                    "hivemind_id": hivemind_id
+                }
+                for connection in active_connections[name]:
+                    try:
+                        await connection.send_json(notification_data)
+                    except Exception as e:
+                        logger.error(f"Failed to send WebSocket notification: {str(e)}")
+                        continue
+            
+            return {
+                "success": True,
+                "cid": new_cid
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to update name: {str(e)}")
+            raise HTTPException(status_code=400, detail=str(e))
+            
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON data")
+
 # Extract ranking from an opinion object based on its ranking type
 def extract_ranking_from_opinion_object(opinion_ranking):
     """

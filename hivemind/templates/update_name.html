@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Name - Hivemind Protocol</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-gray-800 min-h-screen text-white">
+    <nav class="bg-gray-800 bg-opacity-50 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <a href="/" class="text-xl font-bold">Hivemind Protocol</a>
+            <div class="space-x-4">
+                <a href="/insights" class="hover:text-blue-400">Insights</a>
+                <a href="/about" class="hover:text-blue-400">About</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 py-16">
+        <!-- Hero Section -->
+        <div class="text-center mb-16">
+            <h1 class="text-6xl font-bold mb-6">Update Name</h1>
+            <p class="text-xl text-gray-300 mb-8">Update your participant name for this hivemind</p>
+        </div>
+
+        <div class="max-w-2xl mx-auto bg-gray-800 rounded-lg shadow-lg p-8">
+            <form id="nameForm" class="space-y-6">
+                <input type="hidden" id="hivemind_id" name="hivemind_id" value="{{ hivemind_id }}">
+                <input type="hidden" id="state_cid" name="state_cid" value="{{ state_cid }}">
+                
+                <div class="space-y-4">
+                    <label for="name" class="block text-lg font-medium">Your Name</label>
+                    <input type="text" id="name" name="name" 
+                           class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="Enter your name">
+                </div>
+
+                <div class="flex justify-center">
+                    <button type="button" id="generateQrBtn" onclick="prepareNameUpdate()" 
+                            class="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-md font-medium transition-colors">
+                        Generate QR Code
+                    </button>
+                </div>
+
+                <div id="qrSection" class="hidden space-y-4">
+                    <div class="text-center">
+                        <h3 class="text-xl font-medium mb-2">Scan QR Code</h3>
+                        <p class="text-gray-300 mb-4">Use your Bitcoin wallet to sign this message</p>
+                        <div id="qrcode" class="mx-auto bg-white p-4 rounded-lg inline-block"></div>
+                    </div>
+                </div>
+
+                <div id="statusSection" class="hidden mt-8 p-4 rounded-lg">
+                    <p id="statusMessage" class="text-center"></p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        
+        async function prepareNameUpdate() {
+            const nameInput = document.getElementById('name');
+            const name = nameInput.value.trim();
+            
+            if (!name) {
+                showStatus('Please enter your name', 'error');
+                return;
+            }
+            
+            const hivemindId = document.getElementById('hivemind_id').value;
+            const stateCid = document.getElementById('state_cid').value;
+            
+            try {
+                // Prepare name update on server
+                const response = await fetch('/api/prepare_name_update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        hivemind_id: hivemindId,
+                        state_cid: stateCid
+                    }),
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    // Create QR code data
+                    const timestamp = Math.floor(Date.now() / 1000);  // Convert to Unix timestamp
+                    const qrData = {
+                        msg: `${timestamp}${name}`,
+                        url: `${window.location.protocol}//${window.location.host}/api/sign_name_update`
+                    };
+                    
+                    // Show QR code container
+                    const qrSection = document.getElementById('qrSection');
+                    qrSection.classList.remove('hidden');
+                    
+                    // Clear any existing QR code
+                    const qrcodeElement = document.getElementById('qrcode');
+                    qrcodeElement.innerHTML = '';
+                    
+                    // Generate new QR code
+                    new QRCode(qrcodeElement, {
+                        text: JSON.stringify(qrData),
+                        width: 256,
+                        height: 256
+                    });
+                    
+                    // Connect to WebSocket for signature notification
+                    connectWebSocket(name);
+                    
+                } else {
+                    showStatus('Error preparing name update: ' + (data.detail || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus('Error preparing name update: ' + error.message, 'error');
+            }
+        }
+        
+        function connectWebSocket(name) {
+            // Close existing connection if any
+            if (ws) {
+                ws.close();
+            }
+            
+            // Create new WebSocket connection
+            ws = new WebSocket(`ws://${window.location.host}/ws/name_update/${name}`);
+            
+            ws.onopen = function(event) {
+                console.log('WebSocket connection established');
+            };
+            
+            ws.onmessage = function(event) {
+                const notification = JSON.parse(event.data);
+                if (notification.success) {
+                    // Create success notification
+                    const notificationDiv = document.createElement('div');
+                    notificationDiv.className = 'bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mt-4';
+                    notificationDiv.innerHTML = `
+                        <strong class="font-bold">Success!</strong>
+                        <span class="block sm:inline"> ${notification.message}</span>
+                    `;
+                    document.getElementById('qrSection').appendChild(notificationDiv);
+                    
+                    // Show success status
+                    showStatus('Name updated successfully! Redirecting to insights page...', 'success');
+                    
+                    // Redirect back to insights page after successful update
+                    setTimeout(() => {
+                        window.location.href = `/insights?cid=${notification.state_cid}`;
+                    }, 2000);
+                    
+                    // Close WebSocket connection
+                    ws.close();
+                } else {
+                    showStatus('Error: ' + (notification.detail || 'Unknown error'), 'error');
+                }
+            };
+            
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+                showStatus('WebSocket connection error', 'error');
+            };
+        }
+        
+        function showStatus(message, type) {
+            const statusSection = document.getElementById('statusSection');
+            const statusMessage = document.getElementById('statusMessage');
+            
+            statusSection.classList.remove('hidden', 'bg-green-700', 'bg-red-700');
+            statusSection.classList.add(type === 'success' ? 'bg-green-700' : 'bg-red-700');
+            
+            statusMessage.textContent = message;
+            statusSection.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
