@@ -413,6 +413,7 @@
                                                                                             <svg xmlns="http://www.w3.org/2000/svg" class="inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
                                                                                             </svg>
+                                                                                            <span class="italic ml-1">Auto-ranked</span>
                                                                                         </span>
                                                                                     ` : ''}
                                                                                     ${opinion.ranking_type === 'auto_low' && rank === 0 ? `
@@ -420,18 +421,12 @@
                                                                                             <svg xmlns="http://www.w3.org/2000/svg" class="inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                                                                                             </svg>
+                                                                                            <span class="italic ml-1">Auto-ranked</span>
                                                                                         </span>
                                                                                     ` : ''}
                                                                                 </div>
                                                                             `;
                                                                         }).join('')}
-                                                                        ${opinion.ranking_type && opinion.ranking_type !== 'fixed' ? `
-                                                                            <div class="text-xs mt-1 ${opinion.ranking_type === 'auto_high' ? 'text-blue-400' : 'text-purple-400'}">
-                                                                                <span class="italic">
-                                                                                    Auto-ranked
-                                                                                </span>
-                                                                            </div>
-                                                                        ` : ''}
                                                                     </div>
                                                                 ` : `
                                                                     <p class="text-gray-400 italic">No ranking data available</p>
