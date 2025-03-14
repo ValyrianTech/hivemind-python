@@ -108,7 +108,7 @@ def setup_logging():
     """Setup logging configuration."""
     # Configure root logger
     root_logger = logging.getLogger()
-    root_logger.setLevel(logging.INFO)
+    root_logger.setLevel(logging.DEBUG)
 
     # Create and configure file handler
     file_handler = RotatingFileHandler(
@@ -357,19 +357,59 @@ async def fetch_state(request: IPFSHashRequest):
                     
                     # Extract ranking based on the data format
                     ranking = None
+                    logger.debug(f"Opinion ranking raw data for {address}: {opinion.ranking}")
+                    logger.debug(f"Opinion ranking type: {type(opinion.ranking)}")
+                    
                     if hasattr(opinion, 'ranking'):
-                        if isinstance(opinion.ranking, list):
-                            ranking = opinion.ranking
-                        elif isinstance(opinion.ranking, dict):
-                            ranking = opinion.ranking.get('fixed')
-                        elif hasattr(opinion.ranking, 'fixed'):
-                            ranking = opinion.ranking.fixed
+                        # Inspect the Ranking object's attributes
+                        if hasattr(opinion.ranking, '__dict__'):
+                            logger.debug(f"Ranking object attributes: {opinion.ranking.__dict__}")
+                            
+                            # Handle different ranking types
+                            ranking_dict = opinion.ranking.__dict__
+                            ranking_type = ranking_dict.get('type')
+                            
+                            if ranking_type == 'fixed' and ranking_dict.get('fixed'):
+                                # For fixed rankings, use the list of options
+                                ranking = ranking_dict['fixed']
+                                logger.debug(f"Using fixed ranking: {ranking}")
+                            elif ranking_type in ['auto_high', 'auto_low'] and ranking_dict.get('auto'):
+                                # For auto rankings, create a list with just the preferred option
+                                preferred_option = ranking_dict['auto']
+                                ranking = [preferred_option]
+                                logger.debug(f"Created ranking list from auto {ranking_type}: {ranking}")
+                        
+                        # Fallback to previous methods if the above didn't work
+                        if ranking is None:
+                            if isinstance(opinion.ranking, list):
+                                ranking = opinion.ranking
+                                logger.debug(f"List ranking detected for {address}: {ranking}")
+                            elif isinstance(opinion.ranking, dict):
+                                logger.debug(f"Dict ranking detected for {address}: {opinion.ranking}")
+                                # Check for auto_high or auto_low
+                                if 'type' in opinion.ranking:
+                                    logger.debug(f"Ranking type from dict: {opinion.ranking['type']}")
+                                    if opinion.ranking['type'] == 'auto_high' or opinion.ranking['type'] == 'auto_low':
+                                        # For auto rankings, we need to extract the preferred option
+                                        preferred_option = opinion.ranking.get('auto')
+                                        logger.debug(f"Auto ranking preferred option: {preferred_option}")
+                                        if preferred_option:
+                                            # Create a list with the preferred option for display
+                                            ranking = [preferred_option]
+                                            logger.debug(f"Created ranking list from preferred option: {ranking}")
+                                else:
+                                    ranking = opinion.ranking.get('fixed')
+                                    logger.debug(f"Fixed ranking from dict: {ranking}")
+                            elif hasattr(opinion.ranking, 'fixed'):
+                                ranking = opinion.ranking.fixed
+                                logger.debug(f"Ranking from fixed attribute: {ranking}")
                     
                     logger.info(f"Loaded opinion for {address} in question {question_index}")
                     question_data[address] = {
                         'opinion_cid': opinion_info['opinion_cid'],
                         'timestamp': opinion_info['timestamp'],
-                        'ranking': ranking
+                        'ranking': ranking,
+                        'ranking_type': ranking_type  # Add the ranking type to the opinion data
                     }
                 except Exception as e:
                     logger.error(f"Failed to load opinion for {address} in question {question_index}: {str(e)}")
@@ -377,6 +417,7 @@ async def fetch_state(request: IPFSHashRequest):
                         'opinion_cid': opinion_info['opinion_cid'],
                         'timestamp': opinion_info['timestamp'],
                         'ranking': None,
+                        'ranking_type': None,
                         'error': str(e)
                     }
             full_opinions.append(question_data)
