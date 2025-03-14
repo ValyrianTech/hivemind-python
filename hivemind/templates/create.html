@@ -124,8 +124,13 @@
                             <!-- Addresses field -->
                             <div>
                                 <label class="block text-sm font-medium text-gray-300">Allowed Addresses (one per line)</label>
-                                <textarea id="restriction_addresses" rows="4" placeholder="addr1&#10;addr2&#10;addr3"
+                                <textarea id="restriction_addresses" rows="4" placeholder="addr1&#10;addr2&#10;addr3@2.5"
                                           class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white font-mono text-sm"></textarea>
+                                <p class="mt-1 text-sm text-gray-400">
+                                    <i class="fas fa-info-circle mr-1"></i> 
+                                    You can optionally specify a weight for an address using the format <code class="bg-gray-600 px-1 rounded">address@weight</code> (e.g., <code class="bg-gray-600 px-1 rounded">addr3@2.5</code>). 
+                                    This gives the address's opinions more influence in the final result.
+                                </p>
                             </div>
                             
                             <!-- Options per address field -->
