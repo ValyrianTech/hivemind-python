@@ -402,16 +402,6 @@
                                                                 <p class="font-medium text-gray-300 mb-2">Ranking:</p>
                                                                 ${opinion.ranking ? `
                                                                     <div class="space-y-2">
-                                                                        ${opinion.ranking_type && opinion.ranking_type !== 'fixed' ? `
-                                                                            <div class="flex items-center mb-2">
-                                                                                <span class="text-xs px-2 py-1 rounded-md ${opinion.ranking_type === 'auto_high' ? 'bg-blue-700' : 'bg-purple-700'} text-white">
-                                                                                    ${opinion.ranking_type === 'auto_high' ? 'Auto High' : 'Auto Low'}
-                                                                                </span>
-                                                                                <span class="text-xs text-gray-400 ml-2">
-                                                                                    ${opinion.ranking_type === 'auto_high' ? '(Preferred option ranked highest)' : '(Preferred option ranked lowest)'}
-                                                                                </span>
-                                                                            </div>
-                                                                        ` : ''}
                                                                         ${opinion.ranking.map((optionCid, rank) => {
                                                                             const option = data.options.find(opt => opt.cid === optionCid);
                                                                             return `
@@ -419,14 +409,29 @@
                                                                                     <span class="text-gray-400">#${rank + 1}</span>
                                                                                     <span class="text-white">${option ? (option.text || option.value) : optionCid}</span>
                                                                                     ${opinion.ranking_type === 'auto_high' && rank === 0 ? `
-                                                                                        <span class="text-xs text-blue-400 ml-2">(preferred)</span>
+                                                                                        <span class="text-xs text-blue-400 ml-2">
+                                                                                            <svg xmlns="http://www.w3.org/2000/svg" class="inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                                                                                            </svg>
+                                                                                        </span>
                                                                                     ` : ''}
                                                                                     ${opinion.ranking_type === 'auto_low' && rank === 0 ? `
-                                                                                        <span class="text-xs text-purple-400 ml-2">(preferred)</span>
+                                                                                        <span class="text-xs text-purple-400 ml-2">
+                                                                                            <svg xmlns="http://www.w3.org/2000/svg" class="inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                                                                            </svg>
+                                                                                        </span>
                                                                                     ` : ''}
                                                                                 </div>
                                                                             `;
                                                                         }).join('')}
+                                                                        ${opinion.ranking_type && opinion.ranking_type !== 'fixed' ? `
+                                                                            <div class="text-xs mt-1 ${opinion.ranking_type === 'auto_high' ? 'text-blue-400' : 'text-purple-400'}">
+                                                                                <span class="italic">
+                                                                                    Auto-ranked
+                                                                                </span>
+                                                                            </div>
+                                                                        ` : ''}
                                                                     </div>
                                                                 ` : `
                                                                     <p class="text-gray-400 italic">No ranking data available</p>
