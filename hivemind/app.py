@@ -277,6 +277,57 @@ async def states_page(request: Request):
         logger.error(f"Error loading states page: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+async def load_opinions_for_question(question_index: int, question_opinions: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    """
+    Load opinions for a specific question from IPFS.
+    
+    Args:
+        question_index: Index of the question
+        question_opinions: Dictionary mapping addresses to opinion info
+        
+    Returns:
+        Dict mapping addresses to opinion data including ranking and ranking_type
+    """
+    question_data = {}
+    for address, opinion_info in question_opinions.items():
+        try:
+            # Load opinion data in a thread
+            opinion = await asyncio.to_thread(lambda cid=opinion_info['opinion_cid']: HivemindOpinion(cid=cid))
+            
+            # Extract ranking based on the data format
+            ranking = None
+            ranking_type = None
+            logger.debug(f"Opinion ranking raw data for {address}: {opinion.ranking}")
+            logger.debug(f"Opinion ranking type: {type(opinion.ranking)}")
+            
+            if hasattr(opinion, 'ranking'):
+                # Extract ranking using the helper function
+                ranking, ranking_type = extract_ranking_from_opinion_object(opinion.ranking)
+                
+                # Fallback to previous methods if the above didn't work
+                if ranking is None:
+                    if isinstance(opinion.ranking, list):
+                        ranking = opinion.ranking
+                        logger.debug(f"List ranking detected for {address}: {ranking}")
+            
+            logger.info(f"Loaded opinion for {address} in question {question_index}")
+            question_data[address] = {
+                'opinion_cid': opinion_info['opinion_cid'],
+                'timestamp': opinion_info['timestamp'],
+                'ranking': ranking,
+                'ranking_type': ranking_type  # Add the ranking type to the opinion data
+            }
+        except Exception as e:
+            logger.error(f"Failed to load opinion for {address} in question {question_index}: {str(e)}")
+            question_data[address] = {
+                'opinion_cid': opinion_info['opinion_cid'],
+                'timestamp': opinion_info['timestamp'],
+                'ranking': None,
+                'ranking_type': None,
+                'error': str(e)
+            }
+    return question_data
+
 @app.post("/fetch_state")
 async def fetch_state(request: IPFSHashRequest):
     stats = StateLoadingStats()
@@ -349,44 +400,7 @@ async def fetch_state(request: IPFSHashRequest):
         opinions_start = time.time()
         full_opinions = []
         for question_index, question_opinions in enumerate(state.opinions):
-            question_data = {}
-            for address, opinion_info in question_opinions.items():
-                try:
-                    # Load opinion data in a thread
-                    opinion = await asyncio.to_thread(lambda cid=opinion_info['opinion_cid']: HivemindOpinion(cid=cid))
-                    
-                    # Extract ranking based on the data format
-                    ranking = None
-                    ranking_type = None
-                    logger.debug(f"Opinion ranking raw data for {address}: {opinion.ranking}")
-                    logger.debug(f"Opinion ranking type: {type(opinion.ranking)}")
-                    
-                    if hasattr(opinion, 'ranking'):
-                        # Extract ranking using the helper function
-                        ranking, ranking_type = extract_ranking_from_opinion_object(opinion.ranking)
-                        
-                        # Fallback to previous methods if the above didn't work
-                        if ranking is None:
-                            if isinstance(opinion.ranking, list):
-                                ranking = opinion.ranking
-                                logger.debug(f"List ranking detected for {address}: {ranking}")
-                    
-                    logger.info(f"Loaded opinion for {address} in question {question_index}")
-                    question_data[address] = {
-                        'opinion_cid': opinion_info['opinion_cid'],
-                        'timestamp': opinion_info['timestamp'],
-                        'ranking': ranking,
-                        'ranking_type': ranking_type  # Add the ranking type to the opinion data
-                    }
-                except Exception as e:
-                    logger.error(f"Failed to load opinion for {address} in question {question_index}: {str(e)}")
-                    question_data[address] = {
-                        'opinion_cid': opinion_info['opinion_cid'],
-                        'timestamp': opinion_info['timestamp'],
-                        'ranking': None,
-                        'ranking_type': None,
-                        'error': str(e)
-                    }
+            question_data = await load_opinions_for_question(question_index, question_opinions)
             full_opinions.append(question_data)
         stats.opinions_load_time = time.time() - opinions_start
         
