@@ -510,8 +510,9 @@ class TestHivemindStateWeightedConsensus:
         # Modify restrictions to include weights using the '@' symbol
         test_address = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa@2.5"
         other_address = "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2"
+        invalid_weight_address = "1MzQwSR3s7RqxJPuQzF7Y4iybjhHNV4bZq@invalid"
         state._hivemind_issue.restrictions = {
-            'addresses': [test_address, other_address]
+            'addresses': [test_address, other_address, invalid_weight_address]
         }
 
         # Test weight for address with weight
@@ -519,6 +520,9 @@ class TestHivemindStateWeightedConsensus:
 
         # Test weight for address without weight (should return default 1.0)
         assert state.get_weight(other_address) == 1.0
+        
+        # Test weight for address with invalid weight format (should return default 1.0)
+        assert state.get_weight("1MzQwSR3s7RqxJPuQzF7Y4iybjhHNV4bZq") == 1.0
 
 @pytest.mark.consensus
 class TestHivemindStateFinalizeSelectionMode:
