@@ -370,39 +370,6 @@ class TestSignNameUpdate:
     @patch("app.asyncio.to_thread", mock_to_thread)
     @patch("app.connect")
     @patch("app.IPFSDict")
-    def test_sign_name_update_missing_name(self, mock_ipfs_dict, mock_connect):
-        """Test sign_name_update with missing name in identification data."""
-        # Create a timestamp and test data
-        timestamp = int(time.time())
-        
-        # Mock IPFS Dict to return incomplete data (missing name)
-        mock_ipfs_dict_instance = MagicMock()
-        mock_ipfs_dict_instance.__getitem__.side_effect = lambda key: {
-            "hivemind_id": VALID_HIVEMIND_ID
-            # Missing name
-        }.get(key)
-        mock_ipfs_dict.return_value = mock_ipfs_dict_instance
-        
-        # Create test request data
-        message = f"{timestamp:010d}{VALID_IDENTIFICATION_CID}"
-        request_data = {
-            "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
-            "message": message,
-            "signature": "valid_signature",
-            "data": {"name": "Test User"}
-        }
-        
-        # Test the endpoint
-        response = self.client.post("/api/sign_name_update", json=request_data)
-        
-        # Verify response
-        assert response.status_code == 400
-        data = response.json()
-        assert "Missing name in identification data" in data["detail"]
-    
-    @patch("app.asyncio.to_thread", mock_to_thread)
-    @patch("app.connect")
-    @patch("app.IPFSDict")
     @patch("app.load_state_mapping")
     def test_sign_name_update_no_state_found(self, mock_load_state_mapping, mock_ipfs_dict, mock_connect):
         """Test sign_name_update with no state found for hivemind ID."""
@@ -482,6 +449,78 @@ class TestSignNameUpdate:
         assert response.status_code == 400
         data = response.json()
         assert "Signature verification failed" in data["detail"]
+    
+    @patch("app.asyncio.to_thread", mock_to_thread)
+    @patch("app.connect")
+    @patch("app.IPFSDict")
+    @patch("app.load_state_mapping")
+    def test_sign_name_update_no_state_hash(self, mock_load_state_mapping, mock_ipfs_dict, mock_connect):
+        """Test sign_name_update with no state hash found for hivemind ID (line 1299)."""
+        # Create a timestamp and test data
+        timestamp = int(time.time())
+        
+        # Mock IPFS Dict to return hivemind_id and name
+        mock_ipfs_dict_instance = MagicMock()
+        mock_ipfs_dict_instance.__getitem__.side_effect = lambda key: {
+            "hivemind_id": VALID_HIVEMIND_ID,
+            "name": "Test User"
+        }.get(key)
+        mock_ipfs_dict.return_value = mock_ipfs_dict_instance
+        
+        # Mock state mapping to return a dict with the hivemind ID but no state_hash
+        mock_load_state_mapping.return_value = {
+            VALID_HIVEMIND_ID: {"other_field": "some_value"}  # Missing state_hash
+        }
+        
+        # Create test request data
+        message = f"{timestamp:010d}{VALID_IDENTIFICATION_CID}"
+        request_data = {
+            "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+            "message": message,
+            "signature": "valid_signature",
+            "data": {"name": "Test User"}
+        }
+        
+        # Test the endpoint
+        response = self.client.post("/api/sign_name_update", json=request_data)
+        
+        # Verify response
+        assert response.status_code == 400  # The 404 is caught and returned as a 400
+        data = response.json()
+        assert f"No state hash found for hivemind ID: {VALID_HIVEMIND_ID}" in data["detail"]
+    
+    @patch("app.asyncio.to_thread", mock_to_thread)
+    @patch("app.connect")
+    @patch("app.IPFSDict")
+    def test_sign_name_update_missing_name(self, mock_ipfs_dict, mock_connect):
+        """Test sign_name_update with missing name in identification data."""
+        # Create a timestamp and test data
+        timestamp = int(time.time())
+        
+        # Mock IPFS Dict to return incomplete data (missing name)
+        mock_ipfs_dict_instance = MagicMock()
+        mock_ipfs_dict_instance.__getitem__.side_effect = lambda key: {
+            "hivemind_id": VALID_HIVEMIND_ID
+            # Missing name
+        }.get(key)
+        mock_ipfs_dict.return_value = mock_ipfs_dict_instance
+        
+        # Create test request data
+        message = f"{timestamp:010d}{VALID_IDENTIFICATION_CID}"
+        request_data = {
+            "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+            "message": message,
+            "signature": "valid_signature",
+            "data": {"name": "Test User"}
+        }
+        
+        # Test the endpoint
+        response = self.client.post("/api/sign_name_update", json=request_data)
+        
+        # Verify response
+        assert response.status_code == 400
+        data = response.json()
+        assert "Missing name in identification data" in data["detail"]
 
 if __name__ == "__main__":
     pytest.main(["-xvs", "test_app_name_update.py"])
