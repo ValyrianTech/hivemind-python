@@ -1286,12 +1286,17 @@ async def sign_name_update(request: Request):
             
             # Load the IPFSDict with the identification_cid to get hivemind_id and name
             try:
-                await connect(host='127.0.0.1', port=5001)
-                identification_data = await asyncio.to_thread(lambda: IPFSDict(cid=identification_cid))
-                logger.debug(f"Loaded identification data: {dict(identification_data)}")
+                # Define a function to handle IPFS connection and data loading
+                def load_ipfs_data():
+                    connect(host='127.0.0.1', port=5001)
+                    return IPFSDict(cid=identification_cid)
+                
+                # Load the identification data
+                identification_data = await asyncio.to_thread(load_ipfs_data)
+                logger.debug(f"Loaded identification data: {identification_data}")
 
-                hivemind_id = identification_data.get('hivemind_id')
-                name = identification_data.get('name')
+                hivemind_id = identification_data['hivemind_id']
+                name = identification_data['name']
                 
                 if not hivemind_id:
                     raise HTTPException(status_code=400, detail="Missing hivemind ID in identification data")
@@ -1323,6 +1328,8 @@ async def sign_name_update(request: Request):
                     
                 # Use to_thread to run the synchronous HivemindState operations
                 state = await asyncio.to_thread(lambda: HivemindState(cid=state_cid))
+
+                logger.debug(f"Loaded state data: {state}")
                 
                 # Update the participant name
                 await asyncio.to_thread(
