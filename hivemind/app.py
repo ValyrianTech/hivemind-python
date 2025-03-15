@@ -1160,9 +1160,9 @@ async def update_name_page_path(request: Request, hivemind_id: str):
         TemplateResponse: The rendered template
     """
     return templates.TemplateResponse(
+        request,
         "update_name.html", 
         {
-            "request": request, 
             "hivemind_id": hivemind_id
         }
     )
@@ -1183,9 +1183,9 @@ async def update_name_page_query(request: Request, state_cid: str = None, hivemi
         raise HTTPException(status_code=400, detail="Missing hivemind_id parameter")
         
     return templates.TemplateResponse(
+        request,
         "update_name.html", 
         {
-            "request": request, 
             "hivemind_id": hivemind_id
         }
     )
