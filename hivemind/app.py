@@ -1019,7 +1019,7 @@ async def sign_opinion(request: Request):
         if not all([address, message, signature, opinion_data]):
             raise HTTPException(status_code=400, detail="Missing required fields")
             
-        # Parse timestamp and state CID from message format: "timestampCID"
+        # Parse timestamp and opinion_hash from message format: "timestampCID"
         try:
             # First 10 chars are timestamp, rest is CID
             timestamp_str = message[:10]
@@ -1041,7 +1041,7 @@ async def sign_opinion(request: Request):
             # Get the latest state hash from hivemind_states.json
             state_data = load_state_mapping().get(opinion.hivemind_id)
             if not state_data:
-                raise HTTPException(status_code=400, detail="No state data found for hivemind ID")
+                raise HTTPException(status_code=404, detail="No state data found for hivemind ID")
             
             latest_state_hash = state_data["state_hash"]
             logger.info(f"Using latest state hash: {latest_state_hash}")
@@ -1268,32 +1268,49 @@ async def sign_name_update(request: Request):
         if not all([address, message, signature, name_data]):
             raise HTTPException(status_code=400, detail="Missing required fields")
             
-        # Parse timestamp and name from message format: "timestampName"
+        # Parse timestamp and identification_cid from message format: "timestampCID"
         try:
-            # First 10 chars are timestamp, rest is name
+            # First 10 chars are timestamp, rest is identification_cid
             timestamp_str = message[:10]
-            name = message[10:]
+            identification_cid = message[10:]
             timestamp = int(timestamp_str)
-            logger.info(f"Parsed timestamp: {timestamp}, name: {name}")
+            logger.info(f"Parsed timestamp: {timestamp}, identification_cid: {identification_cid}")
+            
+            # Get the name from the identification_cid
+            # First, get the hivemind_id from the data
+            hivemind_id = name_data.get('hivemind_id')
+            
+            if not hivemind_id:
+                raise HTTPException(status_code=400, detail="Missing hivemind ID in data")
+                
+            # Create an issue object to get the name from the identification_cid
+            issue = await asyncio.to_thread(lambda: HivemindIssue(cid=hivemind_id))
+            name = await asyncio.to_thread(lambda: issue.get_name_from_identification_cid(identification_cid))
+            
+            if not name:
+                raise HTTPException(status_code=400, detail="Could not retrieve name from identification CID")
+                
+            logger.info(f"Retrieved name: {name} from identification_cid: {identification_cid}")
         except ValueError:
             logger.error(f"Failed to parse message format: {message}")
             raise HTTPException(status_code=400, detail="Invalid message format")
             
         # Get hivemind state from the name data
         try:
-            hivemind_id = name_data.get('hivemind_id')
-            
-            if not hivemind_id:
-                raise HTTPException(status_code=400, detail="Missing hivemind ID in data")
-            
             # Get the latest state CID for this hivemind
             state_mapping = load_state_mapping()
             if hivemind_id not in state_mapping:
                 raise HTTPException(status_code=404, detail=f"No state found for hivemind ID: {hivemind_id}")
             
-            state_cid = state_mapping[hivemind_id].get('state_hash')
-            if not state_cid:
-                raise HTTPException(status_code=404, detail=f"No state hash found for hivemind ID: {hivemind_id}")
+            # Handle case where state_mapping[hivemind_id] is a string (direct CID) or a dictionary
+            state_data = state_mapping[hivemind_id]
+            if isinstance(state_data, dict):
+                state_cid = state_data.get('state_hash')
+                if not state_cid:
+                    raise HTTPException(status_code=404, detail=f"No state hash found for hivemind ID: {hivemind_id}")
+            else:
+                # If it's a string, assume it's the state CID directly
+                state_cid = state_data
                 
             # Use to_thread to run the synchronous HivemindState operations
             state = await asyncio.to_thread(lambda: HivemindState(cid=state_cid))
