@@ -209,3 +209,17 @@ class HivemindIssue(IPFSDict):
             raise Exception('Invalid on_selection for Hivemind Issue: %s' % self.on_selection)
 
         return True
+
+    def get_identification_cid(self, name: str) -> str:
+        """Get the identification CID so that a participant can self-identify for this issue.
+
+        :param name: The name of the participant
+        :type name: str
+        :return: The identification CID
+        :rtype: str
+        """
+        data = IPFSDict()
+        data['hivemind_id'] = self.cid()
+        data['name'] = name
+
+        return data.save()
