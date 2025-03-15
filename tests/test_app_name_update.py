@@ -180,5 +180,275 @@ class TestPrepareNameUpdate:
             data = response.json()
             assert "Test exception" in data["detail"]
 
+@pytest.mark.unit
+class TestSignNameUpdate:
+    """Test the sign_name_update API endpoint."""
+    
+    def setup_method(self):
+        """Set up test client for each test."""
+        self.client = TestClient(app.app)
+        # Clear name_update_connections before each test
+        app.name_update_connections.clear()
+        # Add a test connection
+        app.name_update_connections["Test User"] = [AsyncMock()]
+    
+    @patch("app.asyncio.to_thread", mock_to_thread)
+    @patch("app.connect")
+    @patch("app.IPFSDict")
+    @patch("app.load_state_mapping")
+    @patch("app.HivemindState")
+    @patch("app.HivemindIssue")
+    @patch("app.update_state")
+    def test_sign_name_update_success(self, mock_update_state, mock_issue, mock_state, 
+                                     mock_load_state_mapping, mock_ipfs_dict, mock_connect):
+        """Test successful name update with a signed message."""
+        # Create a timestamp and test data
+        timestamp = int(time.time())
+        test_name = "Test User"
+        test_address = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"  # Example Bitcoin address
+        test_signature = "valid_signature"
+        
+        # Mock IPFS Dict to return hivemind_id and name
+        mock_ipfs_dict_instance = MagicMock()
+        mock_ipfs_dict_instance.__getitem__.side_effect = lambda key: {
+            "hivemind_id": VALID_HIVEMIND_ID,
+            "name": test_name
+        }.get(key)
+        mock_ipfs_dict.return_value = mock_ipfs_dict_instance
+        
+        # Mock state mapping
+        mock_load_state_mapping.return_value = {
+            VALID_HIVEMIND_ID: {"state_hash": VALID_STATE_CID}
+        }
+        
+        # Mock HivemindState
+        mock_state_instance = MagicMock()
+        mock_state_instance.update_participant_name.return_value = None
+        mock_state_instance.save.return_value = "new_state_cid"
+        mock_state_instance.options = ["option1", "option2"]
+        mock_state_instance.opinions = [[{"address": "addr1"}, {"address": "addr2"}]]
+        mock_state.return_value = mock_state_instance
+        
+        # Mock HivemindIssue
+        mock_issue_instance = MagicMock()
+        mock_issue_instance.name = "Test Issue"
+        mock_issue_instance.description = "Test Description"
+        mock_issue_instance.answer_type = "Text"
+        mock_issue_instance.questions = ["Test Question"]
+        mock_issue_instance.tags = ["test", "tag"]
+        mock_issue.return_value = mock_issue_instance
+        
+        # Mock update_state to return success
+        mock_update_state.return_value = {"success": True}
+        
+        # Create test request data
+        message = f"{timestamp:010d}{VALID_IDENTIFICATION_CID}"
+        request_data = {
+            "address": test_address,
+            "message": message,
+            "signature": test_signature,
+            "data": {"name": test_name}
+        }
+        
+        # Test the endpoint
+        response = self.client.post("/api/sign_name_update", json=request_data)
+        
+        # Verify response
+        assert response.status_code == 200
+        response_data = response.json()
+        assert response_data["success"] is True
+        assert response_data["cid"] == "new_state_cid"
+        
+        # Verify that the state was updated
+        mock_state_instance.update_participant_name.assert_called_once_with(
+            timestamp=timestamp,
+            name=test_name,
+            address=test_address,
+            signature=test_signature,
+            message=message
+        )
+        
+        # Verify that WebSocket notification was sent
+        app.name_update_connections["Test User"][0].send_json.assert_called_once()
+    
+    def test_sign_name_update_missing_fields(self):
+        """Test sign_name_update with missing required fields."""
+        # Test request data with missing fields
+        request_data = {
+            "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+            "message": "1234567890cid",
+            # Missing signature and data
+        }
+        
+        # Test the endpoint
+        response = self.client.post("/api/sign_name_update", json=request_data)
+        
+        # Verify response
+        assert response.status_code == 400
+        data = response.json()
+        assert "Missing required fields" in data["detail"]
+    
+    def test_sign_name_update_invalid_message_format(self):
+        """Test sign_name_update with invalid message format."""
+        # Test request data with invalid message format
+        request_data = {
+            "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+            "message": "invalid_message_format",  # Not timestamp + CID
+            "signature": "valid_signature",
+            "data": {"name": "Test User"}
+        }
+        
+        # Test the endpoint
+        response = self.client.post("/api/sign_name_update", json=request_data)
+        
+        # Verify response
+        assert response.status_code == 400
+        data = response.json()
+        assert "Invalid message format" in data["detail"]
+    
+    @patch("app.asyncio.to_thread", mock_to_thread)
+    @patch("app.connect")
+    @patch("app.IPFSDict")
+    def test_sign_name_update_ipfs_error(self, mock_ipfs_dict, mock_connect):
+        """Test sign_name_update with IPFS error."""
+        # Create a timestamp and test data
+        timestamp = int(time.time())
+        
+        # Mock IPFS Dict to raise an exception
+        mock_ipfs_dict.side_effect = Exception("IPFS connection error")
+        
+        # Create test request data
+        message = f"{timestamp:010d}{VALID_IDENTIFICATION_CID}"
+        request_data = {
+            "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+            "message": message,
+            "signature": "valid_signature",
+            "data": {"name": "Test User"}
+        }
+        
+        # Test the endpoint
+        response = self.client.post("/api/sign_name_update", json=request_data)
+        
+        # Verify response
+        assert response.status_code == 400
+        data = response.json()
+        assert "Failed to load identification data" in data["detail"]
+    
+    @patch("app.asyncio.to_thread", mock_to_thread)
+    @patch("app.connect")
+    @patch("app.IPFSDict")
+    def test_sign_name_update_missing_hivemind_id(self, mock_ipfs_dict, mock_connect):
+        """Test sign_name_update with missing hivemind ID in identification data."""
+        # Create a timestamp and test data
+        timestamp = int(time.time())
+        
+        # Mock IPFS Dict to return incomplete data (missing hivemind_id)
+        mock_ipfs_dict_instance = MagicMock()
+        mock_ipfs_dict_instance.__getitem__.side_effect = lambda key: {
+            "name": "Test User"
+            # Missing hivemind_id
+        }.get(key)
+        mock_ipfs_dict.return_value = mock_ipfs_dict_instance
+        
+        # Create test request data
+        message = f"{timestamp:010d}{VALID_IDENTIFICATION_CID}"
+        request_data = {
+            "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+            "message": message,
+            "signature": "valid_signature",
+            "data": {"name": "Test User"}
+        }
+        
+        # Test the endpoint
+        response = self.client.post("/api/sign_name_update", json=request_data)
+        
+        # Verify response
+        assert response.status_code == 400
+        data = response.json()
+        assert "Missing hivemind ID in identification data" in data["detail"]
+    
+    @patch("app.asyncio.to_thread", mock_to_thread)
+    @patch("app.connect")
+    @patch("app.IPFSDict")
+    @patch("app.load_state_mapping")
+    def test_sign_name_update_no_state_found(self, mock_load_state_mapping, mock_ipfs_dict, mock_connect):
+        """Test sign_name_update with no state found for hivemind ID."""
+        # Create a timestamp and test data
+        timestamp = int(time.time())
+        
+        # Mock IPFS Dict to return hivemind_id and name
+        mock_ipfs_dict_instance = MagicMock()
+        mock_ipfs_dict_instance.__getitem__.side_effect = lambda key: {
+            "hivemind_id": VALID_HIVEMIND_ID,
+            "name": "Test User"
+        }.get(key)
+        mock_ipfs_dict.return_value = mock_ipfs_dict_instance
+        
+        # Mock state mapping to return empty dict (no state found)
+        mock_load_state_mapping.return_value = {}
+        
+        # Create test request data
+        message = f"{timestamp:010d}{VALID_IDENTIFICATION_CID}"
+        request_data = {
+            "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+            "message": message,
+            "signature": "valid_signature",
+            "data": {"name": "Test User"}
+        }
+        
+        # Test the endpoint
+        response = self.client.post("/api/sign_name_update", json=request_data)
+        
+        # Verify response
+        assert response.status_code == 400
+        data = response.json()
+        assert f"No state found for hivemind ID: {VALID_HIVEMIND_ID}" in data["detail"]
+    
+    @patch("app.asyncio.to_thread", mock_to_thread)
+    @patch("app.connect")
+    @patch("app.IPFSDict")
+    @patch("app.load_state_mapping")
+    @patch("app.HivemindState")
+    def test_sign_name_update_state_exception(self, mock_state, mock_load_state_mapping, 
+                                             mock_ipfs_dict, mock_connect):
+        """Test sign_name_update with exception during state update."""
+        # Create a timestamp and test data
+        timestamp = int(time.time())
+        
+        # Mock IPFS Dict to return hivemind_id and name
+        mock_ipfs_dict_instance = MagicMock()
+        mock_ipfs_dict_instance.__getitem__.side_effect = lambda key: {
+            "hivemind_id": VALID_HIVEMIND_ID,
+            "name": "Test User"
+        }.get(key)
+        mock_ipfs_dict.return_value = mock_ipfs_dict_instance
+        
+        # Mock state mapping
+        mock_load_state_mapping.return_value = {
+            VALID_HIVEMIND_ID: {"state_hash": VALID_STATE_CID}
+        }
+        
+        # Mock HivemindState to raise an exception
+        mock_state_instance = MagicMock()
+        mock_state_instance.update_participant_name.side_effect = Exception("Signature verification failed")
+        mock_state.return_value = mock_state_instance
+        
+        # Create test request data
+        message = f"{timestamp:010d}{VALID_IDENTIFICATION_CID}"
+        request_data = {
+            "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+            "message": message,
+            "signature": "valid_signature",
+            "data": {"name": "Test User"}
+        }
+        
+        # Test the endpoint
+        response = self.client.post("/api/sign_name_update", json=request_data)
+        
+        # Verify response
+        assert response.status_code == 400
+        data = response.json()
+        assert "Signature verification failed" in data["detail"]
+
 if __name__ == "__main__":
     pytest.main(["-xvs", "test_app_name_update.py"])
