@@ -24,10 +24,10 @@ class TestHivemindStateParticipants:
         
         # Test with invalid signature
         with pytest.raises(Exception, match='Invalid signature'):
-            state.update_participant_name(timestamp, name, address, 'fake_sig')
+            state.update_participant_name(timestamp, name, address, 'fake_sig', message)
         
         # Test with valid signature
-        state.update_participant_name(timestamp, name, address, signature)
+        state.update_participant_name(timestamp, name, address, signature, message)
         
         # Verify participant was added with correct name
         assert address in state.participants
@@ -47,7 +47,7 @@ class TestHivemindStateParticipantManagement:
         name = "Test User"
         message = f"{timestamp}{name}"
         signature = sign_message(message, private_key)
-        state.update_participant_name(timestamp, name, address, signature)
+        state.update_participant_name(timestamp, name, address, signature, message)
         
         assert address in state.participants
         assert state.participants[address]['name'] == name
@@ -60,7 +60,7 @@ class TestHivemindStateParticipantManagement:
         new_timestamp = timestamp + 1
         new_message = f"{new_timestamp}{new_name}"
         new_signature = sign_message(new_message, private_key)
-        state.update_participant_name(new_timestamp, new_name, address, signature=new_signature)
+        state.update_participant_name(new_timestamp, new_name, address, signature=new_signature, message=new_message)
         
         assert state.participants[address]['name'] == new_name
         assert new_name in state.signatures[address]
@@ -72,7 +72,7 @@ class TestHivemindStateParticipantManagement:
         old_message = f"{old_timestamp}{name}"  # Try to update the same name with older timestamp
         old_signature = sign_message(old_message, private_key)
         with pytest.raises(Exception, match='Invalid timestamp'):
-            state.update_participant_name(old_timestamp, name, address, signature=old_signature)
+            state.update_participant_name(old_timestamp, name, address, signature=old_signature, message=old_message)
         assert state.participants[address]['name'] == new_name  # Name should not change
 
         # Test 4: Allow old timestamp for different name
@@ -80,10 +80,10 @@ class TestHivemindStateParticipantManagement:
         old_message = f"{old_timestamp}{different_name}"
         old_signature = sign_message(old_message, private_key)
         # This should work since it's a different name message
-        state.update_participant_name(old_timestamp, different_name, address, signature=old_signature)
+        state.update_participant_name(old_timestamp, different_name, address, signature=old_signature, message=old_message)
         assert state.participants[address]['name'] == different_name
 
         # Test 5: Invalid signature
         invalid_signature = "invalid_signature"
         with pytest.raises(Exception, match='Invalid signature'):
-            state.update_participant_name(timestamp, name, address, signature=invalid_signature)
+            state.update_participant_name(timestamp, name, address, signature=invalid_signature, message=message)

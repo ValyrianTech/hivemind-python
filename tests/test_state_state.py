@@ -238,7 +238,7 @@ class TestHivemindStateVerification:
         signature = sign_message(message, private_key)
         
         # Valid participant update should work
-        state.update_participant_name(timestamp, name, address, signature)
+        state.update_participant_name(timestamp, name, address, signature, message)
         assert state.participants[address]['name'] == name
         
         # 4. Test signature verification
