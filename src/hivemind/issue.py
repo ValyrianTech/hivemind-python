@@ -219,7 +219,8 @@ class HivemindIssue(IPFSDict):
         :rtype: str
         """
         data = IPFSDict()
-        data['hivemind_id'] = self.cid()
+        data['hivemind_id'] = self.cid().replace('/ipfs/', '')
         data['name'] = name
+        cid = data.save()
 
-        return data.save()
+        return cid
