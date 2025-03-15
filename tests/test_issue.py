@@ -375,3 +375,26 @@ class TestHivemindIssue:
             issue.set_constraints({'choices': 'not a list'})
         assert 'Value of constraint choices must be a list' in str(exc_info.value)
 
+    def test_get_identification_cid(self) -> None:
+        """Test the get_identification_cid method"""
+        # Create and save a hivemind issue
+        hivemind_issue = HivemindIssue()
+        hivemind_issue.name = "Test Issue"
+        hivemind_issue.add_question("Test Question?")
+        issue_cid = hivemind_issue.save()
+        
+        # Get identification CID for a participant
+        participant_name = "Test Participant"
+        identification_cid = hivemind_issue.get_identification_cid(participant_name)
+        
+        # Verify the identification CID is not None and is a string
+        assert identification_cid is not None
+        assert isinstance(identification_cid, str)
+        
+        # Load the identification data from IPFS to verify its contents
+        from ipfs_dict_chain.IPFSDict import IPFSDict
+        identification_data = IPFSDict(cid=identification_cid)
+        
+        # Verify the data contains the correct hivemind_id and name
+        assert identification_data['hivemind_id'] == issue_cid.replace('/ipfs/', '')
+        assert identification_data['name'] == participant_name
