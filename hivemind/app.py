@@ -32,6 +32,8 @@ from hivemind.issue import HivemindIssue
 from hivemind.option import HivemindOption
 from hivemind.utils import get_bitcoin_address
 from hivemind.ranking import Ranking
+from ipfs_dict_chain.IPFSDict import IPFSDict
+from ipfs_dict_chain.IPFS import connect
 
 from websocket_handlers import websocket_endpoint, active_connections, register_websocket_routes, name_update_connections
 
@@ -1259,11 +1261,17 @@ async def sign_name_update(request: Request):
     try:
         data = await request.json()
         
+        # Debug log for received data
+        logger.debug(f"Received sign_name_update data: {data}")
+        
         # Extract required fields
         address = data.get('address')
         message = data.get('message')
         signature = data.get('signature')
         name_data = data.get('data')
+        
+        # Debug log for name_data
+        logger.debug(f"name_data type: {type(name_data)}, value: {name_data}")
         
         if not all([address, message, signature, name_data]):
             raise HTTPException(status_code=400, detail="Missing required fields")
@@ -1276,96 +1284,101 @@ async def sign_name_update(request: Request):
             timestamp = int(timestamp_str)
             logger.info(f"Parsed timestamp: {timestamp}, identification_cid: {identification_cid}")
             
-            # Get the name from the identification_cid
-            # First, get the hivemind_id from the data
-            hivemind_id = name_data.get('hivemind_id')
-            
-            if not hivemind_id:
-                raise HTTPException(status_code=400, detail="Missing hivemind ID in data")
+            # Load the IPFSDict with the identification_cid to get hivemind_id and name
+            try:
+                await connect(host='127.0.0.1', port=5001)
+                identification_data = await asyncio.to_thread(lambda: IPFSDict(cid=identification_cid))
+                logger.debug(f"Loaded identification data: {dict(identification_data)}")
+
+                hivemind_id = identification_data.get('hivemind_id')
+                name = identification_data.get('name')
                 
-            # Create an issue object to get the name from the identification_cid
-            issue = await asyncio.to_thread(lambda: HivemindIssue(cid=hivemind_id))
-            name = await asyncio.to_thread(lambda: issue.get_name_from_identification_cid(identification_cid))
+                if not hivemind_id:
+                    raise HTTPException(status_code=400, detail="Missing hivemind ID in identification data")
+                    
+                if not name:
+                    raise HTTPException(status_code=400, detail="Missing name in identification data")
+                    
+                logger.info(f"Retrieved hivemind_id: {hivemind_id}, name: {name} from identification_cid: {identification_cid}")
+            except Exception as e:
+                logger.error(f"Error loading identification data from IPFS: {str(e)}")
+                raise HTTPException(status_code=400, detail=f"Failed to load identification data: {str(e)}")
             
-            if not name:
-                raise HTTPException(status_code=400, detail="Could not retrieve name from identification CID")
+            # Get hivemind state from the name data
+            try:
+                # Get the latest state CID for this hivemind
+                state_mapping = load_state_mapping()
+                if hivemind_id not in state_mapping:
+                    raise HTTPException(status_code=404, detail=f"No state found for hivemind ID: {hivemind_id}")
                 
-            logger.info(f"Retrieved name: {name} from identification_cid: {identification_cid}")
+                # Handle case where state_mapping[hivemind_id] is a string (direct CID) or a dictionary
+                state_data = state_mapping[hivemind_id]
+                if isinstance(state_data, dict):
+                    state_cid = state_data.get('state_hash')
+                    if not state_cid:
+                        raise HTTPException(status_code=404, detail=f"No state hash found for hivemind ID: {hivemind_id}")
+                else:
+                    # If it's a string, assume it's the state CID directly
+                    state_cid = state_data
+                    
+                # Use to_thread to run the synchronous HivemindState operations
+                state = await asyncio.to_thread(lambda: HivemindState(cid=state_cid))
+                
+                # Update the participant name
+                await asyncio.to_thread(
+                    lambda: state.update_participant_name(
+                        timestamp=timestamp,
+                        name=name,
+                        address=address,
+                        signature=signature
+                    )
+                )
+                
+                # Save the state
+                new_cid = await asyncio.to_thread(lambda: state.save())
+                
+                # Update the state mapping
+                issue = await asyncio.to_thread(lambda: HivemindIssue(cid=hivemind_id))
+                
+                await update_state(StateHashUpdate(
+                    hivemind_id=hivemind_id,
+                    state_hash=new_cid,
+                    name=issue.name,
+                    description=issue.description,
+                    num_options=len(state.options),
+                    num_opinions=len(state.opinions[0]) if state.opinions else 0,
+                    answer_type=issue.answer_type,
+                    questions=issue.questions,
+                    tags=issue.tags
+                ))
+                
+                # Send notification to connected WebSocket clients
+                if name in name_update_connections:
+                    notification_data = {
+                        "success": True,
+                        "message": "Name updated successfully",
+                        "state_cid": new_cid,
+                        "hivemind_id": hivemind_id
+                    }
+                    for connection in name_update_connections[name]:
+                        try:
+                            await connection.send_json(notification_data)
+                        except Exception as e:
+                            logger.error(f"Failed to send WebSocket notification: {str(e)}")
+                            continue
+            
+                return {
+                    "success": True,
+                    "cid": new_cid
+                }
+                
+            except Exception as e:
+                logger.error(f"Failed to update name: {str(e)}")
+                raise HTTPException(status_code=400, detail=str(e))
+                
         except ValueError:
             logger.error(f"Failed to parse message format: {message}")
             raise HTTPException(status_code=400, detail="Invalid message format")
-            
-        # Get hivemind state from the name data
-        try:
-            # Get the latest state CID for this hivemind
-            state_mapping = load_state_mapping()
-            if hivemind_id not in state_mapping:
-                raise HTTPException(status_code=404, detail=f"No state found for hivemind ID: {hivemind_id}")
-            
-            # Handle case where state_mapping[hivemind_id] is a string (direct CID) or a dictionary
-            state_data = state_mapping[hivemind_id]
-            if isinstance(state_data, dict):
-                state_cid = state_data.get('state_hash')
-                if not state_cid:
-                    raise HTTPException(status_code=404, detail=f"No state hash found for hivemind ID: {hivemind_id}")
-            else:
-                # If it's a string, assume it's the state CID directly
-                state_cid = state_data
-                
-            # Use to_thread to run the synchronous HivemindState operations
-            state = await asyncio.to_thread(lambda: HivemindState(cid=state_cid))
-            
-            # Update the participant name
-            await asyncio.to_thread(
-                lambda: state.update_participant_name(
-                    timestamp=timestamp,
-                    name=name,
-                    address=address,
-                    signature=signature
-                )
-            )
-            
-            # Save the state
-            new_cid = await asyncio.to_thread(lambda: state.save())
-            
-            # Update the state mapping
-            issue = await asyncio.to_thread(lambda: HivemindIssue(cid=hivemind_id))
-            
-            await update_state(StateHashUpdate(
-                hivemind_id=hivemind_id,
-                state_hash=new_cid,
-                name=issue.name,
-                description=issue.description,
-                num_options=len(state.options),
-                num_opinions=len(state.opinions[0]) if state.opinions else 0,
-                answer_type=issue.answer_type,
-                questions=issue.questions,
-                tags=issue.tags
-            ))
-            
-            # Send notification to connected WebSocket clients
-            if name in name_update_connections:
-                notification_data = {
-                    "success": True,
-                    "message": "Name updated successfully",
-                    "state_cid": new_cid,
-                    "hivemind_id": hivemind_id
-                }
-                for connection in name_update_connections[name]:
-                    try:
-                        await connection.send_json(notification_data)
-                    except Exception as e:
-                        logger.error(f"Failed to send WebSocket notification: {str(e)}")
-                        continue
-            
-            return {
-                "success": True,
-                "cid": new_cid
-            }
-            
-        except Exception as e:
-            logger.error(f"Failed to update name: {str(e)}")
-            raise HTTPException(status_code=400, detail=str(e))
             
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON data")
