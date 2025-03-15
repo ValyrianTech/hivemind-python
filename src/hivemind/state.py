@@ -656,7 +656,7 @@ class HivemindState(IPFSDictChain):
             else:
                 raise Exception('Invalid timestamp: must be more recent than any previous signature timestamp')
 
-    def update_participant_name(self, timestamp: int, name: str, address: str, signature: str) -> None:
+    def update_participant_name(self, timestamp: int, name: str, address: str, signature: str, message: str) -> None:
         """Update the name of a participant.
 
         :param timestamp: Unix timestamp
@@ -667,11 +667,13 @@ class HivemindState(IPFSDictChain):
         :type address: str
         :param signature: The signature of the message
         :type signature: str
+        :param message: The message that was signed
+        :type message: str
         :raises Exception: If the signature is invalid
         """
         # Only need to update name if it is not known yet or if it has changed
         if address not in self.participants or name != self.participants[address]['name']:
-            if verify_message(address=address, message='%s%s' % (timestamp, name), signature=signature) is True:
+            if verify_message(address=address, message=message, signature=signature) is True:
                 # First try to add the signature, if the timestamp is not the most recent it will throw an exception
                 # This is to prevent a reused signature attack
                 try:

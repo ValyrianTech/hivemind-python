@@ -1270,9 +1270,6 @@ async def sign_name_update(request: Request):
         signature = data.get('signature')
         name_data = data.get('data')
         
-        # Debug log for name_data
-        logger.debug(f"name_data type: {type(name_data)}, value: {name_data}")
-        
         if not all([address, message, signature, name_data]):
             raise HTTPException(status_code=400, detail="Missing required fields")
             
@@ -1293,8 +1290,6 @@ async def sign_name_update(request: Request):
                 
                 # Load the identification data
                 identification_data = await asyncio.to_thread(load_ipfs_data)
-                logger.debug(f"Loaded identification data: {identification_data}")
-
                 hivemind_id = identification_data['hivemind_id']
                 name = identification_data['name']
                 
@@ -1326,8 +1321,6 @@ async def sign_name_update(request: Request):
                     
                 # Use to_thread to run the synchronous HivemindState operations
                 state = await asyncio.to_thread(lambda: HivemindState(cid=state_cid))
-
-                logger.debug(f"Loaded state data: {state}")
                 
                 # Update the participant name
                 await asyncio.to_thread(
@@ -1335,7 +1328,8 @@ async def sign_name_update(request: Request):
                         timestamp=timestamp,
                         name=name,
                         address=address,
-                        signature=signature
+                        signature=signature,
+                        message=message
                     )
                 )
                 
