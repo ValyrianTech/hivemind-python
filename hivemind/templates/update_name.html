@@ -29,7 +29,6 @@
         <div class="max-w-2xl mx-auto bg-gray-800 rounded-lg shadow-lg p-8">
             <form id="nameForm" class="space-y-6">
                 <input type="hidden" id="hivemind_id" name="hivemind_id" value="{{ hivemind_id }}">
-                <input type="hidden" id="state_cid" name="state_cid" value="{{ state_cid }}">
                 
                 <div class="space-y-4">
                     <label for="name" class="block text-lg font-medium">Your Name</label>
@@ -73,7 +72,6 @@
             }
             
             const hivemindId = document.getElementById('hivemind_id').value;
-            const stateCid = document.getElementById('state_cid').value;
             
             try {
                 // Prepare name update on server
@@ -84,8 +82,7 @@
                     },
                     body: JSON.stringify({
                         name: name,
-                        hivemind_id: hivemindId,
-                        state_cid: stateCid
+                        hivemind_id: hivemindId
                     }),
                 });
                 

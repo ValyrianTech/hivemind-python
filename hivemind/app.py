@@ -1142,13 +1142,12 @@ async def sign_opinion(request: Request):
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON data")
 
-@app.get("/update_name")
-async def update_name_page(request: Request, state_cid: str, hivemind_id: str):
-    """Render the page for updating a participant's name.
+@app.get("/update_name/{hivemind_id}")
+async def update_name_page_path(request: Request, hivemind_id: str):
+    """Render the page for updating a participant's name using path parameter.
     
     Args:
         request: The request object
-        state_cid: The CID of the current state
         hivemind_id: The ID of the hivemind
         
     Returns:
@@ -1158,7 +1157,29 @@ async def update_name_page(request: Request, state_cid: str, hivemind_id: str):
         "update_name.html", 
         {
             "request": request, 
-            "state_cid": state_cid,
+            "hivemind_id": hivemind_id
+        }
+    )
+
+@app.get("/update_name")
+async def update_name_page_query(request: Request, state_cid: str = None, hivemind_id: str = None):
+    """Render the page for updating a participant's name using query parameters.
+    
+    Args:
+        request: The request object
+        state_cid: The CID of the current state (not used, kept for backward compatibility)
+        hivemind_id: The ID of the hivemind
+        
+    Returns:
+        TemplateResponse: The rendered template
+    """
+    if not hivemind_id:
+        raise HTTPException(status_code=400, detail="Missing hivemind_id parameter")
+        
+    return templates.TemplateResponse(
+        "update_name.html", 
+        {
+            "request": request, 
             "hivemind_id": hivemind_id
         }
     )
@@ -1170,9 +1191,8 @@ async def prepare_name_update(request: Request):
         data = await request.json()
         name = data.get('name')
         hivemind_id = data.get('hivemind_id')
-        state_cid = data.get('state_cid')
         
-        if not all([name, hivemind_id, state_cid]):
+        if not all([name, hivemind_id]):
             return JSONResponse(
                 status_code=400,
                 content={"success": False, "detail": "Missing required fields"}
@@ -1180,7 +1200,6 @@ async def prepare_name_update(request: Request):
         
         # Get the hivemind issue to generate identification CID
         # Use to_thread to run the synchronous operations
-        state = await asyncio.to_thread(lambda: HivemindState(cid=state_cid))
         issue = await asyncio.to_thread(lambda: HivemindIssue(cid=hivemind_id))
         
         # Generate identification CID
@@ -1263,10 +1282,18 @@ async def sign_name_update(request: Request):
         # Get hivemind state from the name data
         try:
             hivemind_id = name_data.get('hivemind_id')
-            state_cid = name_data.get('state_cid')
             
-            if not all([hivemind_id, state_cid]):
-                raise HTTPException(status_code=400, detail="Missing hivemind ID or state CID in data")
+            if not hivemind_id:
+                raise HTTPException(status_code=400, detail="Missing hivemind ID in data")
+            
+            # Get the latest state CID for this hivemind
+            state_mapping = load_state_mapping()
+            if hivemind_id not in state_mapping:
+                raise HTTPException(status_code=404, detail=f"No state found for hivemind ID: {hivemind_id}")
+            
+            state_cid = state_mapping[hivemind_id].get('state_hash')
+            if not state_cid:
+                raise HTTPException(status_code=404, detail=f"No state hash found for hivemind ID: {hivemind_id}")
                 
             # Use to_thread to run the synchronous HivemindState operations
             state = await asyncio.to_thread(lambda: HivemindState(cid=state_cid))
