@@ -33,7 +33,7 @@ from hivemind.option import HivemindOption
 from hivemind.utils import get_bitcoin_address
 from hivemind.ranking import Ranking
 
-from websocket_handlers import websocket_endpoint, active_connections, register_websocket_routes
+from websocket_handlers import websocket_endpoint, active_connections, register_websocket_routes, name_update_connections
 
 class StateLoadingStats:
     def __init__(self):
@@ -1165,14 +1165,7 @@ async def update_name_page(request: Request, state_cid: str, hivemind_id: str):
 
 @app.post("/api/prepare_name_update")
 async def prepare_name_update(request: Request):
-    """Prepare for updating a participant's name.
-    
-    Args:
-        request: Raw request containing name, hivemind_id, and state_cid
-        
-    Returns:
-        Dict indicating success status
-    """
+    """Prepare for a name update by registering the name for WebSocket connections."""
     try:
         data = await request.json()
         name = data.get('name')
@@ -1180,16 +1173,34 @@ async def prepare_name_update(request: Request):
         state_cid = data.get('state_cid')
         
         if not all([name, hivemind_id, state_cid]):
-            raise HTTPException(status_code=400, detail="Missing required fields")
-            
-        # Register the name for WebSocket connections
-        if name not in active_connections:
-            active_connections[name] = []
-            
-        return {"success": True}
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "detail": "Missing required fields"}
+            )
         
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=400, detail="Invalid JSON data")
+        # Get the hivemind issue to generate identification CID
+        # Use to_thread to run the synchronous operations
+        state = await asyncio.to_thread(lambda: HivemindState(cid=state_cid))
+        issue = await asyncio.to_thread(lambda: HivemindIssue(cid=hivemind_id))
+        
+        # Generate identification CID
+        identification_cid = await asyncio.to_thread(lambda: issue.get_identification_cid(name))
+        
+        # Register the name for WebSocket connections
+        name_update_connections[name] = []
+        
+        return JSONResponse(
+            content={
+                "success": True,
+                "identification_cid": identification_cid
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error in prepare_name_update: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "detail": str(e)}
+        )
 
 @app.websocket("/ws/name_update/{name}")
 async def websocket_name_update(websocket: WebSocket, name: str):
@@ -1201,10 +1212,10 @@ async def websocket_name_update(websocket: WebSocket, name: str):
     """
     await websocket.accept()
     
-    if name not in active_connections:
-        active_connections[name] = []
+    if name not in name_update_connections:
+        name_update_connections[name] = []
     
-    active_connections[name].append(websocket)
+    name_update_connections[name].append(websocket)
     logger.info(f"WebSocket connection established for name update: {name}")
     
     try:
@@ -1212,9 +1223,9 @@ async def websocket_name_update(websocket: WebSocket, name: str):
             await websocket.receive_text()
     except WebSocketDisconnect:
         logger.info(f"WebSocket disconnected for name update: {name}")
-        active_connections[name].remove(websocket)
-        if not active_connections[name]:
-            del active_connections[name]
+        name_update_connections[name].remove(websocket)
+        if not name_update_connections[name]:
+            del name_update_connections[name]
 
 @app.post("/api/sign_name_update")
 async def sign_name_update(request: Request):
@@ -1289,14 +1300,14 @@ async def sign_name_update(request: Request):
             ))
             
             # Send notification to connected WebSocket clients
-            if name in active_connections:
+            if name in name_update_connections:
                 notification_data = {
                     "success": True,
                     "message": "Name updated successfully",
                     "state_cid": new_cid,
                     "hivemind_id": hivemind_id
                 }
-                for connection in active_connections[name]:
+                for connection in name_update_connections[name]:
                     try:
                         await connection.send_json(notification_data)
                     except Exception as e:

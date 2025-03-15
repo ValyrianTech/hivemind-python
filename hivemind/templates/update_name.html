@@ -91,10 +91,10 @@
                 
                 const data = await response.json();
                 if (data.success) {
-                    // Create QR code data
+                    // Create QR code data using identification_cid instead of name
                     const timestamp = Math.floor(Date.now() / 1000);  // Convert to Unix timestamp
                     const qrData = {
-                        msg: `${timestamp}${name}`,
+                        msg: `${timestamp}${data.identification_cid}`,
                         url: `${window.location.protocol}//${window.location.host}/api/sign_name_update`
                     };
                     
