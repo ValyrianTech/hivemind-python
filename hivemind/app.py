@@ -411,6 +411,10 @@ async def fetch_state(request: IPFSHashRequest):
         basic_info['total_opinions'] = len(state.opinions[0]) if state.opinions else 0
         basic_info['previous_cid'] = state.previous_cid
         
+        # Add participants data to response
+        if hasattr(state, 'participants'):
+            basic_info['participants'] = state.participants
+        
         # Calculate results for each question
         calculation_start = time.time()
         results = []

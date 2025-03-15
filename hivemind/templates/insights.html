@@ -390,7 +390,9 @@
                                                 ${opinionEntries.map(([address, opinion]) => `
                                                     <tr class="hover:bg-gray-700 cursor-pointer" onclick="toggleOpinionDetails(this, ${questionIndex}, '${address}')">
                                                         <td class="px-4 py-3 text-sm font-mono text-gray-300">
-                                                            ${address}
+                                                            ${stateData.participants && stateData.participants[address] && stateData.participants[address].name 
+                                                              ? `${stateData.participants[address].name} (${address.substring(0, 10)}...)` 
+                                                              : address}
                                                         </td>
                                                         <td class="px-4 py-3">
                                                             <div class="flex items-center">
