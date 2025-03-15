@@ -521,6 +521,23 @@ class TestSignNameUpdate:
         assert response.status_code == 400
         data = response.json()
         assert "Missing name in identification data" in data["detail"]
+    
+    def test_sign_name_update_invalid_json(self):
+        """Test sign_name_update with invalid JSON data (line 1362)."""
+        # Create a client with a custom test_client that doesn't validate JSON
+        client = TestClient(app.app)
+        
+        # Send a request with invalid JSON data
+        response = client.post(
+            "/api/sign_name_update",
+            data="invalid{json:data",
+            headers={"Content-Type": "application/json"}
+        )
+        
+        # Verify response
+        assert response.status_code == 400
+        data = response.json()
+        assert "Invalid JSON data" in data["detail"]
 
 if __name__ == "__main__":
     pytest.main(["-xvs", "test_app_name_update.py"])
