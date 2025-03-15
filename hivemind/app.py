@@ -1227,31 +1227,6 @@ async def prepare_name_update(request: Request):
             content={"success": False, "detail": str(e)}
         )
 
-@app.websocket("/ws/name_update/{name}")
-async def websocket_name_update(websocket: WebSocket, name: str):
-    """WebSocket endpoint for name update notifications.
-    
-    Args:
-        websocket: The WebSocket connection
-        name: The name being updated
-    """
-    await websocket.accept()
-    
-    if name not in name_update_connections:
-        name_update_connections[name] = []
-    
-    name_update_connections[name].append(websocket)
-    logger.info(f"WebSocket connection established for name update: {name}")
-    
-    try:
-        while True:
-            await websocket.receive_text()
-    except WebSocketDisconnect:
-        logger.info(f"WebSocket disconnected for name update: {name}")
-        name_update_connections[name].remove(websocket)
-        if not name_update_connections[name]:
-            del name_update_connections[name]
-
 @app.post("/api/sign_name_update")
 async def sign_name_update(request: Request):
     """Update a participant's name with a signed message.
