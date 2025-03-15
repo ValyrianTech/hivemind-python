@@ -530,7 +530,7 @@ class TestSignNameUpdate:
         # Send a request with invalid JSON data
         response = client.post(
             "/api/sign_name_update",
-            data="invalid{json:data",
+            content="invalid{json:data",
             headers={"Content-Type": "application/json"}
         )
         
