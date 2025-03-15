@@ -538,6 +538,85 @@ class TestSignNameUpdate:
         assert response.status_code == 400
         data = response.json()
         assert "Invalid JSON data" in data["detail"]
+    
+    @patch("app.asyncio.to_thread", mock_to_thread)
+    @patch("app.connect")
+    @patch("app.IPFSDict")
+    @patch("app.load_state_mapping")
+    @patch("app.HivemindState")
+    @patch("app.HivemindIssue")
+    @patch("app.update_state")
+    @patch("app.logger")
+    def test_websocket_notification_exception(self, mock_logger, mock_update_state, mock_issue, mock_state, 
+                                     mock_load_state_mapping, mock_ipfs_dict, mock_connect):
+        """Test exception handling when sending WebSocket notifications (lines 1344-1346)."""
+        # Create a timestamp and test data
+        timestamp = int(time.time())
+        test_name = "Test User"
+        test_address = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"  # Example Bitcoin address
+        test_signature = "valid_signature"
+        
+        # Mock IPFS Dict to return hivemind_id and name
+        mock_ipfs_dict_instance = MagicMock()
+        mock_ipfs_dict_instance.__getitem__.side_effect = lambda key: {
+            "hivemind_id": VALID_HIVEMIND_ID,
+            "name": test_name
+        }.get(key)
+        mock_ipfs_dict.return_value = mock_ipfs_dict_instance
+        
+        # Mock state mapping
+        mock_load_state_mapping.return_value = {
+            VALID_HIVEMIND_ID: {"state_hash": VALID_STATE_CID}
+        }
+        
+        # Mock HivemindState
+        mock_state_instance = MagicMock()
+        mock_state_instance.update_participant_name.return_value = None
+        mock_state_instance.save.return_value = "new_state_cid"
+        mock_state_instance.options = ["option1", "option2"]
+        mock_state_instance.opinions = [[{"address": "addr1"}, {"address": "addr2"}]]
+        mock_state.return_value = mock_state_instance
+        
+        # Mock HivemindIssue
+        mock_issue_instance = MagicMock()
+        mock_issue_instance.name = "Test Issue"
+        mock_issue_instance.description = "Test Description"
+        mock_issue_instance.answer_type = "Text"
+        mock_issue_instance.questions = ["Test Question"]
+        mock_issue_instance.tags = ["test", "tag"]
+        mock_issue.return_value = mock_issue_instance
+        
+        # Mock update_state to return success
+        mock_update_state.return_value = {"success": True}
+        
+        # Create a WebSocket mock that raises an exception when send_json is called
+        mock_websocket = AsyncMock()
+        mock_websocket.send_json.side_effect = Exception("WebSocket send error")
+        app.name_update_connections[test_name] = [mock_websocket]
+        
+        # Create test request data
+        message = f"{timestamp:010d}{VALID_IDENTIFICATION_CID}"
+        request_data = {
+            "address": test_address,
+            "message": message,
+            "signature": test_signature,
+            "data": {"name": test_name}
+        }
+        
+        # Test the endpoint
+        response = self.client.post("/api/sign_name_update", json=request_data)
+        
+        # Verify response
+        assert response.status_code == 200
+        response_data = response.json()
+        assert response_data["success"] is True
+        assert response_data["cid"] == "new_state_cid"
+        
+        # Verify that the WebSocket exception was logged
+        mock_logger.error.assert_called_with(f"Failed to send WebSocket notification: WebSocket send error")
+        
+        # Verify that the state was updated despite the WebSocket error
+        mock_state_instance.update_participant_name.assert_called_once()
 
 if __name__ == "__main__":
     pytest.main(["-xvs", "test_app_name_update.py"])
