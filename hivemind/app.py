@@ -1316,15 +1316,13 @@ async def sign_name_update(request: Request):
                 if hivemind_id not in state_mapping:
                     raise HTTPException(status_code=404, detail=f"No state found for hivemind ID: {hivemind_id}")
                 
-                # Handle case where state_mapping[hivemind_id] is a string (direct CID) or a dictionary
+                
                 state_data = state_mapping[hivemind_id]
                 if isinstance(state_data, dict):
                     state_cid = state_data.get('state_hash')
-                    if not state_cid:
-                        raise HTTPException(status_code=404, detail=f"No state hash found for hivemind ID: {hivemind_id}")
-                else:
-                    # If it's a string, assume it's the state CID directly
-                    state_cid = state_data
+                
+                if not state_cid:
+                    raise HTTPException(status_code=404, detail=f"No state hash found for hivemind ID: {hivemind_id}")
                     
                 # Use to_thread to run the synchronous HivemindState operations
                 state = await asyncio.to_thread(lambda: HivemindState(cid=state_cid))
