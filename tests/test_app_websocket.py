@@ -17,7 +17,7 @@ sys.path.insert(0, project_root)
 sys.path.append(os.path.join(project_root, "hivemind"))
 import app
 from app import active_connections
-from websocket_handlers import register_websocket_routes, websocket_endpoint
+from websocket_handlers import register_websocket_routes, websocket_endpoint, websocket_name_update_endpoint, name_update_connections
 
 from fastapi import FastAPI
 from fastapi.websockets import WebSocket, WebSocketDisconnect
@@ -46,9 +46,11 @@ class TestWebSocketEndpoint:
         """Set up test environment before each test."""
         # Clear active connections before each test
         active_connections.clear()
+        name_update_connections.clear()
         yield
         # Clean up after each test
         active_connections.clear()
+        name_update_connections.clear()
     
     async def test_websocket_connection_management(self):
         """Test WebSocket connection management functionality."""
@@ -158,6 +160,112 @@ class TestWebSocketEndpoint:
             
             # Verify that the websocket_endpoint function was called with the correct arguments
             mock_endpoint.assert_called_once_with(mock_websocket, opinion_hash)
+
+    async def test_name_update_websocket_connection_management(self):
+        """Test name update WebSocket connection management functionality."""
+        # Create mock WebSocket
+        mock_websocket = AsyncMock(spec=WebSocket)
+        name = "test_name"
+        
+        # Set up the WebSocketDisconnect exception for the receive_text call
+        mock_websocket.receive_text.side_effect = WebSocketDisconnect("Connection closed")
+        
+        # Call the websocket name update endpoint
+        await websocket_name_update_endpoint(mock_websocket, name)
+        
+        # Verify the connection was accepted
+        mock_websocket.accept.assert_called_once()
+        
+        # Verify the connection was removed from name_update_connections after disconnect
+        assert name not in name_update_connections
+    
+    async def test_name_update_general_exception_handling(self):
+        """Test handling of general exceptions in the name update WebSocket endpoint."""
+        # Create mock WebSocket
+        mock_websocket = AsyncMock(spec=WebSocket)
+        name = "test_name"
+        
+        # Set up a general exception for the receive_text call
+        mock_websocket.receive_text.side_effect = Exception("Test exception")
+        
+        # Call the websocket name update endpoint
+        await websocket_name_update_endpoint(mock_websocket, name)
+        
+        # Verify the connection was accepted
+        mock_websocket.accept.assert_called_once()
+        
+        # Verify the connection was removed from name_update_connections after exception
+        assert name not in name_update_connections
+    
+    async def test_multiple_name_update_connections_same_name(self):
+        """Test multiple name update WebSocket connections with the same name."""
+        # Create mock WebSockets
+        mock_websocket1 = AsyncMock(spec=WebSocket)
+        mock_websocket2 = AsyncMock(spec=WebSocket)
+        name = "shared_name"
+        
+        # Set up the first connection to stay alive for one receive_text call then disconnect
+        mock_websocket1.receive_text.side_effect = asyncio.CancelledError
+        
+        # Set up the second connection to raise an exception
+        mock_websocket2.receive_text.side_effect = Exception("Test exception")
+        
+        # First, add the first connection
+        await websocket_name_update_endpoint(mock_websocket1, name)
+        
+        # Verify the first connection was accepted
+        mock_websocket1.accept.assert_called_once()
+        
+        # Reset name_update_connections for the second test
+        # This is necessary because the first connection would have been removed
+        # due to the exception
+        name_update_connections[name] = [mock_websocket1]
+        
+        # Now test the second connection
+        await websocket_name_update_endpoint(mock_websocket2, name)
+        
+        # Verify the second connection was accepted
+        mock_websocket2.accept.assert_called_once()
+        
+        # Verify name_update_connections was properly cleaned up for the second connection
+        # but the first connection should still be there
+        assert name in name_update_connections
+        assert len(name_update_connections[name]) == 1
+        assert mock_websocket1 in name_update_connections[name]
+        assert mock_websocket2 not in name_update_connections[name]
+
+    async def test_name_update_route_registration(self):
+        """Test name update WebSocket route registration functionality."""
+        # Create a test FastAPI app
+        test_app = FastAPI()
+        
+        # Create a mock WebSocket
+        mock_websocket = AsyncMock(spec=WebSocket)
+        name = "test_name_update"
+        
+        # Register the WebSocket routes with our test app
+        register_websocket_routes(test_app)
+        
+        # Get the route handler that was registered
+        name_update_route = None
+        for route in test_app.routes:
+            if route.path == "/ws/name_update/{name}":
+                name_update_route = route
+                break
+        
+        assert name_update_route is not None, "Name update WebSocket route was not registered"
+        
+        # Create a patch to intercept calls to the websocket_name_update_endpoint
+        with patch('websocket_handlers.websocket_name_update_endpoint') as mock_endpoint:
+            # Set up the mock to return immediately
+            mock_endpoint.return_value = None
+            
+            # Call the route handler directly with our mock WebSocket
+            # This simulates what FastAPI would do when a WebSocket connection is received
+            await name_update_route.endpoint(mock_websocket, name)
+            
+            # Verify that the websocket_name_update_endpoint function was called with the correct arguments
+            mock_endpoint.assert_called_once_with(mock_websocket, name)
 
 
 if __name__ == "__main__":
