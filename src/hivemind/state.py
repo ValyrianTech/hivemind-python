@@ -11,7 +11,6 @@ LOG = logging.getLogger(__name__)
 from .issue import HivemindIssue
 from .option import HivemindOption
 from .opinion import HivemindOpinion
-from .ranking import Ranking
 from bitcoin.signmessage import VerifyMessage, BitcoinMessage
 
 

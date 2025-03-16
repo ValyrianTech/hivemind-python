@@ -9,6 +9,7 @@ from .issue import HivemindIssue
 
 LOG = logging.getLogger(__name__)
 
+
 class HivemindOption(IPFSDict):
     """A class representing a voting option in the Hivemind protocol.
 
@@ -208,13 +209,13 @@ class HivemindOption(IPFSDict):
             if 'true_value' in self._hivemind_issue.constraints and self.value is True:
                 expected_text = self._hivemind_issue.constraints['true_value']
                 if self.text != expected_text:
-                    LOG.error('Bool option text for True value must match the true_value constraint: %s, got: %s' % 
+                    LOG.error('Bool option text for True value must match the true_value constraint: %s, got: %s' %
                               (expected_text, self.text))
                     return False
             elif 'false_value' in self._hivemind_issue.constraints and self.value is False:
                 expected_text = self._hivemind_issue.constraints['false_value']
                 if self.text != expected_text:
-                    LOG.error('Bool option text for False value must match the false_value constraint: %s, got: %s' % 
+                    LOG.error('Bool option text for False value must match the false_value constraint: %s, got: %s' %
                               (expected_text, self.text))
                     return False
 
@@ -264,14 +265,14 @@ class HivemindOption(IPFSDict):
             # Check if it only contains valid base58 characters
             valid_chars = set('123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz')
             return all(c in valid_chars for c in hash_str)
-        
+
         # IPFS CIDv1 validation (more complex, would need a full implementation)
         # For now, we'll just check if it starts with 'b' or 'B' followed by valid base32 characters
         elif (hash_str.startswith('b') or hash_str.startswith('B')) and len(hash_str) > 1:
             # Simplified check for base32 characters
             valid_chars = set('ABCDEFGHIJKLMNOPQRSTUVWXYZ234567abcdefghijklmnopqrstuvwxyz')
             return all(c in valid_chars for c in hash_str[1:])
-            
+
         return False
 
     def is_valid_complex_option(self) -> bool:
