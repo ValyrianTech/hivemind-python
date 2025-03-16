@@ -380,7 +380,7 @@ async def fetch_state(request: IPFSHashRequest):
 
         # Load issue details asynchronously
         if state.hivemind_id:
-            issue = await asyncio.to_thread(lambda: HivemindIssue(cid=state.hivemind_id))
+            issue = state.hivemind_issue()
             basic_info['issue'] = {
                 'name': issue.name or 'Unnamed Issue',
                 'description': issue.description or 'No description available',
