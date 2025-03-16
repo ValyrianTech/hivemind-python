@@ -225,6 +225,10 @@
                 <div class="mt-8 text-center text-gray-400">
                     <p>Submit an opinion for each question by using the submit buttons above.</p>
                 </div>
+                
+                <div id="statusSection" class="hidden mt-8 p-4 rounded-lg">
+                    <p id="statusMessage" class="text-center"></p>
+                </div>
             </form>
         </div>
     </div>
@@ -313,6 +317,14 @@
                                 `;
                                 qrContainer.appendChild(notificationDiv);
                                 
+                                // Show success status
+                                showStatus('Opinion submitted successfully! Redirecting to insights page...', 'success');
+                                
+                                // Redirect back to insights page after successful submission
+                                setTimeout(() => {
+                                    window.location.href = `/insights?cid=${notification.state_cid}`;
+                                }, 2000);
+                                
                                 // Close WebSocket connection
                                 ws.close();
                             }
@@ -393,6 +405,14 @@
                                     <span class="block sm:inline"> ${notification.message}</span>
                                 `;
                                 qrContainer.appendChild(notificationDiv);
+                                
+                                // Show success status
+                                showStatus('Opinion submitted successfully! Redirecting to insights page...', 'success');
+                                
+                                // Redirect back to insights page after successful submission
+                                setTimeout(() => {
+                                    window.location.href = `/insights?cid=${notification.state_cid}`;
+                                }, 2000);
                                 
                                 // Close WebSocket connection
                                 ws.close();
@@ -568,6 +588,18 @@
                 if (originalOption) {
                     originalOption.style.display = 'block';
                 }
+            }
+            
+            // Function to show status message
+            function showStatus(message, type) {
+                const statusSection = document.getElementById('statusSection');
+                const statusMessage = document.getElementById('statusMessage');
+                
+                statusSection.classList.remove('hidden', 'bg-green-700', 'bg-red-700');
+                statusSection.classList.add(type === 'success' ? 'bg-green-700' : 'bg-red-700');
+                
+                statusMessage.textContent = message;
+                statusSection.classList.remove('hidden');
             }
         });
     </script>

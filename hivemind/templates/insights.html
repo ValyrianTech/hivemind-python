@@ -191,10 +191,6 @@
                             <span class="px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-medium">
                                 ${data.total_opinions} Opinion${data.total_opinions !== 1 ? 's' : ''}
                             </span>
-                            <button onclick="updateParticipantName()"
-                                    class="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded-full text-sm font-medium transition-colors">
-                                Update Name
-                            </button>
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -359,7 +355,18 @@
                     
                     // Create the header
                     let opinionsContent = `
-                        <h2 class="text-2xl font-semibold mb-4">Opinions</h2>
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-2xl font-semibold">Opinions</h2>
+                            <div class="flex space-x-2">
+                                <button onclick="updateParticipantName()"
+                                        class="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded-full text-sm font-medium transition-colors">
+                                    Update Name
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    opinionsContent += `
                         ${data.opinions.map((questionOpinions, questionIndex) => {
                             const question = questions[questionIndex] || `Question ${questionIndex + 1}`;
                             const opinionEntries = Object.entries(questionOpinions);
