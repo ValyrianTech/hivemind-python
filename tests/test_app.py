@@ -423,7 +423,7 @@ class TestEndpoints:
         # Setup mock state instance
         mock_state = MagicMock()
         mock_state.hivemind_id = "test_id"
-        mock_state.options = {"option1": "value1", "option2": "value2"}
+        mock_state.option_cids = {"option1": "value1", "option2": "value2"}
         mock_state.opinions = [
             {"address1": {"opinion_cid": "opinion1", "timestamp": "2023-01-01", "ranking": ["option1", "option2"]}}
         ]
@@ -653,13 +653,13 @@ class TestEndpoints:
         
         # Setup mock state instance
         mock_state = MagicMock()
-        mock_state.options = ["existing_option"]
+        mock_state.option_cids = ["existing_option"]
         mock_state.save.return_value = "new_state_cid"
         mock_state.add_option = MagicMock()
         
         # Mock the add_option method to update the options list
         def side_effect_add_option(timestamp, option_hash):
-            mock_state.options.append(option_hash)
+            mock_state.option_cids.append(option_hash)
         mock_state.add_option.side_effect = side_effect_add_option
         
         mock_hivemind_state.return_value = mock_state
@@ -700,7 +700,7 @@ class TestEndpoints:
         assert mock_option_instance.text == "Test Option"
         
         # Verify the state was updated and saved
-        assert "test_option_cid" in mock_state.options
+        assert "test_option_cid" in mock_state.option_cids
     
     @patch("app.HivemindState")
     @patch("app.HivemindIssue")
@@ -715,7 +715,7 @@ class TestEndpoints:
         # Setup mock state instance
         mock_state = MagicMock()
         mock_state.hivemind_id = "test_hivemind_id"
-        mock_state.options = ["option1", "option2"]
+        mock_state.option_cids = ["option1", "option2"]
         mock_state.get_options_for_question.return_value = [
             {"id": "option1", "value": "value1", "text": "Option 1"},
             {"id": "option2", "value": "value2", "text": "Option 2"}
@@ -862,7 +862,7 @@ class TestEndpoints:
         # Setup mock state instance
         mock_state = MagicMock()
         mock_state.hivemind_id = "test_id"
-        mock_state.options = {"option1": "value1", "option2": "value2"}
+        mock_state.option_cids = {"option1": "value1", "option2": "value2"}
         mock_state.opinions = {}
         mock_state.final = False
         mock_state.get_questions.return_value = ["Question 1?"]
@@ -893,8 +893,8 @@ class TestEndpoints:
         data = response.json()
         
         # Check that options were handled correctly despite the exception
-        assert "options" in data
-        options = data["options"]
+        assert "option_cids" in data
+        options = data["option_cids"]
         assert len(options) == 2  # Should still have 2 options
         
         # Verify that the options contain the error message
@@ -928,7 +928,7 @@ class TestEndpoints:
         # Setup mock state instance
         mock_state = MagicMock()
         mock_state.hivemind_id = "test_id"
-        mock_state.options = {"/ipfs/option1": "value1", "option2": "value2"}
+        mock_state.option_cids = {"/ipfs/option1": "value1", "option2": "value2"}
         mock_state.opinions = [
             {"address1": {"opinion_cid": "opinion1", "timestamp": "2023-01-01", "ranking": ["/ipfs/option1", "option2"]}}
         ]
@@ -1000,7 +1000,7 @@ class TestEndpoints:
         # Setup mock state instance
         mock_state = MagicMock()
         mock_state.hivemind_id = "test_id"
-        mock_state.options = {"option1": "value1", "option2": "value2"}
+        mock_state.option_cids = {"option1": "value1", "option2": "value2"}
         mock_state.opinions = [
             {"address1": {"opinion_cid": "opinion1", "timestamp": "2023-01-01", "ranking": ["option1", "option2"]}}
         ]

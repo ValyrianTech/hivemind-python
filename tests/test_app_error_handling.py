@@ -83,7 +83,7 @@ class TestErrorHandling:
         # Setup mock state instance
         mock_state = MagicMock()
         mock_state.hivemind_id = "test_hivemind_id"
-        mock_state.options = ["option1", "option2"]
+        mock_state.option_cids = ["option1", "option2"]
         mock_hivemind_state.return_value = mock_state
         
         # Setup mock option instance
@@ -102,7 +102,7 @@ class TestErrorHandling:
         assert response.status_code == 200
         assert "text/html" in response.headers["content-type"]
         
-        # Verify HivemindOption was called for each option in state.options
+        # Verify HivemindOption was called for each option in state.option_cids
         assert mock_hivemind_option.call_count == 2
         mock_hivemind_option.assert_any_call(cid="option1")
         mock_hivemind_option.assert_any_call(cid="option2")

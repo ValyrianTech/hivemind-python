@@ -212,7 +212,7 @@ class TestHivemindStateVerification:
         
         # Valid option should be added
         state.add_option(timestamp, option_hash, address, signature)
-        assert option_hash in state.options
+        assert option_hash in state.option_cids
         
         # 2. Test opinion verification
         opinion = HivemindOpinion()

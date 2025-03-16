@@ -370,7 +370,7 @@ async def fetch_state(request: IPFSHashRequest):
         # Get basic info that doesn't require IPFS calls
         basic_info = {
             'hivemind_id': state.hivemind_id,
-            'num_options': len(state.options),
+            'num_options': len(state.option_cids),
             'num_opinions': len(state.opinions[0]) if state.opinions else 0,
             'is_final': state.final
         }
@@ -397,7 +397,7 @@ async def fetch_state(request: IPFSHashRequest):
         # Load options asynchronously
         options_start = time.time()
         options = []
-        for option_hash in state.options:
+        for option_hash in state.option_cids:
             try:
                 option = await asyncio.to_thread(lambda h=option_hash: HivemindOption(cid=h))
                 options.append({
@@ -416,7 +416,7 @@ async def fetch_state(request: IPFSHashRequest):
         stats.options_load_time = time.time() - options_start
 
         # Add options to response
-        basic_info['options'] = options
+        basic_info['option_cids'] = options
 
         # Load opinions asynchronously
         opinions_start = time.time()
@@ -715,7 +715,7 @@ async def create_option(option: OptionCreate):
                 logger.info(f"Loading current state from CID: {latest_state_cid}")
                 state = HivemindState(cid=latest_state_cid)
                 logger.info(f"Current state loaded successfully")
-                logger.info(f"State details - Number of options: {len(state.options)}")
+                logger.info(f"State details - Number of options: {len(state.option_cids)}")
                 logger.info(f"State details - Number of opinions: {len(state.opinions[0]) if state.opinions else 0}")
 
                 logger.info(f"Loading issue from CID: {option.hivemind_id}")
@@ -821,7 +821,7 @@ async def create_option(option: OptionCreate):
                 logger.info("Adding option to state...")
                 current_time = int(time.time())
                 state.add_option(timestamp=current_time, option_hash=option_cid)
-                logger.info(f"Option added successfully. New number of options: {len(state.options)}")
+                logger.info(f"Option added successfully. New number of options: {len(state.option_cids)}")
 
                 # Save the updated state
                 logger.info("Saving updated state...")
@@ -834,7 +834,7 @@ async def create_option(option: OptionCreate):
                     "state_cid": new_state_cid,
                     "issue_name": issue.name,
                     "issue_description": issue.description,
-                    "num_options": len(state.options),
+                    "num_options": len(state.option_cids),
                     "num_opinions": len(state.opinions[0]) if state.opinions else 0,
                     "answer_type": issue.answer_type,
                     "questions": issue.questions,
@@ -894,7 +894,7 @@ async def add_opinion_page(request: Request, cid: str):
 
         # Load options
         options = []
-        for option_hash in state.options:
+        for option_hash in state.option_cids:
             try:
                 option = await asyncio.to_thread(lambda h=option_hash: HivemindOption(cid=h))
                 options.append({
@@ -1142,7 +1142,7 @@ async def sign_opinion(request: Request):
                 state_hash=new_cid,
                 name=issue.name,
                 description=issue.description,
-                num_options=len(state.options),
+                num_options=len(state.option_cids),
                 num_opinions=len(state.opinions[0]) if state.opinions else 0,
                 answer_type=issue.answer_type,
                 questions=issue.questions,
@@ -1358,7 +1358,7 @@ async def sign_name_update(request: Request):
                     state_hash=new_cid,
                     name=issue.name,
                     description=issue.description,
-                    num_options=len(state.options),
+                    num_options=len(state.option_cids),
                     num_opinions=len(state.opinions[0]) if state.opinions else 0,
                     answer_type=issue.answer_type,
                     questions=issue.questions,

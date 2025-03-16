@@ -116,8 +116,8 @@ def test_hivemind_answer_type_constraints() -> None:
 
     print('Initial state created:')
     print(f'- Hash: {statehash}')
-    print(f'- Current options: {hivemind_state.options}')
-    assert hivemind_state.options == []
+    print(f'- Current options: {hivemind_state.option_cids}')
+    assert hivemind_state.option_cids == []
     assert statehash is not None and len(statehash) > 0
 
     # Test valid options
@@ -149,8 +149,8 @@ def test_hivemind_answer_type_constraints() -> None:
         print('Option added to state')
     
     print('\nOptions summary:')
-    print(f'- Total options added: {len(hivemind_state.options)}')
-    assert len(hivemind_state.options) == len(reference_hiveminds)
+    print(f'- Total options added: {len(hivemind_state.option_cids)}')
+    assert len(hivemind_state.option_cids) == len(reference_hiveminds)
     
     # Test invalid options
     log_step(6, 'Testing Invalid Hivemind Options')

@@ -8,7 +8,7 @@ from .test_state_common import (
     TestHelper, sign_message, generate_bitcoin_keypair
 )
 
-@pytest.mark.options
+@pytest.mark.option_cids
 class TestHivemindStateOptions:
     """Tests for option management."""
     
@@ -24,7 +24,7 @@ class TestHivemindStateOptions:
         # Verify boolean options
         option_values = []
         option_texts = []
-        for option_hash in state.options:
+        for option_hash in state.option_cids:
             option = HivemindOption(cid=option_hash)
             option_values.append(option.value)
             option_texts.append(option.text)
@@ -57,7 +57,7 @@ class TestHivemindStateOptions:
         # Verify color options
         option_values = []
         option_texts = []
-        for option_hash in state.options:
+        for option_hash in state.option_cids:
             option = HivemindOption(cid=option_hash)
             option_values.append(option.value)
             option_texts.append(option.text)
@@ -109,7 +109,7 @@ class TestHivemindStateOptions:
         message = f"{timestamp}{option_hash}"
         signature = sign_message(message, private_key1)
         state.add_option(timestamp, option_hash, address1, signature)
-        assert option_hash in state.options
+        assert option_hash in state.option_cids
 
     def test_options_info(self, state: HivemindState, color_choice_issue: HivemindIssue) -> None:
         """Test getting formatted information about all options."""
@@ -127,7 +127,7 @@ class TestHivemindStateOptions:
         assert info.startswith("Options\n=======")
         
         # Verify each option is included
-        for i, option_hash in enumerate(state.options, 1):
+        for i, option_hash in enumerate(state.option_cids, 1):
             option = HivemindOption(cid=option_hash)
             assert f'Option {i}:' in info
             assert option.info() in info

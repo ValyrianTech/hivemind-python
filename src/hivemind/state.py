@@ -41,8 +41,8 @@ class HivemindState(IPFSDictChain):
     :type hivemind_id: Optional[str]
     :ivar _hivemind_issue: The associated hivemind issue object
     :type _hivemind_issue: Optional[HivemindIssue]
-    :ivar options: List of option CIDs
-    :type options: List[str]
+    :ivar option_cids: List of option CIDs
+    :type option_cids: List[str]
     :ivar opinions: List of dictionaries containing opinions for each question
     :type opinions: List[Dict[str, Any]]
     :ivar signatures: Dictionary mapping addresses to their signatures
@@ -63,7 +63,7 @@ class HivemindState(IPFSDictChain):
         """
         self.hivemind_id: Optional[str] = None
         self._hivemind_issue: Optional[HivemindIssue] = None
-        self.options: List[str] = []
+        self.option_cids: List[str] = []
         self.opinions: List[Dict[str, Any]] = [{}]
         self.signatures: Dict[str, str] = {}
         self.participants: Dict[str, Any] = {}
@@ -86,7 +86,7 @@ class HivemindState(IPFSDictChain):
         :return: List of HivemindOption objects
         :rtype: List[HivemindOption]
         """
-        return [HivemindOption(cid=option_cid) for option_cid in self.options]
+        return [HivemindOption(cid=option_cid) for option_cid in self.option_cids]
 
     def set_hivemind_issue(self, issue_hash: str) -> None:
         """Set the associated hivemind issue.
@@ -113,8 +113,8 @@ class HivemindState(IPFSDictChain):
             true_option.set(value=True)
             true_option_hash = true_option.save()
             if isinstance(true_option, HivemindOption) and true_option.valid():
-                if true_option_hash not in self.options:
-                    self.options.append(true_option_hash)
+                if true_option_hash not in self.option_cids:
+                    self.option_cids.append(true_option_hash)
                     options[true_option_hash] = {'value': true_option.value, 'text': true_option.text}
 
             false_option = HivemindOption()
@@ -123,8 +123,8 @@ class HivemindState(IPFSDictChain):
             false_option.set(value=False)
             false_option_hash = false_option.save()
             if isinstance(false_option, HivemindOption) and false_option.valid():
-                if false_option_hash not in self.options:
-                    self.options.append(false_option_hash)
+                if false_option_hash not in self.option_cids:
+                    self.option_cids.append(false_option_hash)
                     options[false_option_hash] = {'value': false_option.value, 'text': false_option.text}
 
         elif 'choices' in self._hivemind_issue.constraints:
@@ -135,8 +135,8 @@ class HivemindState(IPFSDictChain):
                 option.set(value=choice['value'])
                 option_hash = option.save()
                 if isinstance(option, HivemindOption) and option.valid():
-                    if option_hash not in self.options:
-                        self.options.append(option_hash)
+                    if option_hash not in self.option_cids:
+                        self.option_cids.append(option_hash)
                         options[option_hash] = {'value': option.value, 'text': option.text}
 
         return options
@@ -196,12 +196,12 @@ class HivemindState(IPFSDictChain):
 
         option = HivemindOption(cid=option_hash)
         if isinstance(option, HivemindOption) and option.valid():
-            if option_hash in self.options:
+            if option_hash in self.option_cids:
                 raise Exception("Option already exists")
             # Only add signature if both address and signature are provided
             if address is not None and signature is not None:
                 self.add_signature(address=address, timestamp=timestamp, message=option_hash, signature=signature)
-            self.options.append(option_hash)
+            self.option_cids.append(option_hash)
 
     def options_by_participant(self, address: str) -> List[str]:
         """Get the options added by a participant.
@@ -214,7 +214,7 @@ class HivemindState(IPFSDictChain):
         # Track which options were added by this address by checking signatures
         participant_options = []
         if address in self.signatures:
-            for option_hash in self.options:
+            for option_hash in self.option_cids:
                 # Check if this address has signed this option
                 if option_hash in self.signatures[address]:
                     participant_options.append(option_hash)
@@ -272,7 +272,7 @@ class HivemindState(IPFSDictChain):
         normalized_ranking_options = [option_hash.replace('/ipfs/', '') if option_hash.startswith('/ipfs/') else option_hash
                                      for option_hash in ranking_options]
         normalized_state_options = [option_hash.replace('/ipfs/', '') if option_hash.startswith('/ipfs/') else option_hash
-                                   for option_hash in self.options]
+                                    for option_hash in self.option_cids]
 
         LOG.info(f"Normalized ranking options: {normalized_ranking_options}")
         LOG.info(f"Normalized state options: {normalized_state_options}")
@@ -375,7 +375,7 @@ class HivemindState(IPFSDictChain):
         """
         ret = "Options"
         ret += "\n======="
-        for i, option_hash in enumerate(self.options):
+        for i, option_hash in enumerate(self.option_cids):
             ret += '\nOption %s:' % (i + 1)
             option = HivemindOption(cid=option_hash)
             ret += '\n' + option.info()
@@ -414,9 +414,9 @@ class HivemindState(IPFSDictChain):
         # if selection mode is 'Exclude', we must exclude previously selected options from the results
         if self._hivemind_issue.on_selection == 'Exclude':
             selected_options = [selection[question_index] for selection in self.selected]
-            available_options = [option_hash for option_hash in self.options if option_hash not in selected_options]
+            available_options = [option_hash for option_hash in self.option_cids if option_hash not in selected_options]
         else:
-            available_options = self.options
+            available_options = self.option_cids
 
         results = {option: {'win': 0, 'loss': 0, 'unknown': 0, 'score': 0} for option in available_options}
 
@@ -536,9 +536,9 @@ class HivemindState(IPFSDictChain):
         # if selection mode is 'Exclude', we must exclude previously selected options from the results
         if self._hivemind_issue.on_selection == 'Exclude':
             selected_options = [selection[question_index] for selection in self.selected]
-            available_options = [option_hash for option_hash in self.options if option_hash not in selected_options]
+            available_options = [option_hash for option_hash in self.option_cids if option_hash not in selected_options]
         else:
-            available_options = self.options
+            available_options = self.option_cids
 
         for option_hash, option_result in sorted(results.items(), key=lambda x: x[1]['score'], reverse=True):
             if option_hash not in available_options:

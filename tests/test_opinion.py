@@ -34,7 +34,7 @@ def string_state_hash(string_issue_hash: str) -> str:
 def string_options(string_state_hash: str) -> tuple[str, str]:
     """Get the option hashes from the string state."""
     hivemind_state = HivemindState(string_state_hash)
-    return hivemind_state.options[0], hivemind_state.options[1]
+    return hivemind_state.option_cids[0], hivemind_state.option_cids[1]
 
 
 @pytest.fixture(scope="module")
@@ -65,7 +65,7 @@ def integer_state_hash(integer_issue_hash: str) -> str:
 def integer_options(integer_state_hash: str) -> tuple[str, str, str, str, str]:
     """Get the option hashes from the integer state."""
     hivemind_state = HivemindState(integer_state_hash)
-    return hivemind_state.options[0], hivemind_state.options[1], hivemind_state.options[2], hivemind_state.options[3], hivemind_state.options[4]
+    return hivemind_state.option_cids[0], hivemind_state.option_cids[1], hivemind_state.option_cids[2], hivemind_state.option_cids[3], hivemind_state.option_cids[4]
 
 
 logging.basicConfig(level=logging.DEBUG)

@@ -146,8 +146,8 @@ def test_full_hivemind_workflow() -> None:
     print('Initial state created:')
     print(f'- Hash: {statehash}')
     print(f'- State: {hivemind_state}')
-    print(f'- Current options: {hivemind_state.options}')
-    assert hivemind_state.options == []
+    print(f'- Current options: {hivemind_state.option_cids}')
+    assert hivemind_state.option_cids == []
     assert statehash is not None and len(statehash) > 0
 
     log_step(4, 'Adding Voting Options')
@@ -186,10 +186,10 @@ def test_full_hivemind_workflow() -> None:
         print('Option added to state')
 
     print('\nOptions summary:')
-    print(f'- Total options added: {len(hivemind_state.options)}')
-    print(f'- Current state options: {hivemind_state.options}')
-    assert len(hivemind_state.options) == len(option_values)
-    assert all(opt_hash in hivemind_state.options for opt_hash in option_hashes.values())
+    print(f'- Total options added: {len(hivemind_state.option_cids)}')
+    print(f'- Current state options: {hivemind_state.option_cids}')
+    assert len(hivemind_state.option_cids) == len(option_values)
+    assert all(opt_hash in hivemind_state.option_cids for opt_hash in option_hashes.values())
 
     # Verify options_per_address restriction
     print('\nVerifying options_per_address restriction:')
@@ -234,7 +234,7 @@ def test_full_hivemind_workflow() -> None:
         unauthorized_opinion = HivemindOpinion()
         unauthorized_opinion.hivemind_id = hivemind_state.hivemind_id
         unauthorized_opinion.set_question_index(question_index)
-        ranked_choice = hivemind_state.options.copy()
+        ranked_choice = hivemind_state.option_cids.copy()
         random.shuffle(ranked_choice)
         unauthorized_opinion.ranking.set_fixed(ranked_choice)
         unauthorized_opinion.ranking = unauthorized_opinion.ranking.get()
@@ -267,7 +267,7 @@ def test_full_hivemind_workflow() -> None:
             opinion = HivemindOpinion()
             opinion.hivemind_id = hivemind_state.hivemind_id
             opinion.set_question_index(question_index)
-            ranked_choice = hivemind_state.options.copy()
+            ranked_choice = hivemind_state.option_cids.copy()
             random.shuffle(ranked_choice)
             opinion.ranking.set_fixed(ranked_choice)
             opinion.ranking = opinion.ranking.get()

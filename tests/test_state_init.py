@@ -12,7 +12,7 @@ class TestHivemindStateInit:
         """Test initialization of HivemindState."""
         assert state.hivemind_id is None
         assert state._hivemind_issue is None
-        assert state.options == []
+        assert state.option_cids == []
         assert state.opinions == [{}]
         assert state.signatures == {}
         assert state.participants == {}

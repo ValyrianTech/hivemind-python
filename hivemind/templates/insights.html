@@ -329,9 +329,9 @@
                 const optionsSection = document.createElement('div');
                 optionsSection.className = 'bg-gray-800 rounded-lg shadow-lg p-6 mb-6';
                 optionsSection.innerHTML = `
-                    <h2 class="text-2xl font-semibold mb-4">Options (${data.options.length})</h2>
+                    <h2 class="text-2xl font-semibold mb-4">Options (${data.option_cids.length})</h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        ${data.options.map(option => `
+                        ${data.option_cids.map(option => `
                             <div class="bg-gray-700 rounded-lg p-4">
                                 <h4 class="font-semibold mb-2">${option.text || option.value || 'Unnamed Option'}</h4>
                                 <div class="space-y-2">
@@ -420,7 +420,7 @@
                                                                 ${opinion.ranking ? `
                                                                     <div class="space-y-2">
                                                                         ${opinion.ranking.map((optionCid, rank) => {
-                                                                            const option = data.options.find(opt => opt.cid === optionCid);
+                                                                            const option = data.option_cids.find(opt => opt.cid === optionCid);
                                                                             return `
                                                                                 <div class="flex items-center space-x-2">
                                                                                     <span class="text-gray-400">#${rank + 1}</span>
