@@ -23,14 +23,13 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import logging
-from logging.handlers import QueueHandler, QueueListener, RotatingFileHandler
+from logging.handlers import RotatingFileHandler
 import os
 from typing import Optional, List, Dict, Any, Union
 
-from hivemind.state import HivemindOption, HivemindOpinion, HivemindState, verify_message
+from hivemind.state import HivemindOpinion, HivemindState, verify_message
 from hivemind.issue import HivemindIssue
 from hivemind.option import HivemindOption
-from hivemind.utils import get_bitcoin_address
 from hivemind.ranking import Ranking
 from ipfs_dict_chain.IPFSDict import IPFSDict
 from ipfs_dict_chain.IPFS import connect
