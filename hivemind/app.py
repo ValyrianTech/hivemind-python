@@ -890,7 +890,7 @@ async def add_opinion_page(request: Request, cid: str):
     try:
         # Load the state to get issue details
         state = await asyncio.to_thread(lambda: HivemindState(cid=cid))
-        issue = await asyncio.to_thread(lambda: HivemindIssue(cid=state.hivemind_id))
+        issue = state.hivemind_issue()
 
         # Load options
         options = []
