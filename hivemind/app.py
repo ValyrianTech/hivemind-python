@@ -1351,7 +1351,7 @@ async def sign_name_update(request: Request):
                 new_cid = await asyncio.to_thread(lambda: state.save())
 
                 # Update the state mapping
-                issue = await asyncio.to_thread(lambda: HivemindIssue(cid=hivemind_id))
+                issue = state.hivemind_issue()
 
                 await update_state(StateHashUpdate(
                     hivemind_id=hivemind_id,

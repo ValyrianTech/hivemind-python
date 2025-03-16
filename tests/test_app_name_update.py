@@ -238,6 +238,9 @@ class TestSignNameUpdate:
         mock_issue_instance.tags = ["test", "tag"]
         mock_issue.return_value = mock_issue_instance
         
+        # Set up the hivemind_issue method to return the mock issue instance
+        mock_state_instance.hivemind_issue.return_value = mock_issue_instance
+        
         # Mock update_state to return success
         mock_update_state.return_value = {"success": True}
         
@@ -585,6 +588,9 @@ class TestSignNameUpdate:
         mock_issue_instance.questions = ["Test Question"]
         mock_issue_instance.tags = ["test", "tag"]
         mock_issue.return_value = mock_issue_instance
+        
+        # Set up the hivemind_issue method to return the mock issue instance
+        mock_state_instance.hivemind_issue.return_value = mock_issue_instance
         
         # Mock update_state to return success
         mock_update_state.return_value = {"success": True}
