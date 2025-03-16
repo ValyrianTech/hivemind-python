@@ -470,6 +470,10 @@ class TestEndpoints:
         mock_hivemind_option_class.return_value = mock_option
         mock_hivemind_opinion_class.return_value = mock_opinion
         
+        # Set up the _hivemind_issue attribute on the mock state object
+        mock_state._hivemind_issue = mock_issue
+        mock_state.hivemind_issue.return_value = mock_issue
+        
         # Test the endpoint
         response = self.client.post(
             "/fetch_state",
@@ -970,6 +974,10 @@ class TestEndpoints:
         mock_opinion.ranking = ["/ipfs/option1", "option2"]
         mock_hivemind_opinion_class.return_value = mock_opinion
         
+        # Set up the _hivemind_issue attribute on the mock state object
+        mock_state._hivemind_issue = mock_issue
+        mock_state.hivemind_issue.return_value = mock_issue
+        
         # Test the endpoint
         response = self.client.post(
             "/fetch_state",
@@ -1025,7 +1033,6 @@ class TestEndpoints:
         mock_option = MagicMock()
         mock_option.value = "test_value"
         mock_option.text = "Test Option"
-        mock_option.cid.return_value = "option1"
         
         # Setup mock opinion instance
         mock_opinion = MagicMock()
@@ -1036,6 +1043,10 @@ class TestEndpoints:
         mock_hivemind_issue_class.return_value = mock_issue
         mock_hivemind_option_class.return_value = mock_option
         mock_hivemind_opinion_class.return_value = mock_opinion
+        
+        # Set up the _hivemind_issue attribute on the mock state object
+        mock_state._hivemind_issue = mock_issue
+        mock_state.hivemind_issue.return_value = mock_issue
         
         # Test the endpoint
         with patch("app.logger") as mock_logger:
