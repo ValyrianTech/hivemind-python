@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 from typing import List, Optional, Dict, Union
 from ipfs_dict_chain.IPFSDict import IPFSDict
-from .validators import valid_address, valid_bech32_address
 
 
 class HivemindIssue(IPFSDict):

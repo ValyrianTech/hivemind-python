@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from typing import List, Dict, Optional, Union, Any
+from typing import List, Dict, Optional, Any
 from ipfs_dict_chain.IPFSDictChain import IPFSDictChain
 from itertools import combinations
-import time
 import logging
 
 LOG = logging.getLogger(__name__)

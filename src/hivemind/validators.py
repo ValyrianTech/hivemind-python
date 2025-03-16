@@ -4,8 +4,7 @@ This module provides functions for validating both legacy and Bech32 Bitcoin add
 It supports validation for both mainnet and testnet addresses.
 """
 import re
-from typing import Optional, Tuple, Any, List
-
+from typing import Optional, Tuple, List
 
 # Address validation patterns
 MAINNET_ADDRESS_REGEX = "^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$"
@@ -17,6 +16,7 @@ UPPERCASE_MAINNET_BECH32_ADDRESS_REGEX = '^BC1[AC-HJ-NP-Z02-9]{11,71}$'
 
 # Bech32 character set
 CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
+
 
 def bech32_decode(bech: str) -> Tuple[Optional[str], Optional[List[int]]]:
     """Validate a Bech32 string and determine its HRP and data components.
@@ -40,10 +40,10 @@ def bech32_decode(bech: str) -> Tuple[Optional[str], Optional[List[int]]]:
     pos = bech.rfind('1')
     if pos < 1 or pos + 7 > len(bech) or len(bech) > 90:
         return (None, None)
-    if not all(x in CHARSET for x in bech[pos+1:]):
+    if not all(x in CHARSET for x in bech[pos + 1:]):
         return (None, None)
     hrp = bech[:pos]
-    data = [CHARSET.find(x) for x in bech[pos+1:]]
+    data = [CHARSET.find(x) for x in bech[pos + 1:]]
     if not bech32_verify_checksum(hrp, data):
         return (None, None)
     return (hrp, data[:-6])
@@ -143,7 +143,7 @@ def valid_bech32_address(address: str, testnet: bool = False) -> bool:
 
     if testnet:
         return bool(re.match(LOWERCASE_TESTNET_BECH32_ADDRESS_REGEX, address)) or \
-               bool(re.match(UPPERCASE_TESTNET_BECH32_ADDRESS_REGEX, address))
+            bool(re.match(UPPERCASE_TESTNET_BECH32_ADDRESS_REGEX, address))
     else:
         return bool(re.match(LOWERCASE_MAINNET_BECH32_ADDRESS_REGEX, address)) or \
-               bool(re.match(UPPERCASE_MAINNET_BECH32_ADDRESS_REGEX, address))
+            bool(re.match(UPPERCASE_MAINNET_BECH32_ADDRESS_REGEX, address))

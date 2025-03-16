@@ -5,6 +5,7 @@ from typing import Tuple
 from bitcoin.wallet import CBitcoinSecret, P2PKHBitcoinAddress
 from bitcoin.signmessage import BitcoinMessage, SignMessage
 
+
 def get_bitcoin_address(private_key: CBitcoinSecret) -> str:
     """Get the Bitcoin address corresponding to a private key.
     
@@ -16,6 +17,7 @@ def get_bitcoin_address(private_key: CBitcoinSecret) -> str:
     """
     return str(P2PKHBitcoinAddress.from_pubkey(private_key.pub))
 
+
 def generate_bitcoin_keypair() -> Tuple[CBitcoinSecret, str]:
     """Generate a random Bitcoin private key and its corresponding address.
     
@@ -25,11 +27,12 @@ def generate_bitcoin_keypair() -> Tuple[CBitcoinSecret, str]:
     # Generate a random private key
     entropy = random.getrandbits(256).to_bytes(32, byteorder='big')
     private_key = CBitcoinSecret.from_secret_bytes(entropy)
-    
+
     # Get the corresponding public address
     address = get_bitcoin_address(private_key)
-    
+
     return private_key, address
+
 
 def sign_message(message: str, private_key: CBitcoinSecret) -> str:
     """Sign a message with a Bitcoin private key.

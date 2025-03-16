@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from typing import List, Optional, Union
+from typing import List, Optional
 from .option import HivemindOption
 import logging
 
 LOG = logging.getLogger(__name__)
+
 
 class Ranking:
     """A class for managing ranked choice voting.
@@ -104,18 +105,18 @@ class Ranking:
                 raise Exception('Invalid list of options given for auto ranking')
 
             LOG.info(f"Auto ranking with {len(options)} options: {[option.cid().replace('/ipfs/', '') for option in options]}")
-            
+
             try:
                 choice = HivemindOption(cid=self.auto)
                 LOG.info(f"Preferred choice loaded: {choice.cid().replace('/ipfs/', '')}, value: {choice.value}")
-                
+
                 if self.type == 'auto_high':
                     LOG.info("Using auto_high sorting (higher values preferred when equidistant)")
                     ranking = [option.cid().replace('/ipfs/', '') for option in sorted(options, key=lambda x: (abs(x.value - choice.value), -x.value))]
                 elif self.type == 'auto_low':
                     LOG.info("Using auto_low sorting (lower values preferred when equidistant)")
                     ranking = [option.cid().replace('/ipfs/', '') for option in sorted(options, key=lambda x: (abs(x.value - choice.value), x.value))]
-                
+
                 LOG.info(f"Final auto ranking result: {ranking}")
             except Exception as e:
                 LOG.error(f"Error during auto ranking calculation: {str(e)}")

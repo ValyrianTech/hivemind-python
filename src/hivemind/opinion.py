@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 from ipfs_dict_chain.IPFSDict import IPFSDict
 from .ranking import Ranking
-from .option import HivemindOption
 
 
 class HivemindOpinion(IPFSDict):
