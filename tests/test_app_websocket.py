@@ -62,7 +62,7 @@ class TestWebSocketEndpoint:
         mock_websocket1.receive_text.side_effect = WebSocketDisconnect("Connection closed")
         
         # Call the websocket endpoint
-        await app.websocket_endpoint(mock_websocket1, opinion_hash)
+        await websocket_endpoint(mock_websocket1, opinion_hash)
         
         # Verify the connection was accepted
         mock_websocket1.accept.assert_called_once()
@@ -80,7 +80,7 @@ class TestWebSocketEndpoint:
         mock_websocket.receive_text.side_effect = Exception("Test exception")
         
         # Call the websocket endpoint
-        await app.websocket_endpoint(mock_websocket, opinion_hash)
+        await websocket_endpoint(mock_websocket, opinion_hash)
         
         # Verify the connection was accepted
         mock_websocket.accept.assert_called_once()
@@ -102,7 +102,7 @@ class TestWebSocketEndpoint:
         mock_websocket2.receive_text.side_effect = Exception("Test exception")
         
         # First, add the first connection
-        await app.websocket_endpoint(mock_websocket1, opinion_hash)
+        await websocket_endpoint(mock_websocket1, opinion_hash)
         
         # Verify the first connection was accepted
         mock_websocket1.accept.assert_called_once()
@@ -113,7 +113,7 @@ class TestWebSocketEndpoint:
         active_connections[opinion_hash] = [mock_websocket1]
         
         # Now test the second connection
-        await app.websocket_endpoint(mock_websocket2, opinion_hash)
+        await websocket_endpoint(mock_websocket2, opinion_hash)
         
         # Verify the second connection was accepted
         mock_websocket2.accept.assert_called_once()

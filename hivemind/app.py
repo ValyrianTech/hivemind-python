@@ -35,7 +35,7 @@ from hivemind.ranking import Ranking
 from ipfs_dict_chain.IPFSDict import IPFSDict
 from ipfs_dict_chain.IPFS import connect
 
-from websocket_handlers import websocket_endpoint, active_connections, register_websocket_routes, name_update_connections
+from websocket_handlers import active_connections, register_websocket_routes, name_update_connections
 
 
 class StateLoadingStats:
