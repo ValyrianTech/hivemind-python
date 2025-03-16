@@ -95,6 +95,9 @@ class TestSignOpinion:
         mock_issue.questions = ["Test Question"]
         mock_issue.tags = ["test"]
         
+        # Set up the hivemind_issue method to return the mock issue
+        mock_state.hivemind_issue.return_value = mock_issue
+        
         # Mock option for get_sorted_options
         mock_option = MagicMock()
         mock_option.cid.return_value = f"/ipfs/{VALID_OPTION1_CID}"
@@ -106,37 +109,36 @@ class TestSignOpinion:
         async def mock_update_state(*args, **kwargs):
             return None
         
-        # Patch HivemindOpinion, HivemindState, HivemindIssue, and update_state
+        # Patch HivemindOpinion, HivemindState, and update_state
         with patch("app.HivemindOpinion", return_value=mock_opinion):
             with patch("app.HivemindState", return_value=mock_state):
-                with patch("app.HivemindIssue", return_value=mock_issue):
-                    with patch("app.update_state", side_effect=mock_update_state):
-                        # Create test data
-                        timestamp = int(time.time())
-                        opinion_hash = VALID_OPINION_CID
-                        message = f"{timestamp}{opinion_hash}"
-                        signature = sign_message(message, self.private_key)
-                        
-                        # Test request data
-                        request_data = {
-                            "address": self.address,
-                            "message": message,
-                            "signature": signature,
-                            "data": {
-                                "hivemind_id": "test_hivemind_id",
-                                "question_index": 0,
-                                "ranking": [VALID_OPTION1_CID, VALID_OPTION2_CID]
-                            }
+                with patch("app.update_state", side_effect=mock_update_state):
+                    # Create test data
+                    timestamp = int(time.time())
+                    opinion_hash = VALID_OPINION_CID
+                    message = f"{timestamp}{opinion_hash}"
+                    signature = sign_message(message, self.private_key)
+                    
+                    # Test request data
+                    request_data = {
+                        "address": self.address,
+                        "message": message,
+                        "signature": signature,
+                        "data": {
+                            "hivemind_id": "test_hivemind_id",
+                            "question_index": 0,
+                            "ranking": [VALID_OPTION1_CID, VALID_OPTION2_CID]
                         }
-                        
-                        # Test the endpoint
-                        response = self.client.post("/api/sign_opinion", json=request_data)
-                        
-                        # Verify response
-                        assert response.status_code == 200
-                        response_data = response.json()
-                        assert response_data["success"] is True
-                        assert "cid" in response_data
+                    }
+                    
+                    # Test the endpoint
+                    response = self.client.post("/api/sign_opinion", json=request_data)
+                    
+                    # Verify response
+                    assert response.status_code == 200
+                    response_data = response.json()
+                    assert response_data["success"] is True
+                    assert "cid" in response_data
         
         # Verify mocks were called correctly
         mock_verify_message.assert_called_once_with(message, self.address, signature)
@@ -330,13 +332,6 @@ class TestSignOpinion:
         mock_opinion.hivemind_id = "test_hivemind_id"
         mock_opinion.question_index = 0
         
-        # Mock HivemindState
-        mock_state = MagicMock()
-        mock_state.options = [VALID_OPTION1_CID, VALID_OPTION2_CID]
-        mock_state.opinions = [[]]  # Empty list for each question
-        mock_state.save.return_value = VALID_STATE_CID
-        mock_state.calculate_results.return_value = {VALID_OPTION1_CID: {"score": 0.8}}
-        
         # Mock HivemindIssue
         mock_issue = MagicMock()
         mock_issue.name = "Test Issue"
@@ -344,6 +339,15 @@ class TestSignOpinion:
         mock_issue.answer_type = "String"
         mock_issue.questions = ["Test Question"]
         mock_issue.tags = ["test"]
+        
+        # Mock HivemindState
+        mock_state = MagicMock()
+        mock_state.options = [VALID_OPTION1_CID, VALID_OPTION2_CID]
+        mock_state.opinions = [[]]  # Empty list for each question
+        mock_state.save.return_value = VALID_STATE_CID
+        mock_state.calculate_results.return_value = {VALID_OPTION1_CID: {"score": 0.8}}
+        # Set up the hivemind_issue method to return the mock issue
+        mock_state.hivemind_issue.return_value = mock_issue
         
         # Mock option for get_sorted_options
         mock_option = MagicMock()
@@ -360,10 +364,99 @@ class TestSignOpinion:
         opinion_hash = VALID_OPINION_CID
         app.active_connections[opinion_hash] = [mock_websocket]
         
-        # Patch HivemindOpinion, HivemindState, and HivemindIssue
+        # Patch HivemindOpinion and HivemindState
         with patch("app.HivemindOpinion", return_value=mock_opinion):
             with patch("app.HivemindState", return_value=mock_state):
-                with patch("app.HivemindIssue", return_value=mock_issue):
+                # Create test data
+                timestamp = int(time.time())
+                message = f"{timestamp}{opinion_hash}"
+                signature = sign_message(message, self.private_key)
+                
+                # Test request data
+                request_data = {
+                    "address": self.address,
+                    "message": message,
+                    "signature": signature,
+                    "data": {
+                        "hivemind_id": "test_hivemind_id",
+                        "question_index": 0,
+                        "ranking": [VALID_OPTION1_CID, VALID_OPTION2_CID]
+                    }
+                }
+                
+                # Test the endpoint
+                response = self.client.post("/api/sign_opinion", json=request_data)
+                
+                # Verify response
+                assert response.status_code == 200
+                data = response.json()
+                assert data["success"] is True
+                assert data["cid"] == VALID_STATE_CID
+        
+        # Clean up
+        del app.active_connections[opinion_hash]
+    
+    @patch("app.asyncio.to_thread", mock_to_thread)
+    @patch("app.verify_message")
+    @patch("app.load_state_mapping")
+    def test_sign_opinion_websocket_notification_exception(self, mock_load_state_mapping, mock_verify_message):
+        """Test sign_opinion with WebSocket notification that raises an exception."""
+        # Configure mocks
+        mock_verify_message.return_value = True
+        
+        # Mock state mapping
+        mock_mapping = {"test_hivemind_id": {"state_hash": VALID_STATE_CID}}
+        mock_load_state_mapping.return_value = mock_mapping
+        
+        # Mock HivemindOpinion
+        mock_opinion = MagicMock()
+        mock_opinion.hivemind_id = "test_hivemind_id"
+        mock_opinion.question_index = 0
+        
+        # Mock HivemindIssue
+        mock_issue = MagicMock()
+        mock_issue.name = "Test Issue"
+        mock_issue.description = "Test Description"
+        mock_issue.answer_type = "String"
+        mock_issue.questions = ["Test Question"]
+        mock_issue.tags = ["test"]
+        
+        # Mock HivemindState
+        mock_state = MagicMock()
+        mock_state.options = [VALID_OPTION1_CID, VALID_OPTION2_CID]
+        mock_state.opinions = [[]]  # Empty list for each question
+        mock_state.save.return_value = VALID_STATE_CID
+        mock_state.calculate_results.return_value = {VALID_OPTION1_CID: {"score": 0.8}}
+        # Set up the hivemind_issue method to return the mock issue
+        mock_state.hivemind_issue.return_value = mock_issue
+        
+        # Mock option for get_sorted_options
+        mock_option = MagicMock()
+        mock_option.cid.return_value = f"/ipfs/{VALID_OPTION1_CID}"
+        mock_option.text = "Option 1"
+        mock_option.value = "option1"
+        mock_state.get_sorted_options.return_value = [mock_option]
+        
+        # Mock WebSocket connection that raises an exception
+        mock_websocket = MagicMock()
+        mock_websocket.send_json = AsyncMock(side_effect=Exception("WebSocket error"))
+        
+        # Mock a second WebSocket connection that works correctly
+        mock_websocket2 = MagicMock()
+        mock_websocket2.send_json = AsyncMock()
+        
+        # Add mock connections to active_connections
+        opinion_hash = VALID_OPINION_CID
+        app.active_connections[opinion_hash] = [mock_websocket, mock_websocket2]
+        
+        # Patch update_state to be a coroutine that returns None
+        async def mock_update_state(*args, **kwargs):
+            return None
+        
+        # Patch HivemindOpinion, HivemindState, and update_state
+        with patch("app.HivemindOpinion", return_value=mock_opinion):
+            with patch("app.HivemindState", return_value=mock_state):
+                with patch("app.update_state", side_effect=mock_update_state):
                     # Create test data
                     timestamp = int(time.time())
                     message = f"{timestamp}{opinion_hash}"
@@ -389,99 +482,10 @@ class TestSignOpinion:
                     data = response.json()
                     assert data["success"] is True
                     assert data["cid"] == VALID_STATE_CID
-        
-        # Clean up
-        del app.active_connections[opinion_hash]
-    
-    @patch("app.asyncio.to_thread", mock_to_thread)
-    @patch("app.verify_message")
-    @patch("app.load_state_mapping")
-    def test_sign_opinion_websocket_notification_exception(self, mock_load_state_mapping, mock_verify_message):
-        """Test sign_opinion with WebSocket notification that raises an exception."""
-        # Configure mocks
-        mock_verify_message.return_value = True
-        
-        # Mock state mapping
-        mock_mapping = {"test_hivemind_id": {"state_hash": VALID_STATE_CID}}
-        mock_load_state_mapping.return_value = mock_mapping
-        
-        # Mock HivemindOpinion
-        mock_opinion = MagicMock()
-        mock_opinion.hivemind_id = "test_hivemind_id"
-        mock_opinion.question_index = 0
-        
-        # Mock HivemindState
-        mock_state = MagicMock()
-        mock_state.options = [VALID_OPTION1_CID, VALID_OPTION2_CID]
-        mock_state.opinions = [[]]  # Empty list for each question
-        mock_state.save.return_value = VALID_STATE_CID
-        mock_state.calculate_results.return_value = {VALID_OPTION1_CID: {"score": 0.8}}
-        
-        # Mock HivemindIssue
-        mock_issue = MagicMock()
-        mock_issue.name = "Test Issue"
-        mock_issue.description = "Test Description"
-        mock_issue.answer_type = "String"
-        mock_issue.questions = ["Test Question"]
-        mock_issue.tags = ["test"]
-        
-        # Mock option for get_sorted_options
-        mock_option = MagicMock()
-        mock_option.cid.return_value = f"/ipfs/{VALID_OPTION1_CID}"
-        mock_option.text = "Option 1"
-        mock_option.value = "option1"
-        mock_state.get_sorted_options.return_value = [mock_option]
-        
-        # Mock WebSocket connection that raises an exception
-        mock_websocket = MagicMock()
-        mock_websocket.send_json = AsyncMock(side_effect=Exception("WebSocket error"))
-        
-        # Mock a second WebSocket connection that works correctly
-        mock_websocket2 = MagicMock()
-        mock_websocket2.send_json = AsyncMock()
-        
-        # Add mock connections to active_connections
-        opinion_hash = VALID_OPINION_CID
-        app.active_connections[opinion_hash] = [mock_websocket, mock_websocket2]
-        
-        # Patch update_state to be a coroutine that returns None
-        async def mock_update_state(*args, **kwargs):
-            return None
-        
-        # Patch HivemindOpinion, HivemindState, HivemindIssue, and update_state
-        with patch("app.HivemindOpinion", return_value=mock_opinion):
-            with patch("app.HivemindState", return_value=mock_state):
-                with patch("app.HivemindIssue", return_value=mock_issue):
-                    with patch("app.update_state", side_effect=mock_update_state):
-                        # Create test data
-                        timestamp = int(time.time())
-                        message = f"{timestamp}{opinion_hash}"
-                        signature = sign_message(message, self.private_key)
-                        
-                        # Test request data
-                        request_data = {
-                            "address": self.address,
-                            "message": message,
-                            "signature": signature,
-                            "data": {
-                                "hivemind_id": "test_hivemind_id",
-                                "question_index": 0,
-                                "ranking": [VALID_OPTION1_CID, VALID_OPTION2_CID]
-                            }
-                        }
-                        
-                        # Test the endpoint
-                        response = self.client.post("/api/sign_opinion", json=request_data)
-                        
-                        # Verify response
-                        assert response.status_code == 200
-                        data = response.json()
-                        assert data["success"] is True
-                        assert data["cid"] == VALID_STATE_CID
-                        
-                        # Verify that both WebSocket connections were attempted
-                        mock_websocket.send_json.assert_called_once()
-                        mock_websocket2.send_json.assert_called_once()
+                    
+                    # Verify that both WebSocket connections were attempted
+                    mock_websocket.send_json.assert_called_once()
+                    mock_websocket2.send_json.assert_called_once()
         
         # Clean up
         del app.active_connections[opinion_hash]

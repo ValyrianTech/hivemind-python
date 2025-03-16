@@ -1134,7 +1134,7 @@ async def sign_opinion(request: Request):
             logger.info(f"New winning result for question {opinion.question_index}: {formatted_results}")
 
             # Update the state mapping with new state hash and metadata
-            issue = await asyncio.to_thread(lambda: HivemindIssue(cid=opinion.hivemind_id))
+            issue = state.hivemind_issue()
             logger.info("Loading issue done")
 
             await update_state(StateHashUpdate(
