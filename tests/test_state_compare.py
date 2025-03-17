@@ -7,6 +7,7 @@ from .test_state_common import (
     state, basic_issue, integer_issue, test_keypair,
     TestHelper, sign_message
 )
+from ipfs_dict_chain.IPFS import IPFSError
 import logging
 
 @pytest.mark.consensus
@@ -31,6 +32,10 @@ class TestHivemindStateCompare:
             state, issue_hash, 30, "Third Option", private_key, address, int(time.time())
         )
         
+        # Save and reload state to initialize option cache
+        state_hash = state.save()
+        state = HivemindState(cid=state_hash)
+        
         # Create an opinion with auto_high ranking
         opinion = HivemindOpinion()
         opinion.hivemind_id = issue_hash
@@ -47,4 +52,35 @@ class TestHivemindStateCompare:
         result = state.compare(first_hash, third_hash, opinion_hash)
         
         # The third option should be preferred as it's closer to the second option value
-        assert result == third_hash   
+        assert result == third_hash
+
+    def test_get_option(self, state: HivemindState, integer_issue: HivemindIssue, test_keypair) -> None:
+        """Test the get_option method for both cached and uncached options."""
+        private_key, address = test_keypair
+        issue_hash = integer_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Create an option
+        helper = TestHelper()
+        option_hash = helper.create_and_sign_option(
+            state, issue_hash, 42, "Test Option", private_key, address, int(time.time())
+        )
+        
+        # Test getting uncached option
+        uncached_option = state.get_option(cid=option_hash)
+        assert uncached_option.value == 42
+        assert uncached_option.text == "Test Option"
+        
+        # Save and reload state to initialize cache
+        state_hash = state.save()
+        state = HivemindState(cid=state_hash)
+        
+        # Test getting cached option
+        cached_option = state.get_option(cid=option_hash)
+        assert cached_option.value == 42
+        assert cached_option.text == "Test Option"
+        
+        # Test getting non-existent option
+        with pytest.raises(IPFSError) as exc_info:
+            state.get_option(cid="QmNonExistent")
+        assert "Failed to retrieve json data from IPFS hash" in str(exc_info.value)

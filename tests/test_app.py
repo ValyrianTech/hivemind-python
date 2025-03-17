@@ -862,7 +862,7 @@ class TestEndpoints:
         # Setup mock state instance
         mock_state = MagicMock()
         mock_state.hivemind_id = "test_id"
-        mock_state.option_cids = {"option1": "value1", "option2": "value2"}
+        mock_state.option_cids = ["option1", "option2"]
         mock_state.opinions = {}
         mock_state.final = False
         mock_state.get_questions.return_value = ["Question 1?"]
@@ -879,8 +879,8 @@ class TestEndpoints:
         mock_hivemind_state_class.return_value = mock_state
         mock_hivemind_issue_class.return_value = mock_issue
         
-        # Configure HivemindOption to raise an exception when initialized
-        mock_hivemind_option_class.side_effect = Exception("Failed to load option")
+        # Configure get_option to raise an exception
+        mock_state.get_option.side_effect = Exception("Failed to load option")
         
         # Test the endpoint
         response = self.client.post(
