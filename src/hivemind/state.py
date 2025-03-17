@@ -152,7 +152,7 @@ class HivemindState(IPFSDictChain):
         self._hivemind_issue = HivemindIssue(cid=self.hivemind_id)
         
         # Only initialize opinions if they don't exist
-        if not hasattr(self, 'opinions') or self.opinion_cids is None:
+        if not hasattr(self, 'opinion_cids') or self.opinion_cids is None:
             self.opinion_cids = [{} for _ in range(len(self._hivemind_issue.questions))]
 
     def add_option(self, timestamp: int, option_hash: str, address: Optional[str] = None, signature: Optional[str] = None) -> None:
