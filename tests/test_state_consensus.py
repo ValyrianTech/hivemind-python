@@ -634,8 +634,8 @@ class TestHivemindStateResetSelectionMode:
         state.add_opinion(timestamp, opinion_hash, signature, address)
         
         # Verify opinion was added
-        assert len(state.opinions) > 0
-        assert state.opinions != [{}]
+        assert len(state.opinion_cids) > 0
+        assert state.opinion_cids != [{}]
         
         # Set on_selection to Reset
         color_choice_issue.on_selection = 'Reset'
@@ -645,7 +645,7 @@ class TestHivemindStateResetSelectionMode:
         state.select_consensus()
         
         # Verify opinions were reset
-        assert state.opinions == [{}]
+        assert state.opinion_cids == [{}]
     
     def test_select_consensus_unknown_mode(self, state: HivemindState, color_choice_issue: HivemindIssue, test_keypair) -> None:
         """Test that select_consensus raises NotImplementedError for unknown selection mode."""
@@ -740,7 +740,7 @@ class TestHivemindStateNullSelectionMode:
         assert len(state.selected[0]) == 1  # With one option
         assert state.selected[0][0].replace('/ipfs/', '') == option_hash  # The correct option
         assert not state.final  # Should not be finalized
-        assert len(state.opinions) == 1  # Opinions should not be reset
+        assert len(state.opinion_cids) == 1  # Opinions should not be reset
 
 @pytest.mark.consensus
 class TestHivemindStateContributions:

@@ -43,8 +43,8 @@ class HivemindState(IPFSDictChain):
     :type _hivemind_issue: Optional[HivemindIssue]
     :ivar option_cids: List of option CIDs
     :type option_cids: List[str]
-    :ivar opinions: List of dictionaries containing opinions for each question
-    :type opinions: List[Dict[str, Any]]
+    :ivar opinion_cids: List of dictionaries containing opinions for each question
+    :type opinion_cids: List[Dict[str, Any]]
     :ivar signatures: Dictionary mapping addresses to their signatures
     :type signatures: Dict[str, str]
     :ivar participants: Dictionary mapping addresses to their participation data
@@ -64,7 +64,7 @@ class HivemindState(IPFSDictChain):
         self.hivemind_id: Optional[str] = None
         self._hivemind_issue: Optional[HivemindIssue] = None
         self.option_cids: List[str] = []
-        self.opinions: List[Dict[str, Any]] = [{}]
+        self.opinion_cids: List[Dict[str, Any]] = [{}]
         self.signatures: Dict[str, str] = {}
         self.participants: Dict[str, Any] = {}
         self.selected: List[str] = []
@@ -97,7 +97,7 @@ class HivemindState(IPFSDictChain):
         """
         self.hivemind_id = issue_hash
         self._hivemind_issue = HivemindIssue(cid=self.hivemind_id)
-        self.opinions = [{} for _ in range(len(self._hivemind_issue.questions))]
+        self.opinion_cids = [{} for _ in range(len(self._hivemind_issue.questions))]
 
     def add_predefined_options(self) -> Dict[str, Dict[str, Any]]:
         """Add predefined options to the hivemind state.
@@ -152,8 +152,8 @@ class HivemindState(IPFSDictChain):
         self._hivemind_issue = HivemindIssue(cid=self.hivemind_id)
         
         # Only initialize opinions if they don't exist
-        if not hasattr(self, 'opinions') or self.opinions is None:
-            self.opinions = [{} for _ in range(len(self._hivemind_issue.questions))]
+        if not hasattr(self, 'opinions') or self.opinion_cids is None:
+            self.opinion_cids = [{} for _ in range(len(self._hivemind_issue.questions))]
 
     def add_option(self, timestamp: int, option_hash: str, address: Optional[str] = None, signature: Optional[str] = None) -> None:
         """Add an option to the hivemind state.
@@ -292,10 +292,10 @@ class HivemindState(IPFSDictChain):
                 raise Exception('Invalid signature: %s' % ex)
 
             # Ensure we have enough dictionaries in the opinions list
-            while len(self.opinions) <= opinion.question_index:
-                self.opinions.append({})
+            while len(self.opinion_cids) <= opinion.question_index:
+                self.opinion_cids.append({})
 
-            self.opinions[opinion.question_index][address] = {'opinion_cid': opinion_hash, 'timestamp': timestamp}
+            self.opinion_cids[opinion.question_index][address] = {'opinion_cid': opinion_hash, 'timestamp': timestamp}
 
     def get_opinion(self, opinionator: str, question_index: int = 0) -> Optional[HivemindOpinion]:
         """Get the opinion of a participant.
@@ -308,8 +308,8 @@ class HivemindState(IPFSDictChain):
         :rtype: Optional[HivemindOpinion]
         """
         opinion = None
-        if question_index < len(self.opinions) and opinionator in self.opinions[question_index]:
-            opinion = HivemindOpinion(cid=self.opinions[question_index][opinionator]['opinion_cid'])
+        if question_index < len(self.opinion_cids) and opinionator in self.opinion_cids[question_index]:
+            opinion = HivemindOpinion(cid=self.opinion_cids[question_index][opinionator]['opinion_cid'])
 
         return opinion
 
@@ -395,7 +395,7 @@ class HivemindState(IPFSDictChain):
         ret = "Opinions"
         ret += "\n========"
         # opinion_data is a list containing [opinion_hash, signature of '/ipfs/opinion_hash', timestamp]
-        for opinionator, opinion_data in self.opinions[question_index].items():
+        for opinionator, opinion_data in self.opinion_cids[question_index].items():
             ret += '\nTimestamp: %s' % opinion_data['timestamp']
             opinion = HivemindOpinion(cid=opinion_data['opinion_cid'])
             ret += '\n' + opinion.info()
@@ -422,8 +422,8 @@ class HivemindState(IPFSDictChain):
         results = {option: {'win': 0, 'loss': 0, 'unknown': 0, 'score': 0} for option in available_options}
 
         for a, b in combinations(available_options, 2):
-            for opinionator in self.opinions[question_index]:
-                winner = self.compare(a, b, self.opinions[question_index][opinionator]['opinion_cid'])
+            for opinionator in self.opinion_cids[question_index]:
+                winner = self.compare(a, b, self.opinion_cids[question_index][opinionator]['opinion_cid'])
                 weight = self.get_weight(opinionator=opinionator)
                 if winner == a:
                     results[a]['win'] += weight
@@ -575,11 +575,11 @@ class HivemindState(IPFSDictChain):
         option_hashes_by_score = [option[0] for option in sorted(results.items(), key=lambda x: x[1]['score'], reverse=True)]
 
         # sort the opinionators by the timestamp of their opinion
-        opinionators_by_timestamp = [opinionator for opinionator, opinion_data in sorted(self.opinions[question_index].items(), key=lambda x: x[1]['timestamp'])]
+        opinionators_by_timestamp = [opinionator for opinionator, opinion_data in sorted(self.opinion_cids[question_index].items(), key=lambda x: x[1]['timestamp'])]
 
         for i, opinionator in enumerate(opinionators_by_timestamp):
             deviance = 0
-            opinion = HivemindOpinion(cid=self.opinions[question_index][opinionator]['opinion_cid'])
+            opinion = HivemindOpinion(cid=self.opinion_cids[question_index][opinionator]['opinion_cid'])
 
             # Todo, something is wrong here messing up the contribution scores
             #
@@ -623,7 +623,7 @@ class HivemindState(IPFSDictChain):
             pass
         elif self._hivemind_issue.on_selection == 'Reset':
             # All opinions are reset
-            self.opinions = [{}]
+            self.opinion_cids = [{}]
         else:
             raise NotImplementedError('Unknown selection mode: %s' % self._hivemind_issue.on_selection)
 

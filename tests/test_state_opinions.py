@@ -13,7 +13,7 @@ from .test_state_common import (
     TestHelper, sign_message, generate_bitcoin_keypair
 )
 
-@pytest.mark.opinions
+@pytest.mark.opinion_cids
 class TestHivemindStateOpinions:
     """Tests for opinion management."""
     
@@ -60,7 +60,7 @@ class TestHivemindStateOpinions:
         state.add_opinion(timestamp, opinion_hash, signature, address)
         
         # Verify opinion was added
-        assert state.opinions[0][address]['opinion_cid'] == opinion_hash  # First question's opinions
+        assert state.opinion_cids[0][address]['opinion_cid'] == opinion_hash  # First question's opinions
         assert address in state.participants
         
         # Test adding opinion when state is final
@@ -79,7 +79,7 @@ class TestHivemindStateOpinions:
         state.add_opinion(new_timestamp, new_opinion_hash, signature, address)
         
         # Verify the opinion was not added (state remained unchanged)
-        assert state.opinions[0][address]['opinion_cid'] == opinion_hash  # Original opinion still there
+        assert state.opinion_cids[0][address]['opinion_cid'] == opinion_hash  # Original opinion still there
 
         # Test adding opinion with higher question index
         higher_index_opinion = HivemindOpinion()
@@ -99,9 +99,9 @@ class TestHivemindStateOpinions:
         state.add_opinion(new_timestamp, higher_index_hash, signature, address)
 
         # Verify opinions list was extended and opinion was added
-        assert len(state.opinions) == 3  # Should have lists for indices 0, 1, and 2
-        assert isinstance(state.opinions[1], dict)  # Middle index should be empty dict
-        assert state.opinions[2][address]['opinion_cid'] == higher_index_hash  # New opinion at index 2
+        assert len(state.opinion_cids) == 3  # Should have lists for indices 0, 1, and 2
+        assert isinstance(state.opinion_cids[1], dict)  # Middle index should be empty dict
+        assert state.opinion_cids[2][address]['opinion_cid'] == higher_index_hash  # New opinion at index 2
 
         # Test adding invalid opinion (with non-existent option)
         invalid_opinion = HivemindOpinion()
@@ -218,7 +218,7 @@ class TestHivemindStateOpinions:
         state.set_hivemind_issue(issue_hash)
         
         # Set opinions to None
-        state.opinions = None
+        state.opinion_cids = None
         state_hash = state.save()
         
         # Load state in a new instance
@@ -226,8 +226,8 @@ class TestHivemindStateOpinions:
         loaded_state.load(state_hash)
         
         # Verify opinions list was initialized correctly
-        assert len(loaded_state.opinions) == len(basic_issue.questions)
-        assert all(isinstance(opinions, dict) for opinions in loaded_state.opinions)
+        assert len(loaded_state.opinion_cids) == len(basic_issue.questions)
+        assert all(isinstance(opinions, dict) for opinions in loaded_state.opinion_cids)
 
     def test_add_opinion_with_dict_ranking(self, state: HivemindState, test_keypair) -> None:
         """Test adding opinions with dictionary-based rankings.
@@ -290,7 +290,7 @@ class TestHivemindStateOpinions:
         state.add_opinion(timestamp, opinion_auto_high_hash, signature, address)
         
         # Verify opinion was added
-        assert state.opinions[0][address]['opinion_cid'] == opinion_auto_high_hash
+        assert state.opinion_cids[0][address]['opinion_cid'] == opinion_auto_high_hash
         
         # Test with auto_low dictionary ranking
         opinion_dict = IPFSDict()
@@ -307,7 +307,7 @@ class TestHivemindStateOpinions:
         state.add_opinion(timestamp, opinion_auto_low_hash, signature, address)
         
         # Verify opinion was added
-        assert state.opinions[0][address]['opinion_cid'] == opinion_auto_low_hash
+        assert state.opinion_cids[0][address]['opinion_cid'] == opinion_auto_low_hash
         
         # Test with fixed dictionary ranking
         opinion_dict = IPFSDict()
@@ -324,4 +324,4 @@ class TestHivemindStateOpinions:
         state.add_opinion(timestamp, opinion_fixed_hash, signature, address)
         
         # Verify opinion was added
-        assert state.opinions[0][address]['opinion_cid'] == opinion_fixed_hash
+        assert state.opinion_cids[0][address]['opinion_cid'] == opinion_fixed_hash

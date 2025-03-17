@@ -371,7 +371,7 @@ async def fetch_state(request: IPFSHashRequest):
         basic_info = {
             'hivemind_id': state.hivemind_id,
             'num_options': len(state.option_cids),
-            'num_opinions': len(state.opinions[0]) if state.opinions else 0,
+            'num_opinions': len(state.opinion_cids[0]) if state.opinion_cids else 0,
             'is_final': state.final
         }
 
@@ -421,14 +421,14 @@ async def fetch_state(request: IPFSHashRequest):
         # Load opinions asynchronously
         opinions_start = time.time()
         full_opinions = []
-        for question_index, question_opinions in enumerate(state.opinions):
+        for question_index, question_opinions in enumerate(state.opinion_cids):
             question_data = await load_opinions_for_question(question_index, question_opinions)
             full_opinions.append(question_data)
         stats.opinions_load_time = time.time() - opinions_start
 
         # Add opinions to response
         basic_info['opinions'] = full_opinions
-        basic_info['total_opinions'] = len(state.opinions[0]) if state.opinions else 0
+        basic_info['total_opinions'] = len(state.opinion_cids[0]) if state.opinion_cids else 0
         basic_info['previous_cid'] = state.previous_cid
 
         # Add participants data to response
@@ -439,7 +439,7 @@ async def fetch_state(request: IPFSHashRequest):
         calculation_start = time.time()
         results = []
         full_results = []  # Keep full results for the frontend
-        for question_index in range(len(state.opinions)):
+        for question_index in range(len(state.opinion_cids)):
             try:
                 logger.info(f"Calculating results for question {question_index}...")
                 question_results = await asyncio.to_thread(lambda: state.calculate_results(question_index=question_index))
@@ -716,7 +716,7 @@ async def create_option(option: OptionCreate):
                 state = HivemindState(cid=latest_state_cid)
                 logger.info(f"Current state loaded successfully")
                 logger.info(f"State details - Number of options: {len(state.option_cids)}")
-                logger.info(f"State details - Number of opinions: {len(state.opinions[0]) if state.opinions else 0}")
+                logger.info(f"State details - Number of opinions: {len(state.opinion_cids[0]) if state.opinion_cids else 0}")
 
                 logger.info(f"Loading issue from CID: {option.hivemind_id}")
                 issue = HivemindIssue(cid=option.hivemind_id)
@@ -835,7 +835,7 @@ async def create_option(option: OptionCreate):
                     "issue_name": issue.name,
                     "issue_description": issue.description,
                     "num_options": len(state.option_cids),
-                    "num_opinions": len(state.opinions[0]) if state.opinions else 0,
+                    "num_opinions": len(state.opinion_cids[0]) if state.opinion_cids else 0,
                     "answer_type": issue.answer_type,
                     "questions": issue.questions,
                     "tags": issue.tags
@@ -1143,7 +1143,7 @@ async def sign_opinion(request: Request):
                 name=issue.name,
                 description=issue.description,
                 num_options=len(state.option_cids),
-                num_opinions=len(state.opinions[0]) if state.opinions else 0,
+                num_opinions=len(state.opinion_cids[0]) if state.opinion_cids else 0,
                 answer_type=issue.answer_type,
                 questions=issue.questions,
                 tags=issue.tags,
@@ -1359,7 +1359,7 @@ async def sign_name_update(request: Request):
                     name=issue.name,
                     description=issue.description,
                     num_options=len(state.option_cids),
-                    num_opinions=len(state.opinions[0]) if state.opinions else 0,
+                    num_opinions=len(state.opinion_cids[0]) if state.opinion_cids else 0,
                     answer_type=issue.answer_type,
                     questions=issue.questions,
                     tags=issue.tags

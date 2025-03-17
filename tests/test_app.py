@@ -424,7 +424,7 @@ class TestEndpoints:
         mock_state = MagicMock()
         mock_state.hivemind_id = "test_id"
         mock_state.option_cids = {"option1": "value1", "option2": "value2"}
-        mock_state.opinions = [
+        mock_state.opinion_cids = [
             {"address1": {"opinion_cid": "opinion1", "timestamp": "2023-01-01", "ranking": ["option1", "option2"]}}
         ]
         mock_state.final = False
@@ -863,7 +863,7 @@ class TestEndpoints:
         mock_state = MagicMock()
         mock_state.hivemind_id = "test_id"
         mock_state.option_cids = ["option1", "option2"]
-        mock_state.opinions = {}
+        mock_state.opinion_cids = {}
         mock_state.final = False
         mock_state.get_questions.return_value = ["Question 1?"]
         
@@ -929,7 +929,7 @@ class TestEndpoints:
         mock_state = MagicMock()
         mock_state.hivemind_id = "test_id"
         mock_state.option_cids = {"/ipfs/option1": "value1", "option2": "value2"}
-        mock_state.opinions = [
+        mock_state.opinion_cids = [
             {"address1": {"opinion_cid": "opinion1", "timestamp": "2023-01-01", "ranking": ["/ipfs/option1", "option2"]}}
         ]
         mock_state.final = False
@@ -1001,7 +1001,7 @@ class TestEndpoints:
         mock_state = MagicMock()
         mock_state.hivemind_id = "test_id"
         mock_state.option_cids = {"option1": "value1", "option2": "value2"}
-        mock_state.opinions = [
+        mock_state.opinion_cids = [
             {"address1": {"opinion_cid": "opinion1", "timestamp": "2023-01-01", "ranking": ["option1", "option2"]}}
         ]
         mock_state.final = False

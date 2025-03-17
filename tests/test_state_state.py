@@ -186,8 +186,8 @@ class TestHivemindStateOpinionTimestampValidation:
         state.add_opinion(new_timestamp, opinion2_hash, signature3, address)
         
         # Verify the opinion was updated
-        assert state.opinions[0][address]['opinion_cid'] == opinion2_hash
-        assert state.opinions[0][address]['timestamp'] == new_timestamp
+        assert state.opinion_cids[0][address]['opinion_cid'] == opinion2_hash
+        assert state.opinion_cids[0][address]['timestamp'] == new_timestamp
 
 @pytest.mark.state
 class TestHivemindStateVerification:
@@ -230,7 +230,7 @@ class TestHivemindStateVerification:
         
         # Valid opinion should be added
         state.add_opinion(timestamp, opinion_hash, signature, address)
-        assert state.opinions[0][address]['opinion_cid'] == opinion_hash
+        assert state.opinion_cids[0][address]['opinion_cid'] == opinion_hash
         
         # 3. Test participant verification
         name = "Test User"

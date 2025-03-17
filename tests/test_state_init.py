@@ -13,7 +13,7 @@ class TestHivemindStateInit:
         assert state.hivemind_id is None
         assert state._hivemind_issue is None
         assert state.option_cids == []
-        assert state.opinions == [{}]
+        assert state.opinion_cids == [{}]
         assert state.signatures == {}
         assert state.participants == {}
         assert state.selected == []
@@ -25,7 +25,7 @@ class TestHivemindStateInit:
         state.set_hivemind_issue(issue_hash)
         assert state.hivemind_id is not None
         assert isinstance(state._hivemind_issue, HivemindIssue)
-        assert len(state.opinions) == len(state._hivemind_issue.questions)
+        assert len(state.opinion_cids) == len(state._hivemind_issue.questions)
 
     def test_hivemind_issue_property(self, state: HivemindState, basic_issue: HivemindIssue) -> None:
         """Test the hivemind_issue method."""
@@ -54,6 +54,6 @@ class TestHivemindStateInit:
         loaded_state.load(state_hash)
         
         # Verify opinions are initialized correctly for all questions
-        assert len(loaded_state.opinions) == len(basic_issue.questions)
-        assert all(isinstance(opinions, dict) for opinions in loaded_state.opinions)
-        assert all(len(opinions) == 0 for opinions in loaded_state.opinions)
+        assert len(loaded_state.opinion_cids) == len(basic_issue.questions)
+        assert all(isinstance(opinions, dict) for opinions in loaded_state.opinion_cids)
+        assert all(len(opinions) == 0 for opinions in loaded_state.opinion_cids)

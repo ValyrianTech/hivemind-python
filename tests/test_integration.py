@@ -294,7 +294,7 @@ def test_full_hivemind_workflow() -> None:
         print(f'\nCompleted processing all opinions for Question {question_index + 1}')
         
         # Verify opinions were properly added
-        assert len(hivemind_state.opinions[question_index]) == n_opinions, f"Expected {n_opinions} opinions for question {question_index}, got {len(hivemind_state.opinions[question_index])}"
+        assert len(hivemind_state.opinion_cids[question_index]) == n_opinions, f"Expected {n_opinions} opinions for question {question_index}, got {len(hivemind_state.opinion_cids[question_index])}"
         
         # Calculate and display results
         log_substep(f'Calculating results for Question {question_index + 1}')
