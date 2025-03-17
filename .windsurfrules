@@ -19,6 +19,8 @@ pytest-cov >= 4.0.0
   - Always use 'python -m' versions of commands where possible
   - Use PowerShell syntax for your commands, like using ; instead of &&
   - VERY IMPORTANT: if a test fails, DO NOT CHANGE THE CORE CODE!! If you believe it is a bug you must first explain why to me!
+  - Always run all tests with 'python -m pytest', don't waste my credits by doing single tests
+  - When I tell you to do a diff to see the changes, do it with 'git diff', don't start analyzing things.
 
 # Project Structure
 /
