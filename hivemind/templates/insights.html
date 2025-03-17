@@ -349,7 +349,7 @@
                 issuesList.appendChild(optionsSection);
 
                 // Display opinions data in an organized way
-                if (data.opinions) {
+                if (data.opinion_cids) {
                     const opinionsSection = document.createElement('div');
                     opinionsSection.className = 'bg-gray-800 rounded-lg shadow-lg p-6';
                     
@@ -367,7 +367,7 @@
                     `;
                     
                     opinionsContent += `
-                        ${data.opinions.map((questionOpinions, questionIndex) => {
+                        ${data.opinion_cids.map((questionOpinions, questionIndex) => {
                             const question = questions[questionIndex] || `Question ${questionIndex + 1}`;
                             const opinionEntries = Object.entries(questionOpinions);
                             

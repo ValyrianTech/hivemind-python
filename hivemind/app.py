@@ -427,7 +427,7 @@ async def fetch_state(request: IPFSHashRequest):
         stats.opinions_load_time = time.time() - opinions_start
 
         # Add opinions to response
-        basic_info['opinions'] = full_opinions
+        basic_info['opinion_cids'] = full_opinions
         basic_info['total_opinions'] = len(state.opinion_cids[0]) if state.opinion_cids else 0
         basic_info['previous_cid'] = state.previous_cid
 
