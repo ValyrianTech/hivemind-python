@@ -399,7 +399,7 @@ async def fetch_state(request: IPFSHashRequest):
         options = []
         for option_hash in state.option_cids:
             try:
-                option = await asyncio.to_thread(lambda h=option_hash: HivemindOption(cid=h))
+                option = state.get_option(cid=option_hash)
                 options.append({
                     'cid': option_hash,
                     'value': option.value if hasattr(option, 'value') else None,
@@ -896,7 +896,7 @@ async def add_opinion_page(request: Request, cid: str):
         options = []
         for option_hash in state.option_cids:
             try:
-                option = await asyncio.to_thread(lambda h=option_hash: HivemindOption(cid=h))
+                option = state.get_option(cid=option_hash)
                 options.append({
                     'cid': option_hash,
                     'value': option.value if hasattr(option, 'value') else None,

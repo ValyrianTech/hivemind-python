@@ -70,9 +70,7 @@ class TestErrorHandling:
 
     @patch("app.HivemindState")
     @patch("app.HivemindIssue")
-    @patch("app.HivemindOption")
-    @patch("app.asyncio.to_thread")
-    def test_add_opinion_page_option_loading(self, mock_to_thread, mock_hivemind_option, mock_hivemind_issue, mock_hivemind_state):
+    def test_add_opinion_page_option_loading(self, mock_hivemind_issue, mock_hivemind_state):
         """Test the option loading functionality in the add_opinion_page endpoint."""
         # Setup mock issue instance
         mock_issue = MagicMock()
@@ -84,16 +82,15 @@ class TestErrorHandling:
         mock_state = MagicMock()
         mock_state.hivemind_id = "test_hivemind_id"
         mock_state.option_cids = ["option1", "option2"]
+        # Configure get_option to raise an exception for the second option
+        mock_option1 = MagicMock()
+        mock_option1.value = "test_value1"
+        mock_option1.text = "Test Option 1"
+        mock_option2 = MagicMock()
+        mock_option2.value = "test_value2"
+        mock_option2.text = "Test Option 2"
+        mock_state.get_option.side_effect = [mock_option1, Exception("Failed to load option")]
         mock_hivemind_state.return_value = mock_state
-        
-        # Setup mock option instance
-        mock_option = MagicMock()
-        mock_option.value = "test_value"
-        mock_option.text = "Test Option"
-        mock_hivemind_option.return_value = mock_option
-        
-        # Configure to_thread to return the mocked objects
-        mock_to_thread.side_effect = lambda f, *args, **kwargs: f(*args, **kwargs)
         
         # Test the endpoint
         response = self.client.get("/add_opinion?cid=test_state_cid")
@@ -102,10 +99,10 @@ class TestErrorHandling:
         assert response.status_code == 200
         assert "text/html" in response.headers["content-type"]
         
-        # Verify HivemindOption was called for each option in state.option_cids
-        assert mock_hivemind_option.call_count == 2
-        mock_hivemind_option.assert_any_call(cid="option1")
-        mock_hivemind_option.assert_any_call(cid="option2")
+        # Verify get_option was called for each option in state.option_cids
+        assert mock_state.get_option.call_count == 2
+        mock_state.get_option.assert_any_call(cid="option1")
+        mock_state.get_option.assert_any_call(cid="option2")
 
     @patch("app.load_state_mapping")
     @patch("app.asyncio.to_thread")
@@ -171,11 +168,10 @@ class TestErrorHandling:
     @patch("app.load_state_mapping")
     @patch("app.HivemindState")
     @patch("app.HivemindIssue")
-    @patch("app.HivemindOption")
     @patch("app.asyncio.to_thread")
     @patch("app.logger")
-    def test_create_and_save_exception_handling(self, mock_logger, mock_to_thread, mock_hivemind_option, 
-                                               mock_hivemind_issue, mock_hivemind_state, mock_load_state_mapping):
+    def test_create_and_save_exception_handling(self, mock_logger, mock_to_thread, mock_hivemind_issue, 
+                                               mock_hivemind_state, mock_load_state_mapping):
         """Test exception handling in the create_and_save function (lines 776-781)."""
         # Setup test client
         client = TestClient(app.app)

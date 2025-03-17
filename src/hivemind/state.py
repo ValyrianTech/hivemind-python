@@ -71,6 +71,7 @@ class HivemindState(IPFSDictChain):
         self.final: bool = False
 
         super(HivemindState, self).__init__(cid=cid)
+        self._options: List[HivemindOption] = [HivemindOption(cid=option_cid) for option_cid in self.option_cids]
 
     def hivemind_issue(self) -> Optional[HivemindIssue]:
         """Get the associated hivemind issue.
@@ -86,7 +87,7 @@ class HivemindState(IPFSDictChain):
         :return: List of HivemindOption objects
         :rtype: List[HivemindOption]
         """
-        return [HivemindOption(cid=option_cid) for option_cid in self.option_cids]
+        return self._options
 
     def set_hivemind_issue(self, issue_hash: str) -> None:
         """Set the associated hivemind issue.
@@ -194,7 +195,7 @@ class HivemindState(IPFSDictChain):
             if number_of_options >= self._hivemind_issue.restrictions['options_per_address']:
                 raise Exception('Can not add option: address %s already added too many options: %s' % (address, number_of_options))
 
-        option = HivemindOption(cid=option_hash)
+        option = self.get_option(cid=option_hash)
         if isinstance(option, HivemindOption) and option.valid():
             if option_hash in self.option_cids:
                 raise Exception("Option already exists")
@@ -377,7 +378,7 @@ class HivemindState(IPFSDictChain):
         ret += "\n======="
         for i, option_hash in enumerate(self.option_cids):
             ret += '\nOption %s:' % (i + 1)
-            option = HivemindOption(cid=option_hash)
+            option = self.get_option(cid=option_hash)
             ret += '\n' + option.info()
             ret += '\n'
 
@@ -467,7 +468,7 @@ class HivemindState(IPFSDictChain):
         :rtype: List[HivemindOption]
         """
         results = self.calculate_results(question_index=question_index)
-        return [HivemindOption(cid=option[0]) for option in sorted(results.items(), key=lambda x: x[1]['score'], reverse=True)]
+        return [self.get_option(cid=option[0]) for option in sorted(results.items(), key=lambda x: x[1]['score'], reverse=True)]
 
     def consensus(self, question_index: int = 0) -> Any:
         """Get the consensus of the hivemind.
@@ -545,7 +546,7 @@ class HivemindState(IPFSDictChain):
                 continue
 
             i += 1
-            option = HivemindOption(cid=option_hash)
+            option = self.get_option(cid=option_hash)
             ret += '\n%s: (%g%%) : %s' % (i, round(option_result['score']*100, 2), option.value)
 
         ret += '\nContributions:'
@@ -715,3 +716,17 @@ class HivemindState(IPFSDictChain):
         else:
             return None
 
+    def get_option(self, cid: str) -> Optional[HivemindOption]:
+        """Get an option by its CID.
+
+        :param cid: The IPFS multihash of the option
+        :type cid: str
+        :return: The option object
+        :rtype: Optional[HivemindOption]
+        """
+        # Check if the option is already in the state
+        for option in self._options:
+            if cid.replace('/ipfs/', '') in option.cid():
+                return option
+
+        return HivemindOption(cid=cid)
