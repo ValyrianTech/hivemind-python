@@ -160,6 +160,7 @@ class TestHivemindOption:
         """Test info string generation"""
         option.value = "test"
         option.text = "Test description"
+        option.save()
         info = option.info()
         assert "Value: test" in info
         assert "Text: Test description" in info
@@ -569,6 +570,7 @@ class TestHivemindOption:
         # Test with string
         option.value = "test"
         option.text = "description"
+        option.save()
         info = option.info()
         assert "Value: test" in info
         assert "Text: description" in info
