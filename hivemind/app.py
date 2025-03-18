@@ -326,12 +326,6 @@ async def load_opinions_for_question(state: HivemindState, question_index: int, 
                 # Extract ranking using the helper function
                 ranking, ranking_type = extract_ranking_from_opinion_object(opinion.ranking)
 
-                # Fallback to previous methods if the above didn't work
-                if ranking is None:
-                    if isinstance(opinion.ranking, list):
-                        ranking = opinion.ranking
-                        logger.debug(f"List ranking detected for {address}: {ranking}")
-
             logger.info(f"Loaded opinion for {address} in question {question_index}")
             question_data[address] = {
                 'opinion_cid': opinion_info['opinion_cid'],
