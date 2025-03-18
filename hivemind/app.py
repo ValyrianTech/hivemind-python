@@ -298,11 +298,12 @@ async def states_page(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-async def load_opinions_for_question(question_index: int, question_opinions: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+async def load_opinions_for_question(state: HivemindState, question_index: int, question_opinions: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
     """
     Load opinions for a specific question from IPFS.
     
     Args:
+        state: The HivemindState object to load opinions from
         question_index: Index of the question
         question_opinions: Dictionary mapping addresses to opinion info
         
@@ -312,8 +313,8 @@ async def load_opinions_for_question(question_index: int, question_opinions: Dic
     question_data = {}
     for address, opinion_info in question_opinions.items():
         try:
-            # Load opinion data in a thread
-            opinion = await asyncio.to_thread(lambda cid=opinion_info['opinion_cid']: HivemindOpinion(cid=cid))
+            # Load opinion using state object
+            opinion = state.get_opinion(cid=opinion_info['opinion_cid'])
 
             # Extract ranking based on the data format
             ranking = None
@@ -422,7 +423,7 @@ async def fetch_state(request: IPFSHashRequest):
         opinions_start = time.time()
         full_opinions = []
         for question_index, question_opinions in enumerate(state.opinion_cids):
-            question_data = await load_opinions_for_question(question_index, question_opinions)
+            question_data = await load_opinions_for_question(state, question_index, question_opinions)
             full_opinions.append(question_data)
         stats.opinions_load_time = time.time() - opinions_start
 

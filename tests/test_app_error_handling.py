@@ -290,11 +290,10 @@ class TestErrorHandling:
         mock_logger.error.assert_called_once_with("Failed to create issue: Test issue creation error")
 
     @pytest.mark.asyncio
-    @patch("app.asyncio.to_thread")
     @patch("app.logger")
-    @patch("app.HivemindOpinion")
-    async def test_load_opinions_for_question_exception(self, mock_hivemind_opinion, mock_logger, mock_to_thread):
-        """Test exception handling in the load_opinions_for_question function (lines 320-322)."""
+    @patch("app.HivemindState")
+    async def test_load_opinions_for_question_exception(self, mock_hivemind_state, mock_logger):
+        """Test exception handling in the load_opinions_for_question function."""
         # Create test data for question_opinions
         question_index = 0
         question_opinions = {
@@ -304,15 +303,13 @@ class TestErrorHandling:
             }
         }
         
-        # Configure HivemindOpinion mock to raise an exception
+        # Configure state mock to raise an exception
         test_exception = Exception("Test opinion loading error")
-        mock_hivemind_opinion.side_effect = test_exception
-        
-        # Configure to_thread to pass through the lambda function
-        mock_to_thread.side_effect = lambda f, *args, **kwargs: f(*args, **kwargs)
+        mock_state = mock_hivemind_state.return_value
+        mock_state.get_opinion.side_effect = test_exception
         
         # Call the function
-        result = await app.load_opinions_for_question(question_index, question_opinions)
+        result = await app.load_opinions_for_question(mock_state, question_index, question_opinions)
         
         # Verify the result contains the error information
         assert "test_address" in result
