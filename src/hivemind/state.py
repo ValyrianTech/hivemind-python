@@ -72,6 +72,8 @@ class HivemindState(IPFSDictChain):
 
         super(HivemindState, self).__init__(cid=cid)
         self._options: List[HivemindOption] = [HivemindOption(cid=option_cid) for option_cid in self.option_cids]
+        for question_index in range(len(self.opinion_cids)):
+            self._opinions: List[HivemindOpinion] = [HivemindOpinion(cid=opinion['opinion_cid']) for participant, opinion in self.opinion_cids[question_index].items()]
 
     def hivemind_issue(self) -> Optional[HivemindIssue]:
         """Get the associated hivemind issue.
@@ -237,7 +239,7 @@ class HivemindState(IPFSDictChain):
         if self.final is True:
             return
 
-        opinion = HivemindOpinion(cid=opinion_hash)
+        opinion = self.get_opinion(cid=opinion_hash)
         if not verify_message(address=address, message='%s%s' % (timestamp, opinion_hash), signature=signature):
             raise Exception('Signature is invalid')
 
@@ -245,7 +247,6 @@ class HivemindState(IPFSDictChain):
         if self._hivemind_issue.restrictions is not None and 'addresses' in self._hivemind_issue.restrictions:
             if address not in self._hivemind_issue.restrictions['addresses']:
                 raise Exception('Can not add opinion: there are address restrictions on this hivemind issue and address %s is not allowed to add opinions' % address)
-
 
         # Log the opinion details for debugging
         LOG.info(f"Opinion details - hivemind_id: {opinion.hivemind_id}, question_index: {opinion.question_index}")
@@ -297,21 +298,6 @@ class HivemindState(IPFSDictChain):
 
             self.opinion_cids[opinion.question_index][address] = {'opinion_cid': opinion_hash, 'timestamp': timestamp}
 
-    def get_opinion(self, opinionator: str, question_index: int = 0) -> Optional[HivemindOpinion]:
-        """Get the opinion of a participant.
-
-        :param opinionator: The participant's address
-        :type opinionator: str
-        :param question_index: The index of the question (default=0)
-        :type question_index: int
-        :return: The opinion object
-        :rtype: Optional[HivemindOpinion]
-        """
-        opinion = None
-        if question_index < len(self.opinion_cids) and opinionator in self.opinion_cids[question_index]:
-            opinion = HivemindOpinion(cid=self.opinion_cids[question_index][opinionator]['opinion_cid'])
-
-        return opinion
 
     def get_weight(self, opinionator: str) -> float:
         """Get the weight of an opinion.
@@ -397,7 +383,7 @@ class HivemindState(IPFSDictChain):
         # opinion_data is a list containing [opinion_hash, signature of '/ipfs/opinion_hash', timestamp]
         for opinionator, opinion_data in self.opinion_cids[question_index].items():
             ret += '\nTimestamp: %s' % opinion_data['timestamp']
-            opinion = HivemindOpinion(cid=opinion_data['opinion_cid'])
+            opinion = self.get_opinion(cid=opinion_data['opinion_cid'])
             ret += '\n' + opinion.info()
             ret += '\n'
 
@@ -579,7 +565,7 @@ class HivemindState(IPFSDictChain):
 
         for i, opinionator in enumerate(opinionators_by_timestamp):
             deviance = 0
-            opinion = HivemindOpinion(cid=self.opinion_cids[question_index][opinionator]['opinion_cid'])
+            opinion = self.get_opinion(cid=self.opinion_cids[question_index][opinionator]['opinion_cid'])
 
             # Todo, something is wrong here messing up the contribution scores
             #
@@ -695,7 +681,7 @@ class HivemindState(IPFSDictChain):
         If one of the Options is not given in the Opinion object, the other option wins by default
         If both Options are not in the Opinion object, None is returned
         """
-        opinion = HivemindOpinion(cid=opinion_hash)
+        opinion = self.get_opinion(cid=opinion_hash)
         # Handle different ranking types
         if hasattr(opinion.ranking, 'type') and opinion.ranking.type in ['auto_high', 'auto_low']:
             # For auto rankings, we need to get all options from the state
@@ -730,3 +716,18 @@ class HivemindState(IPFSDictChain):
                 return option
 
         return HivemindOption(cid=cid)
+
+    def get_opinion(self, cid: str) -> Optional[HivemindOpinion]:
+        """Get an opinion by its CID.
+
+        :param cid: The IPFS multihash of the opinion
+        :type cid: str
+        :return: The opinion object
+        :rtype: Optional[HivemindOpinion]
+        """
+        # Check if the opinion is already in the state
+        for opinion in self._opinions:
+            if cid.replace('/ipfs/', '') in opinion.cid():
+                return opinion
+
+        return HivemindOpinion(cid=cid)
