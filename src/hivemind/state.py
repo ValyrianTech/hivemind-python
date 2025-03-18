@@ -736,7 +736,7 @@ class HivemindState(IPFSDictChain):
         :rtype: Optional[HivemindOpinion]
         """
         # Check if the opinion is already in the state
-        for question_index in range(len(self.opinion_cids)):
+        for question_index in range(len(self._opinions)):
             for opinion in self._opinions[question_index]:
                 if cid.replace('/ipfs/', '') in opinion.cid():
                     return opinion
