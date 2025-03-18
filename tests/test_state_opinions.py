@@ -277,3 +277,61 @@ class TestHivemindStateOpinions:
         
         # Verify opinion was added
         assert state.opinion_cids[0][address]['opinion_cid'] == opinion_fixed_hash
+
+    def test_get_opinion(self, state: HivemindState, basic_issue: HivemindIssue, test_keypair) -> None:
+        """Test getting an opinion from the state."""
+        private_key, address = test_keypair
+        issue_hash = basic_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Create and add an option first
+        option = HivemindOption()
+        option.set_hivemind_issue(issue_hash)
+        option.set("Test Option")
+        option_hash = option.save()
+        
+        # Sign and add option
+        timestamp = int(time.time())
+        message = f"{timestamp}{option_hash}"
+        signature = sign_message(message, private_key)
+        state.add_option(timestamp, option_hash, address, signature)
+        
+        # Create and add an opinion
+        opinion = HivemindOpinion()
+        opinion.hivemind_id = issue_hash
+        opinion.question_index = 0
+        opinion.ranking.set_fixed([option_hash])
+        opinion.ranking = opinion.ranking.get()
+        opinion_hash = opinion.save()
+        
+        # Add the opinion to the state
+        message = f"{timestamp}{opinion_hash}"
+        signature = sign_message(message, private_key)
+        state.add_opinion(timestamp, opinion_hash, signature, address)
+        
+        # Create a new state instance and load the saved state
+        state_hash = state.save()
+        new_state = HivemindState(cid=state_hash)
+        
+        # Test getting the opinion that's already in state
+        retrieved_opinion = new_state.get_opinion(opinion_hash)
+        assert retrieved_opinion is not None
+        assert retrieved_opinion.cid().replace('/ipfs/', '') == opinion_hash.replace('/ipfs/', '')
+        
+        # Test getting an opinion with /ipfs/ prefix
+        prefixed_hash = f"/ipfs/{opinion_hash}"
+        retrieved_opinion = new_state.get_opinion(prefixed_hash)
+        assert retrieved_opinion is not None
+        assert retrieved_opinion.cid().replace('/ipfs/', '') == opinion_hash.replace('/ipfs/', '')
+        
+        # Test getting a new opinion not in state
+        new_opinion = HivemindOpinion()
+        new_opinion.hivemind_id = issue_hash
+        new_opinion.question_index = 0
+        new_opinion.ranking.set_fixed([option_hash])
+        new_opinion.ranking = new_opinion.ranking.get()
+        new_opinion_hash = new_opinion.save()
+        
+        retrieved_new_opinion = new_state.get_opinion(new_opinion_hash)
+        assert retrieved_new_opinion is not None
+        assert retrieved_new_opinion.cid().replace('/ipfs/', '') == new_opinion_hash.replace('/ipfs/', '')
