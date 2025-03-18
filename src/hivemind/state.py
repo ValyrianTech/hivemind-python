@@ -72,8 +72,19 @@ class HivemindState(IPFSDictChain):
 
         super(HivemindState, self).__init__(cid=cid)
         self._options: List[HivemindOption] = [HivemindOption(cid=option_cid) for option_cid in self.option_cids]
+
+        self._opinions: List = []
+        self._rankings: List = []
         for question_index in range(len(self.opinion_cids)):
-            self._opinions: List[HivemindOpinion] = [HivemindOpinion(cid=opinion['opinion_cid']) for participant, opinion in self.opinion_cids[question_index].items()]
+            opinions = []
+            rankings = {}
+            for participant, opinion_data in self.opinion_cids[question_index].items():
+                opinion = HivemindOpinion(cid=opinion_data['opinion_cid'])
+                opinions.append(opinion)
+                rankings[participant] = opinion.ranking.get(options=self._options)
+
+            self._opinions.append(opinions)
+            self._rankings.append(rankings)
 
     def hivemind_issue(self) -> Optional[HivemindIssue]:
         """Get the associated hivemind issue.
@@ -152,7 +163,7 @@ class HivemindState(IPFSDictChain):
         """
         super(HivemindState, self).load(cid=cid)
         self._hivemind_issue = HivemindIssue(cid=self.hivemind_id)
-        
+
         # Only initialize opinions if they don't exist
         if not hasattr(self, 'opinion_cids') or self.opinion_cids is None:
             self.opinion_cids = [{} for _ in range(len(self._hivemind_issue.questions))]
@@ -177,8 +188,8 @@ class HivemindState(IPFSDictChain):
             return
 
         # Check for address restrictions
-        has_address_restrictions = (self._hivemind_issue.restrictions is not None and 
-                                  'addresses' in self._hivemind_issue.restrictions)
+        has_address_restrictions = (self._hivemind_issue.restrictions is not None and
+                                    'addresses' in self._hivemind_issue.restrictions)
 
         # If we have address restrictions, require address and signature
         if has_address_restrictions:
@@ -272,7 +283,7 @@ class HivemindState(IPFSDictChain):
         # Check if all options in the ranking exist in the state
         # Strip '/ipfs/' prefix from option hashes if present for comparison
         normalized_ranking_options = [option_hash.replace('/ipfs/', '') if option_hash.startswith('/ipfs/') else option_hash
-                                     for option_hash in ranking_options]
+                                      for option_hash in ranking_options]
         normalized_state_options = [option_hash.replace('/ipfs/', '') if option_hash.startswith('/ipfs/') else option_hash
                                     for option_hash in self.option_cids]
 
@@ -280,7 +291,7 @@ class HivemindState(IPFSDictChain):
         LOG.info(f"Normalized state options: {normalized_state_options}")
 
         invalid_options = [option_hash for option_hash in normalized_ranking_options
-                          if option_hash not in normalized_state_options]
+                           if option_hash not in normalized_state_options]
         if invalid_options:
             LOG.error(f"Invalid options found: {invalid_options}")
             LOG.error(f"Available options: {normalized_state_options}")
@@ -297,7 +308,6 @@ class HivemindState(IPFSDictChain):
                 self.opinion_cids.append({})
 
             self.opinion_cids[opinion.question_index][address] = {'opinion_cid': opinion_hash, 'timestamp': timestamp}
-
 
     def get_weight(self, opinionator: str) -> float:
         """Get the weight of an opinion.
@@ -533,7 +543,7 @@ class HivemindState(IPFSDictChain):
 
             i += 1
             option = self.get_option(cid=option_hash)
-            ret += '\n%s: (%g%%) : %s' % (i, round(option_result['score']*100, 2), option.value)
+            ret += '\n%s: (%g%%) : %s' % (i, round(option_result['score'] * 100, 2), option.value)
 
         ret += '\nContributions:'
         ret += '\n================'
@@ -570,22 +580,22 @@ class HivemindState(IPFSDictChain):
             # Todo, something is wrong here messing up the contribution scores
             #
             # Calculate the 'early bird' multiplier (whoever gives their opinion first gets the highest multiplier, value is between 0 and 1), if opinion is an empty list, then multiplier is 0
-            multipliers[opinionator] = 1 - (i/float(len(opinionators_by_timestamp))) if len(opinion.ranking.get(options=self.get_options())) > 0 else 0
+            multipliers[opinionator] = 1 - (i / float(len(opinionators_by_timestamp))) if len(opinion.ranking.get(options=self.get_options())) > 0 else 0
 
             # Calculate the deviance of the opinion, the closer the opinion is to the final result, the lower the deviance
             for j, option_hash in enumerate(option_hashes_by_score):
                 if option_hash in opinion.ranking.get(options=self.get_options()):
                     deviance += abs(j - opinion.ranking.get(options=self.get_options()).index(option_hash))
                 else:
-                    deviance += len(option_hashes_by_score)-j
+                    deviance += len(option_hashes_by_score) - j
 
             total_deviance += deviance
             deviances[opinionator] = deviance
 
         if total_deviance != 0:  # to avoid divide by zero
-            contributions = {opinionator: (1-(deviances[opinionator]/float(total_deviance)))*multipliers[opinionator] for opinionator in deviances}
+            contributions = {opinionator: (1 - (deviances[opinionator] / float(total_deviance))) * multipliers[opinionator] for opinionator in deviances}
         else:  # everyone has perfect opinion, but contributions should still be multiplied by the 'early bird' multiplier
-            contributions = {opinionator: 1*multipliers[opinionator] for opinionator in deviances}
+            contributions = {opinionator: 1 * multipliers[opinionator] for opinionator in deviances}
 
         return contributions
 
@@ -726,8 +736,9 @@ class HivemindState(IPFSDictChain):
         :rtype: Optional[HivemindOpinion]
         """
         # Check if the opinion is already in the state
-        for opinion in self._opinions:
-            if cid.replace('/ipfs/', '') in opinion.cid():
-                return opinion
+        for question_index in range(len(self.opinion_cids)):
+            for opinion in self._opinions[question_index]:
+                if cid.replace('/ipfs/', '') in opinion.cid():
+                    return opinion
 
         return HivemindOpinion(cid=cid)

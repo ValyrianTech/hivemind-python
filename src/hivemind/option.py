@@ -339,3 +339,6 @@ class HivemindOption(IPFSDict):
         if self.text:
             info += f'Text: {self.text}\n'
         return info
+
+    def __repr__(self):
+        return self._cid.replace('/ipfs/', '')
