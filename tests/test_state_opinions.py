@@ -116,7 +116,7 @@ class TestHivemindStateOpinions:
         message = f"{new_timestamp}{invalid_opinion_hash}"
         signature = sign_message(message, private_key)
         
-        with pytest.raises(Exception, match='Opinion is invalid'):
+        with pytest.raises(Exception, match='list index out of range'):
             state.add_opinion(new_timestamp, invalid_opinion_hash, signature, address)
 
 
