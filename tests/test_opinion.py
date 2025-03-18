@@ -394,3 +394,28 @@ class TestHivemindOpinion:
         # Verify the ranking was loaded correctly
         assert isinstance(loaded_opinion.ranking, Ranking)
         assert loaded_opinion.ranking.to_dict()['auto_low'] == option_cid
+
+    def test_repr(self):
+        """Test the __repr__ method of HivemindOpinion"""
+        # Create and save an opinion to get a CID
+        opinion = HivemindOpinion()
+        opinion.hivemind_id = "test_hivemind_id"
+        opinion.set_question_index(1)
+        
+        # Convert the ranking to a serializable format before saving
+        opinion_data = opinion.get()
+        for key, value in opinion_data.items():
+            opinion[key] = value
+            
+        opinion_cid = opinion.save()
+        
+        # Load the opinion from IPFS
+        loaded_opinion = HivemindOpinion(cid=opinion_cid)
+        
+        # Test the __repr__ method
+        assert repr(loaded_opinion) == opinion_cid.replace('/ipfs/', '')
+        
+        # Test with CID that doesn't have the /ipfs/ prefix
+        opinion_without_prefix = HivemindOpinion()
+        opinion_without_prefix._cid = "QmTestCidWithoutPrefix"
+        assert repr(opinion_without_prefix) == "QmTestCidWithoutPrefix"
