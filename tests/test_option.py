@@ -608,7 +608,9 @@ class TestHivemindOption:
             
     def test_info_method_edge_cases(self, option: HivemindOption) -> None:
         """Test edge cases in info()"""
-        # Test with no value set
+        # First save the option to get a valid CID
+        option.value = None
+        option.save()
         info = option.info()
         assert "Value: None" in info
 
