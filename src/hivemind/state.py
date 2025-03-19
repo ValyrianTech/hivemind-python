@@ -5,12 +5,12 @@ from ipfs_dict_chain.IPFSDictChain import IPFSDictChain
 from itertools import combinations
 import logging
 
-LOG = logging.getLogger(__name__)
-
 from .issue import HivemindIssue
 from .option import HivemindOption
 from .opinion import HivemindOpinion
 from bitcoin.signmessage import VerifyMessage, BitcoinMessage
+
+LOG = logging.getLogger(__name__)
 
 
 def verify_message(message: str, address: str, signature: str) -> bool:
@@ -38,9 +38,9 @@ class HivemindState(IPFSDictChain):
     calculates voting results, and manages restrictions on who can vote.
 
     :ivar hivemind_id: The IPFS hash of the associated hivemind issue
-    :type hivemind_id: Optional[str]
+    :type hivemind_id: str | None
     :ivar _hivemind_issue: The associated hivemind issue object
-    :type _hivemind_issue: Optional[HivemindIssue]
+    :type _hivemind_issue: HivemindIssue | None
     :ivar option_cids: List of option CIDs
     :type option_cids: List[str]
     :ivar opinion_cids: List of dictionaries containing opinions for each question
@@ -61,8 +61,8 @@ class HivemindState(IPFSDictChain):
         :param cid: The IPFS multihash of the state
         :type cid: Optional[str]
         """
-        self.hivemind_id: Optional[str] = None
-        self._hivemind_issue: Optional[HivemindIssue] = None
+        self.hivemind_id: str | None = None
+        self._hivemind_issue: HivemindIssue | None = None
         self.option_cids: List[str] = []
         self.opinion_cids: List[Dict[str, Any]] = [{}]
         self.signatures: Dict[str, str] = {}
@@ -270,7 +270,6 @@ class HivemindState(IPFSDictChain):
             LOG.info(f"Ranking auto: {opinion.ranking.auto}")
 
         # Get the ranking as a list of options
-        ranking_options = []
         try:
             # For auto rankings, we need to calculate the ranking based on the options
             LOG.info(f"Getting ranking options with {len(self._options)} available options")
