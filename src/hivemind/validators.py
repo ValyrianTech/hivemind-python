@@ -35,18 +35,18 @@ def bech32_decode(bech: str) -> Tuple[Optional[str], Optional[List[int]]]:
     """
     if ((any(ord(x) < 33 or ord(x) > 126 for x in bech)) or
             (bech.lower() != bech and bech.upper() != bech)):
-        return (None, None)
+        return None, None
     bech = bech.lower()
     pos = bech.rfind('1')
     if pos < 1 or pos + 7 > len(bech) or len(bech) > 90:
-        return (None, None)
+        return None, None
     if not all(x in CHARSET for x in bech[pos + 1:]):
-        return (None, None)
+        return None, None
     hrp = bech[:pos]
     data = [CHARSET.find(x) for x in bech[pos + 1:]]
     if not bech32_verify_checksum(hrp, data):
-        return (None, None)
-    return (hrp, data[:-6])
+        return None, None
+    return hrp, data[:-6]
 
 
 def bech32_verify_checksum(hrp: str, data: List[int]) -> bool:
