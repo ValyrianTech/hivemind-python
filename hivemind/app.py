@@ -653,8 +653,8 @@ async def create_issue(issue: HivemindIssueCreate):
                 logger.info("Updated state mapping")
 
                 return {"issue_cid": issue_cid, "state_cid": state_cid}
-            except Exception as e:
-                logger.error(f"Error in create_and_save: {str(e)}")
+            except Exception as ex:
+                logger.error(f"Error in create_and_save: {str(ex)}")
                 raise
 
         # Run the creation and save operation in a thread
@@ -773,20 +773,20 @@ async def create_option(option: OptionCreate):
                                 import json
                                 new_option.value = json.loads(option.value)
                                 logger.info(f"Parsed complex value from JSON: {new_option.value}")
-                        except (json.JSONDecodeError, TypeError) as e:
-                            logger.error(f"Failed to convert value to Complex: {str(e)}")
+                        except (json.JSONDecodeError, TypeError) as ex:
+                            logger.error(f"Failed to convert value to Complex: {str(ex)}")
                             raise HTTPException(
                                 status_code=400,
-                                detail=f"Invalid format for Complex answer type: {str(e)}"
+                                detail=f"Invalid format for Complex answer type: {str(ex)}"
                             )
                     else:
                         logger.info(f"Using value as string: {option.value}")
                         new_option.value = str(option.value)
-                except (ValueError, TypeError) as e:
-                    logger.error(f"Failed to convert value to {issue.answer_type}: {str(e)}")
+                except (ValueError, TypeError) as ex:
+                    logger.error(f"Failed to convert value to {issue.answer_type}: {str(ex)}")
                     raise HTTPException(
                         status_code=400,
-                        detail=f"Invalid value format for answer type {issue.answer_type}: {str(e)}"
+                        detail=f"Invalid value format for answer type {issue.answer_type}: {str(ex)}"
                     )
 
                 new_option.text = option.text or ''
@@ -803,9 +803,9 @@ async def create_option(option: OptionCreate):
                             getattr(new_option, validation_method)()
                         raise HTTPException(status_code=400, detail="Option validation failed")
                     logger.info("Option validation successful")
-                except Exception as e:
-                    logger.error(f"Option validation error: {e}")
-                    raise HTTPException(status_code=400, detail=f"Option validation error: {e}")
+                except Exception as ex:
+                    logger.error(f"Option validation error: {ex}")
+                    raise HTTPException(status_code=400, detail=f"Option validation error: {ex}")
 
                 # Save the option to IPFS
                 logger.info("Saving new option to IPFS...")
@@ -840,10 +840,10 @@ async def create_option(option: OptionCreate):
 
             except HTTPException:
                 raise
-            except Exception as e:
-                logger.error(f"Unexpected error in create_and_save: {str(e)}")
+            except Exception as ex:
+                logger.error(f"Unexpected error in create_and_save: {str(ex)}")
                 logger.exception("Full traceback:")
-                raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"Internal error: {str(ex)}")
 
         # Run the creation in a thread to avoid blocking
         logger.info("Running option creation in background thread...")
@@ -1197,12 +1197,11 @@ async def update_name_page_path(request: Request, hivemind_id: str):
 
 
 @app.get("/update_name")
-async def update_name_page_query(request: Request, state_cid: str = None, hivemind_id: str = None):
+async def update_name_page_query(request: Request, hivemind_id: str = None):
     """Render the page for updating a participant's name using query parameters.
     
     Args:
         request: The request object
-        state_cid: The CID of the current state (not used, kept for backward compatibility)
         hivemind_id: The ID of the hivemind
         
     Returns:
