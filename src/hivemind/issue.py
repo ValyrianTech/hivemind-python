@@ -21,9 +21,9 @@ class HivemindIssue(IPFSDict):
     :ivar answer_type: Type of answer expected ('String', 'Integer', 'Float')
     :type answer_type: str
     :ivar constraints: Optional constraints on voting
-    :type constraints: Optional[Dict[str, Union[str, int, float, list]]]
+    :type constraints: Dict[str, Union[str, int, float, list] | None
     :ivar restrictions: Optional restrictions on who can vote
-    :type restrictions: Optional[Dict[str, Union[List[str], int]]]
+    :type restrictions: Dict[str, Union[List[str], int]] | None
     :ivar on_selection: Action to take when an option is selected
     :type on_selection: Optional[str]
     """
@@ -39,8 +39,8 @@ class HivemindIssue(IPFSDict):
         self.description: str = ''
         self.tags: List[str] = []
         self.answer_type: str = 'String'
-        self.constraints: Optional[Dict[str, Union[str, int, float, list]]] = None
-        self.restrictions: Optional[Dict[str, Union[List[str], int]]] = None
+        self.constraints: Dict[str, Union[str, int, float, list]] | None = None
+        self.restrictions: Dict[str, Union[List[str], int]] | None = None
 
         # What happens when an option is selected: valid values are None, Finalize, Exclude, Reset
         # None : nothing happens
@@ -108,7 +108,7 @@ class HivemindIssue(IPFSDict):
         else:
             raise Exception('constraints contain an invalid key: %s' % constraints)
 
-    def set_restrictions(self, restrictions: Dict[str, Union[List[str], int]]) -> None:
+    def set_restrictions(self, restrictions: Dict[str, Union[List[str], int]] | None) -> None:
         """Set voting restrictions for the hivemind issue.
 
         :param restrictions: Dictionary of restrictions
