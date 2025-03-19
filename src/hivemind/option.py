@@ -253,7 +253,8 @@ class HivemindOption(IPFSDict):
 
         return True
 
-    def _is_valid_ipfs_hash(self, hash_str: str) -> bool:
+    @staticmethod
+    def _is_valid_ipfs_hash(hash_str: str) -> bool:
         """Check if a string is a valid IPFS hash.
 
         :param hash_str: The string to check
