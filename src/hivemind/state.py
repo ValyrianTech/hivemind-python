@@ -272,9 +272,9 @@ class HivemindState(IPFSDictChain):
         # Get the ranking as a list of options
         ranking_options = []
         try:
-            # For auto rankings, we need to extract the preferred option
-            LOG.info(f"Getting ranking options with {len(self.get_options())} available options")
-            ranking_options = opinion.ranking.get(options=self.get_options())
+            # For auto rankings, we need to calculate the ranking based on the options
+            LOG.info(f"Getting ranking options with {len(self._options)} available options")
+            ranking_options = opinion.ranking.get(options=self._options)
             LOG.info(f"Ranking options: {ranking_options}")
         except Exception as e:
             LOG.error(f"Error getting ranking options: {str(e)}")

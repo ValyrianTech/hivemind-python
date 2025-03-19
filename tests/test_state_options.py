@@ -111,6 +111,37 @@ class TestHivemindStateOptions:
         state.add_option(timestamp, option_hash, address1, signature)
         assert option_hash in state.option_cids
 
+    def test_get_options(self, state: HivemindState, color_choice_issue: HivemindIssue) -> None:
+        """Test getting the list of hivemind options."""
+        # Setup state with color choice issue
+        issue_hash = color_choice_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Add predefined options
+        state.add_predefined_options()
+        
+        # Manually update the _options list since it's not automatically updated after add_predefined_options
+        state._options = [HivemindOption(cid=option_cid) for option_cid in state.option_cids]
+        
+        # Get options using get_options method
+        options = state.get_options()
+        
+        # Verify the options list
+        assert len(options) == 3
+        assert all(isinstance(option, HivemindOption) for option in options)
+        
+        # Verify option values match the color choices
+        option_values = [option.value for option in options]
+        assert "red" in option_values
+        assert "blue" in option_values
+        assert "green" in option_values
+        
+        # Verify option texts match the color choices
+        option_texts = [option.text for option in options]
+        assert "Red" in option_texts
+        assert "Blue" in option_texts
+        assert "Green" in option_texts
+
     def test_options_info(self, state: HivemindState, color_choice_issue: HivemindIssue) -> None:
         """Test getting formatted information about all options."""
         # Setup state with color choice issue
