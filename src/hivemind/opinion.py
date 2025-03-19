@@ -90,7 +90,7 @@ class HivemindOpinion(IPFSDict):
         if isinstance(self.ranking, dict):
             ranking_dict = self.ranking  # Store the dict temporarily
             self.ranking = Ranking()  # Create new Ranking object
-            
+
             if 'fixed' in ranking_dict:
                 self.ranking.set_fixed(ranked_choice=ranking_dict['fixed'])
             elif 'auto_high' in ranking_dict:
