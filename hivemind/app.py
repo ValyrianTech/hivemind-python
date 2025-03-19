@@ -824,7 +824,7 @@ async def create_option(option: OptionCreate):
                 logger.info(f"New state saved successfully with CID: {new_state_cid}")
 
                 # Return the CIDs and metadata
-                result = {
+                result_metadata = {
                     "option_cid": option_cid,
                     "state_cid": new_state_cid,
                     "issue_name": issue.name,
@@ -836,7 +836,7 @@ async def create_option(option: OptionCreate):
                     "tags": issue.tags
                 }
                 logger.info("Result metadata prepared successfully")
-                return result
+                return result_metadata
 
             except HTTPException:
                 raise
