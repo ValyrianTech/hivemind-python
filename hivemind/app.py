@@ -437,9 +437,6 @@ async def fetch_state(request: IPFSHashRequest):
                 question_results = await asyncio.to_thread(lambda: state.calculate_results(question_index=question_index))
                 sorted_options = await asyncio.to_thread(lambda: state.get_sorted_options(question_index=question_index))
 
-                logger.info(f"Raw question results: {question_results}")
-                logger.info(f"Sorted options: {[opt.cid() for opt in sorted_options]}")
-
                 # Format full results for the frontend
                 formatted_results = []
                 for option in sorted_options:
