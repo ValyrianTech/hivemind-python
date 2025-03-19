@@ -1267,6 +1267,7 @@ async def sign_name_update(request: Request):
     Returns:
         Dict indicating success status and any error message
     """
+    state_cid = None
     try:
         data = await request.json()
 
