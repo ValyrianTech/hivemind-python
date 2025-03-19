@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from .option import HivemindOption
 import logging
 
@@ -15,18 +15,18 @@ class Ranking:
     based on proximity to a preferred choice.
 
     :ivar fixed: List of fixed ranked choices
-    :type fixed: Optional[List[str]]
+    :type fixed: List[str] | None
     :ivar auto: The preferred choice for automatic ranking
-    :type auto: Optional[str]
+    :type auto: str | None
     :ivar type: The type of ranking ('fixed', 'auto_high', or 'auto_low')
-    :type type: Optional[str]
+    :type type: str | None
     """
 
     def __init__(self) -> None:
         """Initialize a new Ranking instance."""
-        self.fixed: Optional[List[str]] = None
-        self.auto: Optional[str] = None
-        self.type: Optional[str] = None
+        self.fixed: List[str] | None = None
+        self.auto: str | None = None
+        self.type: str | None = None
 
     def set_fixed(self, ranked_choice: List[str]) -> None:
         """Set a fixed ranked choice.
@@ -124,11 +124,11 @@ class Ranking:
 
         return ranking
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> Dict[str, Any]:
         """Convert ranking settings to dict for IPFS storage.
 
-        :return: Ranking settings as a dict
-        :rtype: dict
+        :return: Ranking settings as a Dict[str, Any]
+        :rtype: Dict[str, Any]
         """
         if self.type == 'fixed':
             LOG.info(f"Converting fixed ranking to dict: {{'fixed': {self.fixed}}}")
