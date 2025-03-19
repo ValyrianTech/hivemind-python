@@ -18,7 +18,7 @@ class HivemindOption(IPFSDict):
     and complex types.
 
     :ivar value: The value of the option
-    :type value: Optional[Union[str, bool, int, float, Dict[str, Any]]]
+    :type value: str | bool | int | float | Dict[str, Any]
     :ivar text: Additional text description of the option
     :type text: str
     :ivar _hivemind_issue: The associated hivemind issue
@@ -35,7 +35,7 @@ class HivemindOption(IPFSDict):
         :param cid: The IPFS multihash of the Option
         :type cid: Optional[str]
         """
-        self.value: Optional[Union[str, bool, int, float, Dict[str, Any]]] = None
+        self.value: Union[str, bool, int, float, Dict[str, Any]] | None = None
         self.text: str = ''
         self._hivemind_issue: HivemindIssue | None = None
         self._answer_type: str = 'String'
@@ -77,7 +77,7 @@ class HivemindOption(IPFSDict):
         """Set the value of this option.
 
         :param value: The value to set
-        :type value: Union[str, bool, int, float, Dict[str, Any]]
+        :type value: str | bool | int | float | Dict[str, Any]
         :raises Exception: If the value is invalid for the answer type
         """
         self.value = value
@@ -102,7 +102,7 @@ class HivemindOption(IPFSDict):
         if self._hivemind_issue.constraints is not None and 'choices' in self._hivemind_issue.constraints:
             valid_choice = False
             for choice in self._hivemind_issue.constraints['choices']:
-                if choice['value'] == self.value:
+                if choice.get("value", None) == self.value:
                     valid_choice = True
 
             if not valid_choice:
