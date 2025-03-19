@@ -580,10 +580,9 @@ class HivemindState(IPFSDictChain):
 
         for i, opinionator in enumerate(opinionators_by_timestamp):
             deviance = 0
-            opinion = self.get_opinion(cid=self.opinion_cids[question_index][opinionator]['opinion_cid'])
 
             # Calculate the 'early bird' multiplier (whoever gives their opinion first gets the highest multiplier, value is between 0 and 1), if opinion is an empty list, then multiplier is 0
-            ranking = opinion.ranking.get(options=self.get_options())
+            ranking = self._rankings[question_index][self.opinion_cids[question_index][opinionator]['opinion_cid']]
             multipliers[opinionator] = 1 - (i / float(len(opinionators_by_timestamp))) if len(ranking) > 0 else 0
 
             # Calculate the deviance of the opinion, the closer the opinion is to the final result, the lower the deviance
