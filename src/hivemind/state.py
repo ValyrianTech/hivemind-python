@@ -47,7 +47,7 @@ class HivemindState(IPFSDictChain):
     :ivar opinion_cids: List of dictionaries containing opinions for each question
     :type opinion_cids: List[Dict[str, Any]]
     :ivar signatures: Dictionary mapping addresses to their signatures
-    :type signatures: Dict[str, str]
+    :type signatures: Dict[str, Dict[str, Dict[str, int]]]
     :ivar participants: Dictionary mapping addresses to their participation data
     :type participants: Dict[str, Any]
     :ivar selected: List of options that have been selected
@@ -66,7 +66,7 @@ class HivemindState(IPFSDictChain):
         self._hivemind_issue: HivemindIssue | None = None
         self.option_cids: List[str] = []
         self.opinion_cids: List[Dict[str, Any]] = [{}]
-        self.signatures: Dict[str, str] = {}
+        self.signatures: Dict[str, Dict[str, Dict[str, int]]] = {}
         self.participants: Dict[str, Any] = {}
         self.selected: List[str] = []
         self.final: bool = False
