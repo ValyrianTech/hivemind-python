@@ -309,6 +309,11 @@ class HivemindState(IPFSDictChain):
 
             self.opinion_cids[opinion.question_index][address] = {'opinion_cid': opinion_hash, 'timestamp': timestamp}
 
+            while len(self._rankings) <= opinion.question_index:
+                self._rankings.append({})
+
+            self._rankings[opinion.question_index][opinion_hash] = ranking_options
+
     def get_weight(self, opinionator: str) -> float:
         """Get the weight of an opinion.
 
@@ -691,13 +696,7 @@ class HivemindState(IPFSDictChain):
         If both Options are not in the Opinion object, None is returned
         """
         opinion = self.get_opinion(cid=opinion_hash)
-        # Handle different ranking types
-        if hasattr(opinion.ranking, 'type') and opinion.ranking.type in ['auto_high', 'auto_low']:
-            # For auto rankings, we need to get all options from the state
-            ranked_choice = opinion.ranking.get(options=self.get_options())
-        else:
-            # For fixed rankings, we can get the ranking directly
-            ranked_choice = opinion.ranking.get()
+        ranked_choice = self._rankings[opinion.question_index][opinion_hash]
 
         if a in ranked_choice and b in ranked_choice:
             if ranked_choice.index(a) < ranked_choice.index(b):
