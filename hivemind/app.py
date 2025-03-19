@@ -533,7 +533,7 @@ def process_winning_option(sorted_options, question_results):
         cid = winning_option.cid()
         if cid.startswith('/ipfs/'):
             cid = cid[6:]
-        score = question_results.to_dict(cid, {}).to_dict('score', 0)
+        score = question_results.get(cid, {}).get('score', 0)
         if score is None:
             score = 0
 
@@ -1033,10 +1033,10 @@ async def sign_opinion(request: Request):
         data = await request.json()
 
         # Extract required fields
-        address = data.to_dict('address')
-        message = data.to_dict('message')
-        signature = data.to_dict('signature')
-        opinion_data = data.to_dict('data')
+        address = data.get('address')
+        message = data.get('message')
+        signature = data.get('signature')
+        opinion_data = data.get('data')
 
         if not all([address, message, signature, opinion_data]):
             raise HTTPException(status_code=400, detail="Missing required fields")
@@ -1215,8 +1215,8 @@ async def prepare_name_update(request: Request):
     """Prepare for a name update by registering the name for WebSocket connections."""
     try:
         data = await request.json()
-        name = data.to_dict('name')
-        hivemind_id = data.to_dict('hivemind_id')
+        name = data.get('name')
+        hivemind_id = data.get('hivemind_id')
 
         if not all([name, hivemind_id]):
             return JSONResponse(
@@ -1266,10 +1266,10 @@ async def sign_name_update(request: Request):
         logger.debug(f"Received sign_name_update data: {data}")
 
         # Extract required fields
-        address = data.to_dict('address')
-        message = data.to_dict('message')
-        signature = data.to_dict('signature')
-        name_data = data.to_dict('data')
+        address = data.get('address')
+        message = data.get('message')
+        signature = data.get('signature')
+        name_data = data.get('data')
 
         if not all([address, message, signature, name_data]):
             raise HTTPException(status_code=400, detail="Missing required fields")
@@ -1400,12 +1400,12 @@ def extract_ranking_from_opinion_object(opinion_ranking):
     if hasattr(opinion_ranking, '__dict__'):
         # Handle different ranking types
         ranking_dict = opinion_ranking.__dict__
-        ranking_type = ranking_dict.to_dict('type')
+        ranking_type = ranking_dict.get('type')
 
-        if ranking_type == 'fixed' and ranking_dict.to_dict('fixed'):
+        if ranking_type == 'fixed' and ranking_dict.get('fixed'):
             # For fixed rankings, use the list of options
             ranking = ranking_dict['fixed']
-        elif ranking_type in ['auto_high', 'auto_low'] and ranking_dict.to_dict('auto'):
+        elif ranking_type in ['auto_high', 'auto_low'] and ranking_dict.get('auto'):
             # For auto rankings, create a list with just the preferred option
             preferred_option = ranking_dict['auto']
             ranking = [preferred_option]
