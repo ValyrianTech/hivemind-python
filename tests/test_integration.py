@@ -13,6 +13,7 @@ from bitcoin.signmessage import BitcoinMessage, SignMessage
 from hivemind import HivemindIssue, HivemindOption, HivemindOpinion, HivemindState
 from hivemind.utils import generate_bitcoin_keypair, sign_message
 
+
 def log_step(step_num: int, description: str) -> None:
     """Print a formatted step header with timestamp.
     
@@ -22,7 +23,8 @@ def log_step(step_num: int, description: str) -> None:
     """
     timestamp = datetime.now().strftime('%H:%M:%S.%f')[:-3]
     print(f'\n[{timestamp}] Step {step_num}: {description}')
-    print('='*60)
+    print('=' * 60)
+
 
 def log_substep(description: str) -> None:
     """Print a formatted substep header.
@@ -32,7 +34,8 @@ def log_substep(description: str) -> None:
     """
     timestamp = datetime.now().strftime('%H:%M:%S.%f')[:-3]
     print(f'\n[{timestamp}] {description}')
-    print('-'*40)
+    print('-' * 40)
+
 
 def test_full_hivemind_workflow() -> None:
     """Test the complete Hivemind voting workflow.
@@ -64,12 +67,12 @@ def test_full_hivemind_workflow() -> None:
     """
     start_time: float = time.time()
     print('\nStarting Hivemind Integration Test')
-    print('='*60)
+    print('=' * 60)
     print(f'Test started at: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\n')
 
     # Create the issue
     log_step(1, 'Creating and Configuring Hivemind Issue')
-    
+
     name: str = 'test hivemind'
     question1: str = 'Which number is bigger?'
     question2: str = 'Which number is smaller?'
@@ -118,7 +121,7 @@ def test_full_hivemind_workflow() -> None:
     assert hivemind_issue.tags == tags
 
     log_step(2, 'Setting up Access Restrictions')
-    
+
     # Set restrictions using random Bitcoin addresses
     voter_keys: List[Tuple[CBitcoinSecret, str]] = [generate_bitcoin_keypair() for _ in range(2)]
     options_per_address: int = 11  # Increased to match the number of options
@@ -129,7 +132,7 @@ def test_full_hivemind_workflow() -> None:
     print('Generated voter keys and setting restrictions:')
     print(f'- Allowed addresses: {restrictions["addresses"]}')
     print(f'- Options per address: {restrictions["options_per_address"]}')
-    
+
     hivemind_issue.set_restrictions(restrictions=restrictions)
     hivemind_issue_hash: str = hivemind_issue.save()
     print(f'\nHivemind issue saved')
@@ -137,7 +140,7 @@ def test_full_hivemind_workflow() -> None:
     assert hivemind_issue_hash is not None and len(hivemind_issue_hash) > 0
 
     log_step(3, 'Initializing Hivemind State')
-    
+
     # Create and set up the state
     hivemind_state = HivemindState()
     hivemind_state.set_hivemind_issue(issue_hash=hivemind_issue_hash)
@@ -151,7 +154,7 @@ def test_full_hivemind_workflow() -> None:
     assert statehash is not None and len(statehash) > 0
 
     log_step(4, 'Adding Voting Options')
-    
+
     # Add options
     option_hashes: Dict[int, str] = {}
     option_values: Dict[int, str] = {i: v for i, v in enumerate(['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'])}
@@ -196,7 +199,7 @@ def test_full_hivemind_workflow() -> None:
     proposer_options = hivemind_state.options_by_participant(proposer_address)
     print(f'- Options added by {proposer_address}: {len(proposer_options)}')
     assert len(proposer_options) == options_per_address, f"Expected {options_per_address} options for {proposer_address}, got {len(proposer_options)}"
-    
+
     # Try to add one more option (should fail)
     extra_option = HivemindOption()
     extra_option.set_hivemind_issue(hivemind_issue_hash)
@@ -204,11 +207,11 @@ def test_full_hivemind_workflow() -> None:
     extra_option.set(11)  # Use next integer in sequence
     extra_option.text = "Eleven"  # Add descriptive text
     extra_option_hash = extra_option.save()
-    
+
     timestamp = int(time.time())
     message = '%s%s' % (timestamp, extra_option.cid())
     signature = sign_message(message, proposer_key)
-    
+
     print('\nTesting options_per_address limit:')
     try:
         hivemind_state.add_option(timestamp, extra_option_hash, proposer_address, signature)
@@ -223,7 +226,7 @@ def test_full_hivemind_workflow() -> None:
     print(f'  - Hivemind issue id: {hivemind_state.hivemind_id}')
 
     log_step(5, 'Collecting and Processing Opinions')
-    
+
     # Add opinions for each question
     for question_index in range(len(hivemind_issue.questions)):
         log_substep(f'Processing opinions for Question {question_index + 1}')
@@ -239,11 +242,11 @@ def test_full_hivemind_workflow() -> None:
         unauthorized_opinion.ranking.set_fixed(ranked_choice)
         unauthorized_opinion.ranking = unauthorized_opinion.ranking.get()
         unauthorized_opinion_hash = unauthorized_opinion.save()
-        
+
         timestamp = int(time.time())
         message = '%s%s' % (timestamp, unauthorized_opinion.cid())
         signature = sign_message(message, unauthorized_key)
-        
+
         print('\nTesting unauthorized opinion rejection:')
         print(f'- Unauthorized address: {unauthorized_address}')
         try:
@@ -272,8 +275,8 @@ def test_full_hivemind_workflow() -> None:
             opinion.ranking.set_fixed(ranked_choice)
             opinion.ranking = opinion.ranking.get()
             opinion_hash = opinion.save()
-            
-            print(f'\nProcessing opinion {i+1}/{n_opinions}:')
+
+            print(f'\nProcessing opinion {i + 1}/{n_opinions}:')
             print(f'- Address: {address}')
             print(f'- Ranking: {ranked_choice}')
             print(f'- Opinion hash: {opinion.cid()}')
@@ -292,39 +295,39 @@ def test_full_hivemind_workflow() -> None:
             print('Opinion successfully added')
 
         print(f'\nCompleted processing all opinions for Question {question_index + 1}')
-        
+
         # Verify opinions were properly added
         assert len(hivemind_state.opinion_cids[question_index]) == n_opinions, f"Expected {n_opinions} opinions for question {question_index}, got {len(hivemind_state.opinion_cids[question_index])}"
-        
+
         # Calculate and display results
         log_substep(f'Calculating results for Question {question_index + 1}')
         results: Dict[str, float] = hivemind_state.calculate_results(question_index=question_index)
         print('Results calculation complete')
         print(f'Raw results: {results}')
-        
+
         print('\nAnalyzing contributions by participant:')
         contributions: Dict[str, float] = hivemind_state.contributions(results, question_index=question_index)
         for addr, score in contributions.items():
             print(f'- {addr}: {score}')
-        
+
         # Verify all opinion givers have contribution scores
         assert all(addr in contributions for _, addr in voter_keys)
-        
+
         print('\nFinal rankings:')
         sorted_options: List[HivemindOption] = hivemind_state.get_sorted_options(question_index=question_index)
         for i, option in enumerate(sorted_options, 1):
             print(f'{i}. Value: {option.value}, Text: {option.text}')
-        
+
         # Verify rankings are complete
         assert len(sorted_options) == len(option_values)
 
     log_step(6, 'Finalizing Test')
     final_state_hash: str = hivemind_state.save()
     assert final_state_hash is not None and len(final_state_hash) > 0
-    
+
     end_time: float = time.time()
     duration: float = end_time - start_time
-    
+
     print('Test Summary:')
     print('-' * 40)
     print(f'- Test completed successfully')
@@ -333,4 +336,4 @@ def test_full_hivemind_workflow() -> None:
     print(f'- Questions processed: {len(hivemind_issue.questions)}')
     print(f'- Total options: {len(option_values)}')
     print(f'- Total opinions: {n_opinions * len(hivemind_issue.questions)}')
-    print('='*60)
+    print('=' * 60)

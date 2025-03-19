@@ -16,6 +16,7 @@ sys.path.insert(0, project_root)
 sys.path.append(os.path.join(project_root, "hivemind"))
 import app
 
+
 # Create a fixture for temporary directory
 @pytest.fixture(scope="session")
 def temp_states_dir():
@@ -25,11 +26,13 @@ def temp_states_dir():
     # Clean up after tests
     shutil.rmtree(temp_dir)
 
+
 @pytest.fixture(autouse=True)
 def patch_states_dir(temp_states_dir):
     """Patch the STATES_DIR constant in app.py to use the temporary directory."""
     with patch("app.STATES_DIR", temp_states_dir):
         yield
+
 
 @pytest.mark.unit
 class TestFileAnswerType:
@@ -50,7 +53,7 @@ class TestFileAnswerType:
         mock_issue_instance = MagicMock()
         mock_issue_instance.save.return_value = "test_file_issue_cid"
         mock_hivemind_issue.return_value = mock_issue_instance
-        
+
         # Setup test data with File answer_type and filetype constraint
         issue_data = {
             "name": "File Test Issue",
@@ -64,44 +67,44 @@ class TestFileAnswerType:
             "restrictions": None,
             "on_selection": None
         }
-        
+
         # Test the endpoint
         with patch("app.HivemindState") as mock_hivemind_state:
             # Configure mock state to return a successful save
             mock_state_instance = MagicMock()
             mock_state_instance.save.return_value = "test_state_cid"
             mock_hivemind_state.return_value = mock_state_instance
-            
+
             response = self.client.post(
                 "/api/create_issue",
                 json=issue_data
             )
-        
+
         # Verify response
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
         assert data["issue_cid"] == "test_file_issue_cid"
-        
+
         # Verify the HivemindIssue was created with correct attributes
         mock_hivemind_issue.assert_called_once()
-        
+
         # Verify attributes were set correctly
         assert mock_issue_instance.name == issue_data["name"]
         assert mock_issue_instance.description == issue_data["description"]
         assert mock_issue_instance.tags == issue_data["tags"]
         assert mock_issue_instance.answer_type == issue_data["answer_type"]
-        
+
         # Verify add_question was called for the question
         mock_issue_instance.add_question.assert_called_once_with(issue_data["questions"][0])
-        
+
         # Most importantly, verify set_constraints was called with the expected file constraints
         # This specifically tests lines 532-543 where the File constraints are processed
         expected_file_constraints = {
             "filetype": "jpg"
         }
         mock_issue_instance.set_constraints.assert_called_once_with(expected_file_constraints)
-        
+
         # Verify save was called
         mock_issue_instance.save.assert_called_once()
 
@@ -116,7 +119,7 @@ class TestFileAnswerType:
         mock_issue_instance = MagicMock()
         mock_issue_instance.save.return_value = "test_file_choices_cid"
         mock_hivemind_issue.return_value = mock_issue_instance
-        
+
         # Setup test data with File answer_type and choices constraint
         issue_data = {
             "name": "File Choices Test Issue",
@@ -130,25 +133,25 @@ class TestFileAnswerType:
             "restrictions": None,
             "on_selection": None
         }
-        
+
         # Test the endpoint
         with patch("app.HivemindState") as mock_hivemind_state:
             # Configure mock state to return a successful save
             mock_state_instance = MagicMock()
             mock_state_instance.save.return_value = "test_state_cid"
             mock_hivemind_state.return_value = mock_state_instance
-            
+
             response = self.client.post(
                 "/api/create_issue",
                 json=issue_data
             )
-        
+
         # Verify response
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
         assert data["issue_cid"] == "test_file_choices_cid"
-        
+
         # Verify the expected constraints were used
         expected_constraints = {
             "choices": ["QmHash1", "QmHash2", "QmHash3"]
@@ -166,7 +169,7 @@ class TestFileAnswerType:
         mock_issue_instance = MagicMock()
         mock_issue_instance.save.return_value = "test_file_multiple_cid"
         mock_hivemind_issue.return_value = mock_issue_instance
-        
+
         # Setup test data with File answer_type and multiple constraints
         issue_data = {
             "name": "File Multiple Constraints Test",
@@ -181,25 +184,25 @@ class TestFileAnswerType:
             "restrictions": None,
             "on_selection": None
         }
-        
+
         # Test the endpoint
         with patch("app.HivemindState") as mock_hivemind_state:
             # Configure mock state to return a successful save
             mock_state_instance = MagicMock()
             mock_state_instance.save.return_value = "test_state_cid"
             mock_hivemind_state.return_value = mock_state_instance
-            
+
             response = self.client.post(
                 "/api/create_issue",
                 json=issue_data
             )
-        
+
         # Verify response
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
         assert data["issue_cid"] == "test_file_multiple_cid"
-        
+
         # Verify the expected constraints were used
         expected_constraints = {
             "filetype": "pdf",

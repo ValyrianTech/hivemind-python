@@ -31,7 +31,7 @@ class TestComplexHivemindOption:
         """Test validation of complex option when a required spec key is missing.
         This test specifically targets line 234 in option.py where a spec key from
         the constraints is missing in the value dictionary."""
-        
+
         # First verify that a dictionary without specs is valid
         option.value = {'any_key': 'any_value'}
         assert option.valid()
@@ -55,7 +55,7 @@ class TestComplexHivemindOption:
         """Test validation of complex option when constraints exist but 'specs' key is missing."""
         # Set constraints without 'specs' key
         issue.constraints = {'some_other_key': 'some_value'}
-        
+
         # Any dictionary value should be valid since there are no specs
         option.value = {'any_key': 'any_value'}
         assert option.valid()
@@ -82,15 +82,15 @@ class TestComplexHivemindOption:
                 'bool_field': 'Bool'
             }
         }
-        
+
         # Test with correct Bool value
         option.value = {'bool_field': True}
         assert option.valid()
-        
+
         # Test with incorrect value type (string instead of bool)
         option.value = {'bool_field': 'True'}
         assert not option.valid()
-        
+
         # Test with incorrect value type (integer instead of bool)
         option.value = {'bool_field': 1}
         assert not option.valid()

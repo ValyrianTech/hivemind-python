@@ -8,43 +8,45 @@ from .test_state_common import (
     TestHelper, sign_message, generate_bitcoin_keypair
 )
 
+
 @pytest.mark.participants
 class TestHivemindStateParticipants:
     """Tests for participant management."""
-    
+
     def test_update_participant_name(self, state: HivemindState, test_keypair) -> None:
         """Test updating participant names."""
         private_key, address = test_keypair
         name = 'Alice'
         timestamp = int(time.time())
-        
+
         # Create message and sign it
         message = f"{timestamp}{name}"
         signature = sign_message(message, private_key)
-        
+
         # Test with invalid signature
         with pytest.raises(Exception, match='Invalid signature'):
             state.update_participant_name(timestamp, name, address, 'fake_sig', message)
-        
+
         # Test with valid signature
         state.update_participant_name(timestamp, name, address, signature, message)
-        
+
         # Verify participant was added with correct name
         assert address in state.participants
         assert state.participants[address].get('name') == name
-        
+
         # Test with name exceeding maximum length
         long_name = 'A' * 51  # 51 characters, exceeding the 50 character limit
         long_message = f"{timestamp}{long_name}"
         long_signature = sign_message(long_message, private_key)
-        
+
         with pytest.raises(Exception, match='Name exceeds maximum length of 50 characters'):
             state.update_participant_name(timestamp, long_name, address, long_signature, long_message)
+
 
 @pytest.mark.participants
 class TestHivemindStateParticipantManagement:
     """Tests for participant management."""
-    
+
     def test_participant_management(self, state: HivemindState, test_keypair) -> None:
         """Test participant management functions."""
         private_key, address = test_keypair
@@ -56,7 +58,7 @@ class TestHivemindStateParticipantManagement:
         message = f"{timestamp}{name}"
         signature = sign_message(message, private_key)
         state.update_participant_name(timestamp, name, address, signature, message)
-        
+
         assert address in state.participants
         assert state.participants[address]['name'] == name
         assert name in state.signatures[address]
@@ -69,7 +71,7 @@ class TestHivemindStateParticipantManagement:
         new_message = f"{new_timestamp}{new_name}"
         new_signature = sign_message(new_message, private_key)
         state.update_participant_name(new_timestamp, new_name, address, signature=new_signature, message=new_message)
-        
+
         assert state.participants[address]['name'] == new_name
         assert new_name in state.signatures[address]
         assert new_signature in state.signatures[address][new_name]

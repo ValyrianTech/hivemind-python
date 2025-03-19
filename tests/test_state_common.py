@@ -8,11 +8,13 @@ from bitcoin.signmessage import BitcoinMessage, SignMessage
 from hivemind import HivemindState, HivemindIssue, HivemindOption, HivemindOpinion
 from hivemind.utils import generate_bitcoin_keypair, sign_message
 
+
 # Common Fixtures
 @pytest.fixture
 def state() -> HivemindState:
     """Create a fresh HivemindState instance for each test."""
     return HivemindState()
+
 
 @pytest.fixture
 def basic_issue() -> HivemindIssue:
@@ -27,6 +29,7 @@ def basic_issue() -> HivemindIssue:
     issue.restrictions = {}
     return issue
 
+
 @pytest.fixture
 def color_choice_issue(basic_issue) -> HivemindIssue:
     """Create an issue with color choices."""
@@ -39,6 +42,7 @@ def color_choice_issue(basic_issue) -> HivemindIssue:
     })
     return basic_issue
 
+
 @pytest.fixture
 def bool_issue(basic_issue) -> HivemindIssue:
     """Create a boolean issue."""
@@ -48,6 +52,7 @@ def bool_issue(basic_issue) -> HivemindIssue:
         "false_value": "No"
     })
     return basic_issue
+
 
 @pytest.fixture
 def integer_issue(basic_issue) -> HivemindIssue:
@@ -59,17 +64,19 @@ def integer_issue(basic_issue) -> HivemindIssue:
     })
     return basic_issue
 
+
 @pytest.fixture
 def test_keypair() -> Tuple[CBitcoinSecret, str]:
     """Generate a consistent test keypair."""
     return generate_bitcoin_keypair()
 
+
 class TestHelper:
     """Helper class containing common test operations."""
-    
+
     @staticmethod
-    def create_and_sign_option(state: HivemindState, issue_hash: str, value: str, text: str, 
-                             private_key: CBitcoinSecret, address: str, timestamp: int) -> str:
+    def create_and_sign_option(state: HivemindState, issue_hash: str, value: str, text: str,
+                               private_key: CBitcoinSecret, address: str, timestamp: int) -> str:
         """Helper to create and sign an option.
         
         Args:
@@ -89,7 +96,7 @@ class TestHelper:
         option.set(value=value)
         option.text = text
         option_hash = option.save()
-        
+
         message = f"{timestamp}{option_hash}"
         signature = sign_message(message, private_key)
         state.add_option(timestamp, option_hash, address, signature)
@@ -97,7 +104,7 @@ class TestHelper:
 
     @staticmethod
     def create_and_sign_opinion(state: HivemindState, issue_hash: str, ranking: List[str],
-                              private_key: CBitcoinSecret, address: str, timestamp: int) -> str:
+                                private_key: CBitcoinSecret, address: str, timestamp: int) -> str:
         """Helper to create and sign an opinion.
         
         Args:
@@ -117,7 +124,7 @@ class TestHelper:
         opinion.ranking.set_fixed(ranking)  # First address prefers red > blue > green
         opinion.ranking = opinion.ranking.get()  # Get serializable representation
         opinion_hash = opinion.save()  # Save will use the data we just set
-        
+
         message = f"{timestamp}{opinion_hash}"
         signature = sign_message(message, private_key)
         state.add_opinion(timestamp, opinion_hash, signature, address)

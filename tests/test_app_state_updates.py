@@ -22,6 +22,7 @@ from app import load_state_mapping, save_state_mapping
 sys.path.append(os.path.join(project_root, "src"))
 from hivemind.state import HivemindState
 
+
 # Create a fixture for temporary directory
 @pytest.fixture(scope="session")
 def temp_states_dir():
@@ -31,11 +32,13 @@ def temp_states_dir():
     # Clean up after tests
     shutil.rmtree(temp_dir)
 
+
 @pytest.fixture(autouse=True)
 def patch_states_dir(temp_states_dir):
     """Patch the STATES_DIR constant in app.py to use the temporary directory."""
     with patch("app.STATES_DIR", temp_states_dir):
         yield
+
 
 @pytest.mark.unit
 class TestStateUpdateFunctionality:
@@ -53,14 +56,14 @@ class TestStateUpdateFunctionality:
     @patch("app.HivemindOption")
     @patch("app.HivemindOpinion")
     def test_fetch_state_update_existing_state(
-        self, 
-        mock_hivemind_opinion,
-        mock_hivemind_option,
-        mock_hivemind_issue,
-        mock_hivemind_state,
-        mock_logger,
-        mock_save_state_mapping,
-        mock_load_state_mapping
+            self,
+            mock_hivemind_opinion,
+            mock_hivemind_option,
+            mock_hivemind_issue,
+            mock_hivemind_state,
+            mock_logger,
+            mock_save_state_mapping,
+            mock_load_state_mapping
     ):
         """Test updating results for an existing state that is the latest we're tracking."""
         # Setup mock state instance
@@ -80,7 +83,7 @@ class TestStateUpdateFunctionality:
             MagicMock(cid=lambda: "option2", value="value2", text="Option 2")
         ]
         mock_state_instance.contributions.return_value = {"address1": 0.5}
-        
+
         # Setup mock issue instance
         mock_issue_instance = MagicMock()
         mock_issue_instance.name = "Test Issue"
@@ -90,22 +93,22 @@ class TestStateUpdateFunctionality:
         mock_issue_instance.answer_type = "ranked"
         mock_issue_instance.constraints = {}
         mock_issue_instance.restrictions = {}
-        
+
         # Setup mock option instance
         mock_option_instance = MagicMock()
         mock_option_instance.value = "test_value"
         mock_option_instance.text = "Test Option"
-        
+
         # Setup mock opinion instance
         mock_opinion_instance = MagicMock()
         mock_opinion_instance.ranking = ["option1", "option2"]
-        
+
         # Configure the mock classes to return our mock instances
         mock_hivemind_state.return_value = mock_state_instance
         mock_hivemind_issue.return_value = mock_issue_instance
         mock_hivemind_option.return_value = mock_option_instance
         mock_hivemind_opinion.return_value = mock_opinion_instance
-        
+
         # Mock the state mapping to simulate an existing state
         mock_load_state_mapping.return_value = {
             "test_id": {
@@ -120,28 +123,28 @@ class TestStateUpdateFunctionality:
                 "results": [{"text": "Old Result", "value": "old_value", "score": 75.0}]
             }
         }
-        
+
         # Test the endpoint
         response = self.client.post(
             "/fetch_state",
             json={"cid": "test_state_cid"}
         )
-        
+
         # Verify response
         assert response.status_code == 200
-        
+
         # Verify that save_state_mapping was called with updated results
         # This confirms lines 489-492 were executed
         mock_save_state_mapping.assert_called_once()
-        
+
         # Verify the log message was generated (line 492)
         mock_logger.info.assert_any_call("Updated results for latest state of test_id")
-        
+
         # Verify the mapping was updated with new results
         call_args = mock_save_state_mapping.call_args[0][0]
         assert "test_id" in call_args
         assert call_args["test_id"]["results"] != [{"text": "Old Result", "value": "old_value", "score": 75.0}]
-        
+
     @patch("app.load_state_mapping")
     @patch("app.save_state_mapping")
     @patch("app.logger")
@@ -150,14 +153,14 @@ class TestStateUpdateFunctionality:
     @patch("app.HivemindOption")
     @patch("app.HivemindOpinion")
     def test_fetch_state_skip_historical_state(
-        self, 
-        mock_hivemind_opinion,
-        mock_hivemind_option,
-        mock_hivemind_issue,
-        mock_hivemind_state,
-        mock_logger,
-        mock_save_state_mapping,
-        mock_load_state_mapping
+            self,
+            mock_hivemind_opinion,
+            mock_hivemind_option,
+            mock_hivemind_issue,
+            mock_hivemind_state,
+            mock_logger,
+            mock_save_state_mapping,
+            mock_load_state_mapping
     ):
         """Test skipping state update for a historical state."""
         # Setup mock state instance
@@ -177,7 +180,7 @@ class TestStateUpdateFunctionality:
             MagicMock(cid=lambda: "option2", value="value2", text="Option 2")
         ]
         mock_state_instance.contributions.return_value = {"address1": 0.5}
-        
+
         # Setup mock issue instance
         mock_issue_instance = MagicMock()
         mock_issue_instance.name = "Test Issue"
@@ -187,22 +190,22 @@ class TestStateUpdateFunctionality:
         mock_issue_instance.answer_type = "ranked"
         mock_issue_instance.constraints = {}
         mock_issue_instance.restrictions = {}
-        
+
         # Setup mock option instance
         mock_option_instance = MagicMock()
         mock_option_instance.value = "test_value"
         mock_option_instance.text = "Test Option"
-        
+
         # Setup mock opinion instance
         mock_opinion_instance = MagicMock()
         mock_opinion_instance.ranking = ["option1", "option2"]
-        
+
         # Configure the mock classes to return our mock instances
         mock_hivemind_state.return_value = mock_state_instance
         mock_hivemind_issue.return_value = mock_issue_instance
         mock_hivemind_option.return_value = mock_option_instance
         mock_hivemind_opinion.return_value = mock_opinion_instance
-        
+
         # Mock the state mapping to simulate an existing state with a different hash
         mock_load_state_mapping.return_value = {
             "test_id": {
@@ -217,22 +220,22 @@ class TestStateUpdateFunctionality:
                 "results": [{"text": "Latest Result", "value": "latest_value", "score": 75.0}]
             }
         }
-        
+
         # Test the endpoint
         response = self.client.post(
             "/fetch_state",
             json={"cid": "historical_state_cid"}
         )
-        
+
         # Verify response
         assert response.status_code == 200
-        
+
         # Verify that save_state_mapping was NOT called
         mock_save_state_mapping.assert_not_called()
-        
+
         # Verify the log message was generated (line 494)
         mock_logger.info.assert_any_call(f"Skipping state update for historical state historical_state_cid of test_id")
-        
+
         # Verify the mapping was not updated
         assert mock_load_state_mapping.return_value["test_id"]["results"] == [{"text": "Latest Result", "value": "latest_value", "score": 75.0}]
 

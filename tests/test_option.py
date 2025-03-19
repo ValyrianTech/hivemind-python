@@ -191,11 +191,11 @@ class TestHivemindOption:
         issue.add_question('What?')
         issue.answer_type = 'String'
         issue.set_constraints({'min_length': 2, 'max_length': 10, 'regex': '^[a-zA-Z0-9]+'})
-        
+
         # Set the issue directly instead of loading from IPFS
         option._hivemind_issue = issue
         option._answer_type = issue.answer_type
-        
+
         with pytest.raises(Exception):
             option.set('a')  # constraint min_length: 2
 
@@ -219,7 +219,7 @@ class TestHivemindOption:
         issue.add_question('What?')
         issue.answer_type = 'String'
         issue.set_constraints({'min_length': 2, 'max_length': 10, 'regex': '^[a-zA-Z0-9]+'})
-        
+
         option._hivemind_issue = issue
         option._answer_type = issue.answer_type
         option.value = value
@@ -233,7 +233,7 @@ class TestHivemindOption:
         (1, False),
         (42.123, False),
         (42.10, True),  # This is valid because it has 2 decimal places
-        (42.1, True),   # This is also valid because 42.1 == 42.10
+        (42.1, True),  # This is also valid because 42.1 == 42.10
     ])
     def test_is_valid_float_option(self, value, expected):
         option = HivemindOption()
@@ -242,7 +242,7 @@ class TestHivemindOption:
         issue.add_question('What?')
         issue.answer_type = 'Float'
         issue.set_constraints({'min_value': 2, 'max_value': 50, 'decimals': 2})
-        
+
         option._hivemind_issue = issue
         option._answer_type = issue.answer_type
         option.value = value
@@ -266,7 +266,7 @@ class TestHivemindOption:
         issue.add_question('What?')
         issue.answer_type = 'Integer'
         issue.set_constraints({'min_value': 2, 'max_value': 50})
-        
+
         option._hivemind_issue = issue
         option._answer_type = issue.answer_type
         option.value = value
@@ -294,7 +294,7 @@ class TestHivemindOption:
         issue.add_question('What?')
         issue.answer_type = 'Bool'
         issue.set_constraints(constraints)
-        
+
         option._hivemind_issue = issue
         option._answer_type = issue.answer_type
         option.value = value
@@ -318,7 +318,7 @@ class TestHivemindOption:
         issue.add_question('What?')
         issue.answer_type = 'Complex'
         issue.set_constraints({'specs': {'a_string': 'String', 'a_float': 'Float'}})
-        
+
         option._hivemind_issue = issue
         option._answer_type = issue.answer_type
         option.value = value
@@ -327,7 +327,7 @@ class TestHivemindOption:
     def test_cid_method(self, option: HivemindOption) -> None:
         """Test the cid() method"""
         assert option.cid() is None
-        
+
         # Set a value and save to get a CID
         option.value = "test"
         option.save()
@@ -339,7 +339,7 @@ class TestHivemindOption:
         # Save an option first
         option.value = "test"
         saved_cid = option.save()
-        
+
         # Create a new option and load the saved one
         new_option = HivemindOption()
         new_option.load(saved_cid)
@@ -350,7 +350,7 @@ class TestHivemindOption:
     def test_set_hivemind_issue_errors(self) -> None:
         """Test error cases in set_hivemind_issue()"""
         option = HivemindOption()
-        
+
         # Test with invalid CID
         with pytest.raises(Exception):
             option.set_hivemind_issue("invalid_cid")
@@ -358,7 +358,7 @@ class TestHivemindOption:
     def test_set_method_errors(self, option: HivemindOption) -> None:
         """Test error cases in set() method"""
         option._answer_type = 'Integer'
-        
+
         # Test setting invalid type
         with pytest.raises(Exception):
             option.set("not an integer")
@@ -370,13 +370,13 @@ class TestHivemindOption:
         with pytest.raises(Exception) as exc_info:
             option.valid()
         assert "No hivemind question set" in str(exc_info.value)
-        
+
         # Test with mismatched answer type
         option._hivemind_issue = HivemindIssue()
         option._hivemind_issue.answer_type = 'Integer'
         option._answer_type = 'String'
         assert option.valid() is False
-        
+
         # Test with invalid choice
         option._answer_type = 'String'
         option._hivemind_issue.answer_type = 'String'
@@ -391,14 +391,14 @@ class TestHivemindOption:
         issue.answer_type = 'Float'
         option._answer_type = 'Float'
         option._hivemind_issue.constraints = {'decimals': 2}
-        
+
         # Valid cases
         option.value = 42.12
         assert option.valid() is True
-        
+
         option.value = 42.1
         assert option.valid() is True
-        
+
         # Invalid cases
         option.value = 42.123
         assert option.valid() is False
@@ -411,20 +411,20 @@ class TestHivemindOption:
         test_issue.add_question("Test Question?")
         test_issue.answer_type = "String"
         hivemind_cid = test_issue.save()
-        
+
         # Now test the hivemind option
         issue.answer_type = 'Hivemind'
         option._answer_type = 'Hivemind'
         option._hivemind_issue = issue
-        
+
         # Test with valid CID
         option.value = hivemind_cid
         assert option.valid() is True
-        
+
         # Test with invalid CID
         option.value = "QmInvalidCIDThatDoesNotExist"
         assert option.valid() is False
-        
+
         # Test with wrong type
         option.value = 123
         assert option.valid() is False
@@ -433,7 +433,7 @@ class TestHivemindOption:
         """Test complex option validation"""
         issue.answer_type = 'Complex'
         option._answer_type = 'Complex'
-        
+
         # Set up complex constraints
         option._hivemind_issue.constraints = {
             'specs': {
@@ -442,7 +442,7 @@ class TestHivemindOption:
                 'score': 'Float'
             }
         }
-        
+
         # Test valid complex value
         option.value = {
             'name': 'John',
@@ -450,14 +450,14 @@ class TestHivemindOption:
             'score': 85.5
         }
         assert option.valid() is True
-        
+
         # Test missing field
         option.value = {
             'name': 'John',
             'age': 30
         }
         assert option.valid() is False
-        
+
         # Test wrong type
         option.value = {
             'name': 'John',
@@ -470,15 +470,15 @@ class TestHivemindOption:
         """Test address option validation"""
         issue.answer_type = 'Address'
         option._answer_type = 'Address'
-        
+
         # Test with valid address format
         option.value = "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
         assert option.valid() is True
-        
+
         # Test with invalid address
         option.value = "not_an_address"
         assert option.valid() is False
-        
+
         # Test with wrong type
         option.value = 123
         assert option.valid() is False
@@ -491,17 +491,17 @@ class TestHivemindOption:
         info = option.info()
         assert "Value: test" in info
         assert "Text: description" in info
-        
+
         # Test with number
         option.value = 42
         info = option.info()
         assert "Value: 42" in info
-        
+
         # Test with boolean
         option.value = True
         info = option.info()
         assert "Value: True" in info
-        
+
         # Test with complex
         option.value = {"name": "test", "value": 42}
         info = option.info()
@@ -513,18 +513,19 @@ class TestHivemindOption:
         option._answer_type = "String"
         with pytest.raises(Exception):
             option.set(None)
-        
+
         # Test with None value for Integer type
         option._answer_type = "Integer"
         with pytest.raises(Exception):
             option.set(None)
-            
+
         # Test with complex object - should raise Exception for invalid type
         class TestObject:
             pass
+
         with pytest.raises(Exception):
             option.set(TestObject())
-            
+
     def test_info_method_edge_cases(self, option: HivemindOption) -> None:
         """Test edge cases in info()"""
         # Test with no value set
@@ -552,15 +553,15 @@ class TestHivemindOption:
         """Test address option validation"""
         issue.answer_type = 'Address'
         option._answer_type = 'Address'
-        
+
         # Test with valid address format
         option.value = "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
         assert option.valid() is True
-        
+
         # Test with invalid address
         option.value = "not_an_address"
         assert option.valid() is False
-        
+
         # Test with wrong type
         option.value = 123
         assert option.valid() is False
@@ -574,17 +575,17 @@ class TestHivemindOption:
         info = option.info()
         assert "Value: test" in info
         assert "Text: description" in info
-        
+
         # Test with number
         option.value = 42
         info = option.info()
         assert "Value: 42" in info
-        
+
         # Test with boolean
         option.value = True
         info = option.info()
         assert "Value: True" in info
-        
+
         # Test with complex
         option.value = {"name": "test", "value": 42}
         info = option.info()
@@ -596,18 +597,19 @@ class TestHivemindOption:
         option._answer_type = "String"
         with pytest.raises(Exception):
             option.set(None)
-        
+
         # Test with None value for Integer type
         option._answer_type = "Integer"
         with pytest.raises(Exception):
             option.set(None)
-            
+
         # Test with complex object - should raise Exception for invalid type
         class TestObject:
             pass
+
         with pytest.raises(Exception):
             option.set(TestObject())
-            
+
     def test_info_method_edge_cases(self, option: HivemindOption) -> None:
         """Test edge cases in info()"""
         # First save the option to get a valid CID
@@ -624,20 +626,20 @@ class TestHivemindOption:
         test_issue.add_question("Test Question?")
         test_issue.answer_type = "String"
         hivemind_cid = test_issue.save()
-        
+
         # Now test the hivemind option
         issue.answer_type = 'Hivemind'
         option._answer_type = 'Hivemind'
         option._hivemind_issue = issue
-        
+
         # Test with valid CID
         option.value = hivemind_cid
         assert option.valid() is True
-        
+
         # Test with invalid CID
         option.value = "QmInvalidCIDThatDoesNotExist"
         assert option.valid() is False
-        
+
         # Test with wrong type
         option.value = 123
         assert option.valid() is False

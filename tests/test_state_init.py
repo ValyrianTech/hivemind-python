@@ -4,10 +4,11 @@ import pytest
 from hivemind import HivemindState, HivemindIssue
 from tests.test_state_common import state, basic_issue, color_choice_issue, bool_issue, test_keypair
 
+
 @pytest.mark.init
 class TestHivemindStateInit:
     """Tests for initialization and basic state management."""
-    
+
     def test_init(self, state: HivemindState) -> None:
         """Test initialization of HivemindState."""
         assert state.hivemind_id is None
@@ -31,7 +32,7 @@ class TestHivemindStateInit:
         """Test the hivemind_issue method."""
         # Initially should be None
         assert state.hivemind_issue() is None
-        
+
         # After setting, should return the issue
         issue_hash = basic_issue.save()
         state.set_hivemind_issue(issue_hash)
@@ -43,16 +44,16 @@ class TestHivemindStateInit:
         # Create and save a state with an issue that has multiple questions
         basic_issue.add_question("Second Question")  # Now has 2 questions
         issue_hash = basic_issue.save()
-        
+
         # Create and save initial state
         initial_state = HivemindState()
         initial_state.set_hivemind_issue(issue_hash)
         state_hash = initial_state.save()
-        
+
         # Load the state in a new instance
         loaded_state = HivemindState()
         loaded_state.load(state_hash)
-        
+
         # Verify opinions are initialized correctly for all questions
         assert len(loaded_state.opinion_cids) == len(basic_issue.questions)
         assert all(isinstance(opinions, dict) for opinions in loaded_state.opinion_cids)

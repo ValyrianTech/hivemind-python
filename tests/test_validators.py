@@ -43,14 +43,14 @@ def test_bech32_decode_invalid_lengths():
     """Test bech32_decode with invalid length inputs."""
     # Test with string too short (no '1' separator)
     assert bech32_decode("tooshort") == (None, None)
-    
+
     # Test with string where position of '1' is too early
     assert bech32_decode("1toolate") == (None, None)
-    
+
     # Test with string that's too long (>90 chars)
     long_address = "bc1" + "q" * 88  # 91 characters total
     assert bech32_decode(long_address) == (None, None)
-    
+
     # Test with string where data part is too short after '1'
     assert bech32_decode("bc1short") == (None, None)
 
@@ -60,7 +60,7 @@ def test_bech32_decode_invalid_charset():
     # Test with invalid characters after the separator
     assert bech32_decode("bc1!nvalid") == (None, None)
     assert bech32_decode("bc1inv@lid") == (None, None)
-    
+
     # Test with valid HRP but invalid data characters
     assert bech32_decode("bc1123456") == (None, None)
 

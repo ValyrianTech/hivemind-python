@@ -109,7 +109,7 @@ class TestRanking:
     def test_get_auto_high_ranking(self, ranking: Ranking) -> None:
         """Test getting auto high ranking with valid options"""
         from hivemind import HivemindOption
-        
+
         # Create test options with different values
         options = []
         for val in [10, 20, 30, 40]:
@@ -117,16 +117,16 @@ class TestRanking:
             opt.value = val
             opt.save()  # Save to IPFS to get CID
             options.append(opt)
-        
+
         # Set preferred value in the middle
         preferred = HivemindOption()
         preferred.value = 25
         preferred.save()  # Save to IPFS to get CID
         ranking.set_auto_high(preferred.cid())
-        
+
         # Get ranked options
         ranked_cids = ranking.get(options)
-        
+
         # Verify the order - should be ordered by distance to 25, with higher values preferred when equally distant
         # Expected order: 30 (diff=5), 20 (diff=5), 40 (diff=15), 10 (diff=15)
         expected_values = [30, 20, 40, 10]
@@ -136,7 +136,7 @@ class TestRanking:
     def test_get_auto_low_ranking(self, ranking: Ranking) -> None:
         """Test getting auto low ranking with valid options"""
         from hivemind import HivemindOption
-        
+
         # Create test options with different values
         options = []
         for val in [10, 20, 30, 40]:
@@ -144,16 +144,16 @@ class TestRanking:
             opt.value = val
             opt.save()  # Save to IPFS to get CID
             options.append(opt)
-        
+
         # Set preferred value in the middle
         preferred = HivemindOption()
         preferred.value = 25
         preferred.save()  # Save to IPFS to get CID
         ranking.set_auto_low(preferred.cid())
-        
+
         # Get ranked options
         ranked_cids = ranking.get(options)
-        
+
         # Verify the order - should be ordered by distance to 25, with lower values preferred
         # Expected order: 20 (diff=5), 30 (diff=5), 10 (diff=15), 40 (diff=15)
         expected_values = [20, 30, 10, 40]
@@ -164,29 +164,29 @@ class TestRanking:
         """Test exception handling during auto ranking calculation"""
         from hivemind import HivemindOption
         import unittest.mock as mock
-        
+
         # Create a valid preferred option
         preferred = HivemindOption()
         preferred.value = 25
         preferred.save()
         ranking.set_auto_high(preferred.cid())
-        
+
         # Create test options with invalid values that will cause an exception during calculation
         options = []
         opt = HivemindOption()
         opt.value = "not_a_number"  # This will cause a TypeError during comparison
         opt.save()
         options.append(opt)
-        
+
         # Add a valid option as well
         valid_opt = HivemindOption()
         valid_opt.value = 30
         valid_opt.save()
         options.append(valid_opt)
-        
+
         # The get method should raise an exception
         with pytest.raises(Exception) as exc_info:
             ranking.get(options)
-        
+
         # Verify the exception message contains the original error
         assert "Error during auto ranking calculation" in str(exc_info.value)

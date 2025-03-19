@@ -28,16 +28,16 @@ class TestProcessWinningOption:
         mock_option.text = "Test Option"
         mock_option.value = 42
         mock_option.cid.return_value = "test_cid"
-        
+
         # Create mock sorted options list
         sorted_options = [mock_option]
-        
+
         # Create mock question results
         question_results = {"test_cid": {"score": 0.75}}
-        
+
         # Call the function
         result = app.process_winning_option(sorted_options, question_results)
-        
+
         # Assert the result is as expected
         assert result is not None
         assert result["text"] == "Test Option"
@@ -51,16 +51,16 @@ class TestProcessWinningOption:
         mock_option.text = "IPFS Option"
         mock_option.value = 100
         mock_option.cid.return_value = "/ipfs/test_ipfs_cid"
-        
+
         # Create mock sorted options list
         sorted_options = [mock_option]
-        
+
         # Create mock question results
         question_results = {"test_ipfs_cid": {"score": 0.5}}
-        
+
         # Call the function
         result = app.process_winning_option(sorted_options, question_results)
-        
+
         # Assert the result is as expected
         assert result is not None
         assert result["text"] == "IPFS Option"
@@ -74,16 +74,16 @@ class TestProcessWinningOption:
         mock_option.text = "None Score Option"
         mock_option.value = 200
         mock_option.cid.return_value = "none_score_cid"
-        
+
         # Create mock sorted options list
         sorted_options = [mock_option]
-        
+
         # Create mock question results with None score
         question_results = {"none_score_cid": {"score": None}}
-        
+
         # Call the function
         result = app.process_winning_option(sorted_options, question_results)
-        
+
         # Assert the result is as expected
         assert result is not None
         assert result["text"] == "None Score Option"
@@ -97,16 +97,16 @@ class TestProcessWinningOption:
         mock_option.text = "Missing Score Option"
         mock_option.value = 300
         mock_option.cid.return_value = "missing_score_cid"
-        
+
         # Create mock sorted options list
         sorted_options = [mock_option]
-        
+
         # Create empty question results
         question_results = {}
-        
+
         # Call the function
         result = app.process_winning_option(sorted_options, question_results)
-        
+
         # Assert the result is as expected
         assert result is not None
         assert result["text"] == "Missing Score Option"
@@ -121,16 +121,16 @@ class TestProcessWinningOption:
         del mock_option.text
         mock_option.value = 400
         mock_option.cid.return_value = "no_text_cid"
-        
+
         # Create mock sorted options list
         sorted_options = [mock_option]
-        
+
         # Create mock question results
         question_results = {"no_text_cid": {"score": 0.25}}
-        
+
         # Call the function
         result = app.process_winning_option(sorted_options, question_results)
-        
+
         # Assert the result is as expected
         assert result is not None
         assert result["text"] == "400"  # Should use str(value)
@@ -145,16 +145,16 @@ class TestProcessWinningOption:
         # Remove value attribute
         del mock_option.value
         mock_option.cid.return_value = "no_value_cid"
-        
+
         # Create mock sorted options list
         sorted_options = [mock_option]
-        
+
         # Create mock question results
         question_results = {"no_value_cid": {"score": 0.8}}
-        
+
         # Call the function
         result = app.process_winning_option(sorted_options, question_results)
-        
+
         # Assert the result is as expected
         assert result is not None
         assert result["text"] == "No Value Option"
@@ -169,16 +169,16 @@ class TestProcessWinningOption:
         del mock_option.text
         del mock_option.value
         mock_option.cid.return_value = "no_attributes_cid"
-        
+
         # Create mock sorted options list
         sorted_options = [mock_option]
-        
+
         # Create mock question results
         question_results = {"no_attributes_cid": {"score": 0.9}}
-        
+
         # Call the function
         result = app.process_winning_option(sorted_options, question_results)
-        
+
         # Assert the result is as expected
         assert result is not None
         assert result["text"] == "Unnamed Option"  # Should use default text
@@ -189,13 +189,13 @@ class TestProcessWinningOption:
         """Test processing with empty sorted options."""
         # Create empty sorted options list
         sorted_options = []
-        
+
         # Create mock question results
         question_results = {"some_cid": {"score": 0.5}}
-        
+
         # Call the function
         result = app.process_winning_option(sorted_options, question_results)
-        
+
         # Assert the result is None
         assert result is None
 

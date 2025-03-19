@@ -20,6 +20,7 @@ import app
 sys.path.append(os.path.join(project_root, "src"))
 from hivemind.state import HivemindState
 
+
 # Create a fixture for temporary directory
 @pytest.fixture(scope="session")
 def temp_states_dir():
@@ -29,11 +30,13 @@ def temp_states_dir():
     # Clean up after tests
     shutil.rmtree(temp_dir)
 
+
 @pytest.fixture(autouse=True)
 def patch_states_dir(temp_states_dir):
     """Patch the STATES_DIR constant in app.py to use the temporary directory."""
     with patch("app.STATES_DIR", temp_states_dir):
         yield
+
 
 @pytest.mark.unit
 class TestIssueCreationFunctionality:
@@ -55,7 +58,7 @@ class TestIssueCreationFunctionality:
         mock_issue_instance = MagicMock()
         mock_issue_instance.save.return_value = "test_issue_cid"
         mock_hivemind_issue.return_value = mock_issue_instance
-        
+
         # Setup test data with Bool answer_type and custom true/false labels
         issue_data = {
             "name": "Boolean Test Issue",
@@ -69,37 +72,37 @@ class TestIssueCreationFunctionality:
             "restrictions": None,
             "on_selection": None
         }
-        
+
         # Test the endpoint
         with patch("app.HivemindState") as mock_hivemind_state:
             # Configure mock state to return a successful save
             mock_state_instance = MagicMock()
             mock_state_instance.save.return_value = "test_state_cid"
             mock_hivemind_state.return_value = mock_state_instance
-            
+
             response = self.client.post(
                 "/api/create_issue",
                 json=issue_data
             )
-        
+
         # Verify response
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
         assert data["issue_cid"] == "test_issue_cid"
-        
+
         # Verify the HivemindIssue was created with correct attributes
         mock_hivemind_issue.assert_called_once()
-        
+
         # Verify attributes were set correctly
         assert mock_issue_instance.name == issue_data["name"]
         assert mock_issue_instance.description == issue_data["description"]
         assert mock_issue_instance.tags == issue_data["tags"]
         assert mock_issue_instance.answer_type == issue_data["answer_type"]
-        
+
         # Verify add_question was called for the question
         mock_issue_instance.add_question.assert_called_once_with(issue_data["questions"][0])
-        
+
         # Most importantly, verify set_constraints was called with the modified constraints
         # This specifically tests lines 538-546 where the Boolean constraints are modified
         expected_modified_constraints = {
@@ -107,7 +110,7 @@ class TestIssueCreationFunctionality:
             "false_value": "No"
         }
         mock_issue_instance.set_constraints.assert_called_once_with(expected_modified_constraints)
-        
+
         # Verify save was called
         mock_issue_instance.save.assert_called_once()
 
@@ -122,7 +125,7 @@ class TestIssueCreationFunctionality:
         mock_issue_instance = MagicMock()
         mock_issue_instance.save.return_value = "test_issue_cid"
         mock_hivemind_issue.return_value = mock_issue_instance
-        
+
         # Setup test data with Bool answer_type but empty choices array
         issue_data = {
             "name": "Default Boolean Test Issue",
@@ -136,25 +139,25 @@ class TestIssueCreationFunctionality:
             "restrictions": None,
             "on_selection": None
         }
-        
+
         # Test the endpoint
         with patch("app.HivemindState") as mock_hivemind_state:
             # Configure mock state to return a successful save
             mock_state_instance = MagicMock()
             mock_state_instance.save.return_value = "test_state_cid"
             mock_hivemind_state.return_value = mock_state_instance
-            
+
             response = self.client.post(
                 "/api/create_issue",
                 json=issue_data
             )
-        
+
         # Verify response
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
         assert data["issue_cid"] == "test_issue_cid"
-        
+
         # Verify the default labels were used
         expected_default_constraints = {
             "true_value": "True",
@@ -173,7 +176,7 @@ class TestIssueCreationFunctionality:
         mock_issue_instance = MagicMock()
         mock_issue_instance.save.return_value = "test_bool_no_constraints_cid"
         mock_hivemind_issue.return_value = mock_issue_instance
-        
+
         # Setup test data with Bool answer_type but NO constraints
         issue_data = {
             "name": "Bool Issue Without Constraints",
@@ -185,37 +188,37 @@ class TestIssueCreationFunctionality:
             "restrictions": None,
             "on_selection": None
         }
-        
+
         # Test the endpoint
         with patch("app.HivemindState") as mock_hivemind_state:
             # Configure mock state to return a successful save
             mock_state_instance = MagicMock()
             mock_state_instance.save.return_value = "test_state_cid"
             mock_hivemind_state.return_value = mock_state_instance
-            
+
             response = self.client.post(
                 "/api/create_issue",
                 json=issue_data
             )
-        
+
         # Verify response
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
         assert data["issue_cid"] == "test_bool_no_constraints_cid"
-        
+
         # Verify the HivemindIssue was created with correct attributes
         mock_hivemind_issue.assert_called_once()
-        
+
         # Verify attributes were set correctly
         assert mock_issue_instance.name == issue_data["name"]
         assert mock_issue_instance.description == issue_data["description"]
         assert mock_issue_instance.tags == issue_data["tags"]
         assert mock_issue_instance.answer_type == issue_data["answer_type"]
-        
+
         # Verify add_question was called for the question
         mock_issue_instance.add_question.assert_called_once_with(issue_data["questions"][0])
-        
+
         # Most importantly, verify set_constraints was called with the default Bool constraints
         # This specifically tests lines 594-596 where default Bool constraints are applied
         expected_default_constraints = {
@@ -223,7 +226,7 @@ class TestIssueCreationFunctionality:
             "false_value": "False"
         }
         mock_issue_instance.set_constraints.assert_called_once_with(expected_default_constraints)
-        
+
         # Verify save was called
         mock_issue_instance.save.assert_called_once()
 
@@ -239,7 +242,7 @@ class TestIssueCreationFunctionality:
         test_exception = ValueError("Test exception during issue save")
         mock_issue_instance.save.side_effect = test_exception
         mock_hivemind_issue.return_value = mock_issue_instance
-        
+
         # Setup test data
         issue_data = {
             "name": "Exception Test Issue",
@@ -251,7 +254,7 @@ class TestIssueCreationFunctionality:
             "restrictions": None,
             "on_selection": None
         }
-        
+
         # Test the endpoint with logger patched to verify error logging
         with patch("app.HivemindState"), patch("app.logger") as mock_logger:
             # When testing through FastAPI TestClient, exceptions are converted to HTTP responses
@@ -259,21 +262,21 @@ class TestIssueCreationFunctionality:
                 "/api/create_issue",
                 json=issue_data
             )
-            
+
             # Verify the response indicates an error
             assert response.status_code == 400
-            
+
             # Verify that the error was logged
             # The logger.error is called twice with different messages
             assert mock_logger.error.call_count == 2
-            
+
             # Check for our specific error message (lines 645-647)
             create_and_save_error_call = False
             for call in mock_logger.error.call_args_list:
                 if "Error in create_and_save:" in call[0][0] and str(test_exception) in call[0][0]:
                     create_and_save_error_call = True
                     break
-            
+
             assert create_and_save_error_call, "Expected error log message not found"
 
 

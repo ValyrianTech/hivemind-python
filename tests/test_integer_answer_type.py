@@ -10,6 +10,7 @@ from bitcoin.wallet import CBitcoinSecret
 from hivemind import HivemindIssue, HivemindOption, HivemindOpinion, HivemindState
 from hivemind.utils import generate_bitcoin_keypair, sign_message
 
+
 def log_step(step_num: int, description: str) -> None:
     """Print a formatted step header with timestamp.
     
@@ -19,7 +20,8 @@ def log_step(step_num: int, description: str) -> None:
     """
     timestamp = datetime.now().strftime('%H:%M:%S.%f')[:-3]
     print(f'\n[{timestamp}] Step {step_num}: {description}')
-    print('='*60)
+    print('=' * 60)
+
 
 def log_substep(description: str) -> None:
     """Print a formatted substep header.
@@ -29,7 +31,8 @@ def log_substep(description: str) -> None:
     """
     timestamp = datetime.now().strftime('%H:%M:%S.%f')[:-3]
     print(f'\n[{timestamp}] {description}')
-    print('-'*40)
+    print('-' * 40)
+
 
 def test_integer_answer_type_constraints() -> None:
     """Test the Integer answer type with various constraints.
@@ -44,12 +47,12 @@ def test_integer_answer_type_constraints() -> None:
     """
     start_time: float = time.time()
     print('\nStarting Integer Answer Type Integration Test')
-    print('='*60)
+    print('=' * 60)
     print(f'Test started at: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\n')
 
     # Create the issue
     log_step(1, 'Creating and Configuring Hivemind Issue for Integer Answer Type')
-    
+
     name: str = 'Integer Answer Type Test'
     question: str = 'What is your favorite number?'
     description: str = 'Test for Integer answer type constraints'
@@ -71,7 +74,7 @@ def test_integer_answer_type_constraints() -> None:
     hivemind_issue.description = description
     hivemind_issue.answer_type = option_type
     hivemind_issue.tags = ['test', 'integer', 'constraints']
-    
+
     # Set constraints for Integer answer type
     log_substep('Setting Integer constraints')
     constraints: Dict[str, Union[str, int, float, list]] = {
@@ -85,10 +88,10 @@ def test_integer_answer_type_constraints() -> None:
     }
     hivemind_issue.set_constraints(constraints=constraints)
     print(f'Set constraints: {constraints}')
-    
+
     # Set up voter restrictions
     log_step(2, 'Setting up Access Restrictions')
-    
+
     # Generate voter keys
     voter_keys: List[Tuple[CBitcoinSecret, str]] = [generate_bitcoin_keypair() for _ in range(2)]
     options_per_address: int = 3
@@ -99,7 +102,7 @@ def test_integer_answer_type_constraints() -> None:
     print('Generated voter keys and setting restrictions:')
     print(f'- Allowed addresses: {restrictions["addresses"]}')
     print(f'- Options per address: {restrictions["options_per_address"]}')
-    
+
     # hivemind_issue.set_restrictions(restrictions=restrictions)  # Leave this for easier manual testing
     hivemind_issue_hash: str = hivemind_issue.save()
     print(f'\nHivemind issue saved')
@@ -108,7 +111,7 @@ def test_integer_answer_type_constraints() -> None:
 
     # Initialize the state
     log_step(3, 'Initializing Hivemind State')
-    
+
     hivemind_state = HivemindState()
     hivemind_state.set_hivemind_issue(issue_hash=hivemind_issue_hash)
     statehash: str = hivemind_state.save()
@@ -121,11 +124,11 @@ def test_integer_answer_type_constraints() -> None:
 
     # Test valid options
     log_step(4, 'Testing Valid Integer Options')
-    
+
     valid_options = [7, 42, 99]
     option_texts = ['Lucky Seven', 'Answer to the Ultimate Question', 'Almost a Hundred']
     proposer_key, proposer_address = voter_keys[0]
-    
+
     for i, option_value in enumerate(valid_options):
         log_substep(f'Adding valid option: {option_value}')
         option = HivemindOption()
@@ -147,14 +150,14 @@ def test_integer_answer_type_constraints() -> None:
             timestamp=timestamp
         )
         print('Option added to state')
-    
+
     print('\nOptions summary:')
     print(f'- Total options added: {len(hivemind_state.option_cids)}')
     assert len(hivemind_state.option_cids) == len(valid_options)
-    
+
     # Test invalid options
     log_step(5, 'Testing Invalid Integer Options')
-    
+
     # Test min_value constraint
     log_substep('Testing min_value constraint')
     try:
@@ -166,7 +169,7 @@ def test_integer_answer_type_constraints() -> None:
     except Exception as e:
         print(f'Successfully rejected option that violates min_value: {str(e)}')
         assert 'below minimum value' in str(e) or 'not valid' in str(e)
-    
+
     # Test max_value constraint
     log_substep('Testing max_value constraint')
     try:
@@ -178,7 +181,7 @@ def test_integer_answer_type_constraints() -> None:
     except Exception as e:
         print(f'Successfully rejected option that violates max_value: {str(e)}')
         assert 'above maximum value' in str(e) or 'not valid' in str(e)
-    
+
     # Test type constraint
     log_substep('Testing type constraint')
     try:
@@ -190,7 +193,7 @@ def test_integer_answer_type_constraints() -> None:
     except Exception as e:
         print(f'Successfully rejected option that violates type constraint: {str(e)}')
         assert 'not a integer value' in str(e) or 'not valid' in str(e)
-    
+
     # Test choices constraint
     log_substep('Testing choices constraint')
     try:
@@ -202,22 +205,23 @@ def test_integer_answer_type_constraints() -> None:
     except Exception as e:
         print(f'Successfully rejected option that violates choices: {str(e)}')
         assert 'not in the allowed choices' in str(e)
-    
+
     # Finalize test
     log_step(6, 'Finalizing Test')
     final_state_hash: str = hivemind_state.save()
     assert final_state_hash is not None and len(final_state_hash) > 0
-    
+
     end_time: float = time.time()
     duration: float = end_time - start_time
-    
+
     print('Test Summary:')
     print('-' * 40)
     print(f'- Test completed successfully')
     print(f'- Duration: {duration:.2f} seconds')
     print(f'- Final state hash: {final_state_hash}')
     print(f'- Total valid options: {len(valid_options)}')
-    print('='*60)
+    print('=' * 60)
+
 
 if __name__ == '__main__':
     test_integer_answer_type_constraints()

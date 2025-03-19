@@ -100,7 +100,7 @@ class TestHivemindIssue:
                                       None,
                                       {},
                                       [],
-                                      42+0j,
+                                      42 + 0j,
                                       42.0])
     def test_saving_with_invalid_name_raises_exception(self, name):
         hivemind_issue = HivemindIssue()
@@ -230,7 +230,7 @@ class TestHivemindIssue:
         hivemind_issue.tags = ["tag1", "tag2"]
         hivemind_issue.answer_type = "String"
         hivemind_issue.set_constraints({"min_length": 5, "max_length": 10})
-        
+
         info_text = hivemind_issue.info()
         assert "Hivemind name: Test Issue" in info_text
         assert "Hivemind description: Test Description" in info_text
@@ -256,13 +256,13 @@ class TestHivemindIssue:
         hivemind_issue = HivemindIssue()
         hivemind_issue.name = "Test"
         hivemind_issue.add_question("Question?")
-        
+
         # Test tag with space
         hivemind_issue.tags = ["invalid tag"]
         with pytest.raises(Exception) as exc_info:
             hivemind_issue.valid()
         assert "Invalid tags" in str(exc_info.value)
-        
+
         # Test duplicate tags
         hivemind_issue.tags = ["tag1", "tag1"]
         with pytest.raises(Exception) as exc_info:
@@ -273,13 +273,13 @@ class TestHivemindIssue:
         """Test validation of question format"""
         hivemind_issue = HivemindIssue()
         hivemind_issue.name = "Test"
-        
+
         # Test empty question
         hivemind_issue.questions = [""]
         with pytest.raises(Exception) as exc_info:
             hivemind_issue.valid()
         assert "Invalid questions" in str(exc_info.value)
-        
+
         # Test too long question
         hivemind_issue.questions = ["a" * 256]
         with pytest.raises(Exception) as exc_info:
@@ -291,7 +291,7 @@ class TestHivemindIssue:
         hivemind_issue = HivemindIssue()
         hivemind_issue.name = "Test"
         hivemind_issue.add_question("Question?")
-        
+
         # Test invalid on_selection value
         hivemind_issue.on_selection = "InvalidValue"
         with pytest.raises(Exception) as exc_info:
@@ -304,12 +304,12 @@ class TestHivemindIssue:
         hivemind_issue.name = "Test"
         hivemind_issue.add_question("Question?")
         hivemind_issue.answer_type = "Bool"
-        
+
         # Test valid boolean constraints
         constraints = {"true_value": "yes", "false_value": "no"}
         hivemind_issue.set_constraints(constraints)
         assert hivemind_issue.constraints == constraints
-        
+
         # Test invalid boolean constraints
         with pytest.raises(Exception):
             hivemind_issue.set_constraints({"true_value": 1, "false_value": 0})
@@ -319,12 +319,12 @@ class TestHivemindIssue:
         hivemind_issue = HivemindIssue()
         hivemind_issue.name = "Test"
         hivemind_issue.add_question("Question?")
-        
+
         # Test valid block_height
         constraints = {"block_height": 12345}
         hivemind_issue.set_constraints(constraints)
         assert hivemind_issue.constraints == constraints
-        
+
         # Test invalid block_height
         with pytest.raises(Exception):
             hivemind_issue.set_constraints({"block_height": "12345"})
@@ -334,16 +334,16 @@ class TestHivemindIssue:
         hivemind_issue = HivemindIssue()
         hivemind_issue.name = "Test"
         hivemind_issue.add_question("Question?")
-        
+
         # Test valid addresses list
         restrictions = {"addresses": ["addr1", "addr2"]}
         hivemind_issue.set_restrictions(restrictions)
         assert hivemind_issue.restrictions == restrictions
-        
+
         # Test invalid address type
         with pytest.raises(Exception):
             hivemind_issue.set_restrictions({"addresses": [123, 456]})
-        
+
         # Test invalid addresses container
         with pytest.raises(Exception):
             hivemind_issue.set_restrictions({"addresses": "addr1,addr2"})
@@ -353,7 +353,7 @@ class TestHivemindIssue:
         hivemind_issue = HivemindIssue()
         hivemind_issue.name = "Test"
         hivemind_issue.add_question("Question?")
-        
+
         # Test invalid specs type
         with pytest.raises(Exception) as exc_info:
             hivemind_issue.set_constraints({"specs": 123})
@@ -364,7 +364,7 @@ class TestHivemindIssue:
         hivemind_issue = HivemindIssue()
         hivemind_issue.name = "Test"
         hivemind_issue.questions = []  # Empty questions list
-        
+
         with pytest.raises(Exception) as exc_info:
             hivemind_issue.valid()
         assert "There must be at least 1 question" in str(exc_info.value)
@@ -382,19 +382,19 @@ class TestHivemindIssue:
         hivemind_issue.name = "Test Issue"
         hivemind_issue.add_question("Test Question?")
         issue_cid = hivemind_issue.save()
-        
+
         # Get identification CID for a participant
         participant_name = "Test Participant"
         identification_cid = hivemind_issue.get_identification_cid(participant_name)
-        
+
         # Verify the identification CID is not None and is a string
         assert identification_cid is not None
         assert isinstance(identification_cid, str)
-        
+
         # Load the identification data from IPFS to verify its contents
         from ipfs_dict_chain.IPFSDict import IPFSDict
         identification_data = IPFSDict(cid=identification_cid)
-        
+
         # Verify the data contains the correct hivemind_id and name
         assert identification_data['hivemind_id'] == issue_cid.replace('/ipfs/', '')
         assert identification_data['name'] == participant_name

@@ -93,18 +93,18 @@ def test_options() -> List[str]:
     for i in range(3):
         option = HivemindOption()
         # Set the value in both the object and IPFS dictionary
-        value = f"Test Option {i+1}"
+        value = f"Test Option {i + 1}"
         option.value = value
         option['value'] = value
-        LOG.debug(f"Saving option {i+1} with value: {option.value}")
+        LOG.debug(f"Saving option {i + 1} with value: {option.value}")
         cid = option.save()
-        LOG.debug(f"Option {i+1} saved with CID: {cid}")
-        
+        LOG.debug(f"Option {i + 1} saved with CID: {cid}")
+
         # Verify the option was saved correctly
         verify = HivemindOption()
         verify.load(cid)  # Use load instead of constructor to properly sync values
         verify.value = verify['value']  # Sync value from IPFS dict
-        LOG.debug(f"Loaded option {i+1} has value: {verify.value}")
+        LOG.debug(f"Loaded option {i + 1} has value: {verify.value}")
         option_cids.append(cid)
     return option_cids
 
@@ -145,14 +145,16 @@ class TestHivemindOpinion:
 
         # Monkey patch the info method to properly load options
         original_info = opinion.info
+
         def patched_info():
             ret = ''
             for i, option_hash in enumerate(opinion.ranking.get()):
                 option = HivemindOption()
                 option.load(option_hash)  # Use load instead of constructor
                 option.value = option['value']  # Sync value from IPFS dict
-                ret += '\n%s: %s' % (i+1, option.value)
+                ret += '\n%s: %s' % (i + 1, option.value)
             return ret
+
         opinion.info = patched_info
 
         info: str = opinion.info()
@@ -176,7 +178,7 @@ class TestHivemindOpinion:
     def test_auto_high_ranking(self):
         """Test auto high ranking with numeric values"""
         opinion = HivemindOpinion()
-        
+
         # Create options with numeric values
         options = []
         values = [5, 8, 6, 7, 4]  # Same values as in integer_issue_hash fixture
@@ -185,17 +187,17 @@ class TestHivemindOpinion:
             option.value = value
             option['value'] = value  # Set in IPFS dict too
             options.append(option)
-            
+
         # Save options to get their CIDs
         option_cids = [opt.save() for opt in options]
-        
+
         # Set auto high ranking with middle value as choice
         choice_idx = 2  # Value 6
         opinion.ranking.set_auto_high(choice=option_cids[choice_idx])
-        
+
         # Get the ranking
         ranked_options = opinion.ranking.get(options=options)
-        
+
         # Expected order: closest to 6 with preference for higher values
         # So: 6, 7, 5, 8, 4
         expected_order = [option_cids[2], option_cids[3], option_cids[0], option_cids[1], option_cids[4]]
@@ -204,7 +206,7 @@ class TestHivemindOpinion:
     def test_auto_low_ranking(self):
         """Test auto low ranking with numeric values"""
         opinion = HivemindOpinion()
-        
+
         # Create options with numeric values
         options = []
         values = [5, 8, 6, 7, 4]  # Same values as before
@@ -213,17 +215,17 @@ class TestHivemindOpinion:
             option.value = value
             option['value'] = value  # Set in IPFS dict too
             options.append(option)
-            
+
         # Save options to get their CIDs
         option_cids = [opt.save() for opt in options]
-        
+
         # Set auto low ranking with middle value as choice
         choice_idx = 2  # Value 6
         opinion.ranking.set_auto_low(choice=option_cids[choice_idx])
-        
+
         # Get the ranking
         ranked_options = opinion.ranking.get(options=options)
-        
+
         # Expected order: closest to 6 with preference for lower values
         # So: 6, 5, 7, 4, 8
         expected_order = [option_cids[2], option_cids[0], option_cids[3], option_cids[4], option_cids[1]]
@@ -236,11 +238,11 @@ class TestHivemindOpinion:
         opinion.question_index = 0
         opinion.ranking = None
         cid = opinion.save()
-        
+
         # Create a new opinion and load it
         loaded_opinion = HivemindOpinion()
         loaded_opinion.load(cid)
-        
+
         assert isinstance(loaded_opinion.ranking, Ranking)
         # Set empty fixed ranking
         loaded_opinion.ranking.set_fixed([])
@@ -253,17 +255,17 @@ class TestHivemindOpinion:
         option = HivemindOption()
         option.value = "Test Option"
         option_cid = option.save()
-        
+
         # Create a dict with list ranking to simulate legacy format
         opinion.hivemind_id = None
         opinion.question_index = 0
         opinion.ranking = [option_cid]  # Legacy format used direct list
         cid = opinion.save()
-        
+
         # Create a new opinion and load it
         loaded_opinion = HivemindOpinion()
         loaded_opinion.load(cid)
-        
+
         assert isinstance(loaded_opinion.ranking, Ranking)
         assert loaded_opinion.ranking.get() == [option_cid]
 
@@ -274,17 +276,17 @@ class TestHivemindOpinion:
         option = HivemindOption()
         option.value = 5
         option_cid = option.save()
-        
+
         # Create a dict with auto_high ranking
         opinion.hivemind_id = None
         opinion.question_index = 0
         opinion.ranking = {'auto_high': option_cid}
         cid = opinion.save()
-        
+
         # Create a new opinion and load it
         loaded_opinion = HivemindOpinion()
         loaded_opinion.load(cid)
-        
+
         assert isinstance(loaded_opinion.ranking, Ranking)
         # Set auto high ranking and verify
         loaded_opinion.ranking.set_auto_high(option_cid)
@@ -298,17 +300,17 @@ class TestHivemindOpinion:
         option = HivemindOption()
         option.value = 5
         option_cid = option.save()
-        
+
         # Create a dict with auto_low ranking
         opinion.hivemind_id = None
         opinion.question_index = 0
         opinion.ranking = {'auto_low': option_cid}
         cid = opinion.save()
-        
+
         # Create a new opinion and load it
         loaded_opinion = HivemindOpinion()
         loaded_opinion.load(cid)
-        
+
         assert isinstance(loaded_opinion.ranking, Ranking)
         # Set auto low ranking and verify
         loaded_opinion.ranking.set_auto_low(option_cid)
@@ -323,11 +325,11 @@ class TestHivemindOpinion:
         opinion.question_index = 0
         opinion.ranking = {}  # Empty dict with no recognized keys
         cid = opinion.save()
-        
+
         # Create a new opinion and load it
         loaded_opinion = HivemindOpinion()
         loaded_opinion.load(cid)
-        
+
         assert isinstance(loaded_opinion.ranking, Ranking)
         # Set empty fixed ranking
         loaded_opinion.ranking.set_fixed([])
@@ -336,22 +338,22 @@ class TestHivemindOpinion:
     def test_load_dict_ranking_fixed(self):
         """Test loading an opinion with dict ranking using fixed ranking"""
         opinion = HivemindOpinion()
-        
+
         # Create test option
         option = HivemindOption()
         option.value = "Test Option"
         option_cid = option.save()
-        
+
         # Create a dict with fixed ranking
         opinion.hivemind_id = None
         opinion.question_index = 0
         opinion.ranking = {'fixed': [option_cid]}  # Set as dict with fixed ranking
         opinion_cid = opinion.save()
-        
+
         # Create a new opinion and load it
         loaded_opinion = HivemindOpinion()
         loaded_opinion.load(opinion_cid)
-        
+
         assert isinstance(loaded_opinion.ranking, Ranking)
         assert loaded_opinion.ranking.type == 'fixed'
         assert loaded_opinion.ranking.get() == [option_cid]
@@ -366,7 +368,7 @@ class TestHivemindOpinion:
         # Create an opinion with this option
         opinion = HivemindOpinion()
         opinion.ranking.set_fixed([option_cid])
-        
+
         # Get the info string
         info_str = opinion.info()
         # Check that the option CID is in the info string instead of the option text
@@ -386,11 +388,11 @@ class TestHivemindOpinion:
         opinion.question_index = 0
         opinion.ranking = {'auto_low': option_cid}  # Using option CID instead of number
         cid = opinion.save()
-        
+
         # Create a new opinion and load it
         loaded_opinion = HivemindOpinion()
         loaded_opinion.load(cid)
-        
+
         # Verify the ranking was loaded correctly
         assert isinstance(loaded_opinion.ranking, Ranking)
         assert loaded_opinion.ranking.to_dict()['auto_low'] == option_cid
@@ -401,20 +403,20 @@ class TestHivemindOpinion:
         opinion = HivemindOpinion()
         opinion.hivemind_id = "test_hivemind_id"
         opinion.set_question_index(1)
-        
+
         # Convert the ranking to a serializable format before saving
         opinion_data = opinion.get()
         for key, value in opinion_data.items():
             opinion[key] = value
-            
+
         opinion_cid = opinion.save()
-        
+
         # Load the opinion from IPFS
         loaded_opinion = HivemindOpinion(cid=opinion_cid)
-        
+
         # Test the __repr__ method
         assert repr(loaded_opinion) == opinion_cid.replace('/ipfs/', '')
-        
+
         # Test with CID that doesn't have the /ipfs/ prefix
         opinion_without_prefix = HivemindOpinion()
         opinion_without_prefix._cid = "QmTestCidWithoutPrefix"
