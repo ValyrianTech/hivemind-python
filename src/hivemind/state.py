@@ -144,15 +144,16 @@ class HivemindState(IPFSDictChain):
 
         elif 'choices' in self._hivemind_issue.constraints:
             for choice in self._hivemind_issue.constraints['choices']:
-                option = HivemindOption()
-                option.set_hivemind_issue(self.hivemind_id)
-                option.text = choice['text']
-                option.set(value=choice['value'])
-                option_hash = option.save()
-                if isinstance(option, HivemindOption) and option.valid():
-                    if option_hash not in self.option_cids:
-                        self.option_cids.append(option_hash)
-                        options[option_hash] = {'value': option.value, 'text': option.text}
+                if isinstance(choice, dict):
+                    option = HivemindOption()
+                    option.set_hivemind_issue(self.hivemind_id)
+                    option.text = choice['text']
+                    option.set(value=choice['value'])
+                    option_hash = option.save()
+                    if isinstance(option, HivemindOption) and option.valid():
+                        if option_hash not in self.option_cids:
+                            self.option_cids.append(option_hash)
+                            options[option_hash] = {'value': option.value, 'text': option.text}
 
         return options
 
