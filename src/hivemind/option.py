@@ -22,7 +22,7 @@ class HivemindOption(IPFSDict):
     :ivar text: Additional text description of the option
     :type text: str
     :ivar _hivemind_issue: The associated hivemind issue
-    :type _hivemind_issue: Optional[HivemindIssue]
+    :type _hivemind_issue: HivemindIssue
     :ivar _answer_type: Type of the answer ('String', 'Bool', 'Integer', etc.)
     :type _answer_type: str
     :ivar hivemind_id: The IPFS hash of the associated hivemind issue
@@ -37,7 +37,7 @@ class HivemindOption(IPFSDict):
         """
         self.value: Optional[Union[str, bool, int, float, Dict[str, Any]]] = None
         self.text: str = ''
-        self._hivemind_issue: Optional[HivemindIssue] = None
+        self._hivemind_issue: HivemindIssue | None = None
         self._answer_type: str = 'String'
         self.hivemind_id: str | None = None
         super().__init__(cid=cid)
