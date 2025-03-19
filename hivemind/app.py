@@ -349,11 +349,11 @@ async def load_opinions_for_question(state: HivemindState, question_index: int, 
 async def fetch_state(request: IPFSHashRequest):
     stats = StateLoadingStats()
 
-    try:
-        cid = request.cid
-        if not cid:
-            raise HTTPException(status_code=400, detail="CID is required")
+    cid = request.cid
+    if not cid:
+        raise HTTPException(status_code=400, detail="CID is required")
 
+    try:
         stats.state_cid = cid
         logger.info(f"Attempting to load state from IPFS with CID: {cid}")
 

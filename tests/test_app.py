@@ -506,7 +506,7 @@ class TestEndpoints:
             "/fetch_state",
             json={"cid": ""}
         )
-        assert response.status_code == 500
+        assert response.status_code == 400
         data = response.json()
         assert "CID is required" in data["detail"]
         
