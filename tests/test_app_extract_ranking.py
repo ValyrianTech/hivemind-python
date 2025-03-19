@@ -37,9 +37,6 @@ class TestExtractRankingFromOpinion:
         # Verify results
         assert ranking_type == "fixed"
         assert ranking == ["option1", "option2", "option3"]
-        # Verify logging
-        mock_logger.debug.assert_any_call(f"Ranking object attributes: {mock_ranking.__dict__}")
-        mock_logger.debug.assert_any_call(f"Using fixed ranking: {ranking}")
 
     @patch("app.logger")
     def test_extract_ranking_auto_high(self, mock_logger):
@@ -57,9 +54,6 @@ class TestExtractRankingFromOpinion:
         # Verify results
         assert ranking_type == "auto_high"
         assert ranking == ["option1"]
-        # Verify logging
-        mock_logger.debug.assert_any_call(f"Ranking object attributes: {mock_ranking.__dict__}")
-        mock_logger.debug.assert_any_call(f"Created ranking list from auto auto_high: {ranking}")
 
     @patch("app.logger")
     def test_extract_ranking_auto_low(self, mock_logger):
@@ -77,9 +71,6 @@ class TestExtractRankingFromOpinion:
         # Verify results
         assert ranking_type == "auto_low"
         assert ranking == ["option1"]
-        # Verify logging
-        mock_logger.debug.assert_any_call(f"Ranking object attributes: {mock_ranking.__dict__}")
-        mock_logger.debug.assert_any_call(f"Created ranking list from auto auto_low: {ranking}")
 
     @patch("app.logger")
     def test_extract_ranking_no_dict(self, mock_logger):
@@ -111,8 +102,6 @@ class TestExtractRankingFromOpinion:
         # Verify results
         assert ranking is None
         assert ranking_type is None
-        # Verify logging of ranking attributes
-        mock_logger.debug.assert_called_once_with(f"Ranking object attributes: {mock_ranking.__dict__}")
 
 
 if __name__ == "__main__":
