@@ -31,7 +31,7 @@ class HivemindOpinion(IPFSDict):
 
         super(HivemindOpinion, self).__init__(cid=cid)
 
-    def get(self) -> Dict[str, Any]:
+    def get(self, **kwargs) -> Dict[str, Any]:
         """Get a JSON-serializable representation of this opinion.
 
         Overrides the get method because it contains a non-JSON-serializable object.
