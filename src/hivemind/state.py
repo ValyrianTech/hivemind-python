@@ -81,7 +81,7 @@ class HivemindState(IPFSDictChain):
             for participant, opinion_data in self.opinion_cids[question_index].items():
                 opinion = HivemindOpinion(cid=opinion_data['opinion_cid'])
                 opinions.append(opinion)
-                rankings[participant] = opinion.ranking.get(options=self._options)
+                rankings[opinion_data['opinion_cid']] = opinion.ranking.get(options=self._options)
 
             self._opinions.append(opinions)
             self._rankings.append(rankings)
