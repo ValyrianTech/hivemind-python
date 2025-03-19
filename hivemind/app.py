@@ -6,12 +6,10 @@ import os
 import json
 import time
 import asyncio
+import csv
 import logging
 
-import queue
-import atexit
 from datetime import datetime
-import csv
 from pathlib import Path
 
 # Add parent directory to Python path to find hivemind package
@@ -22,9 +20,8 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-import logging
+
 from logging.handlers import RotatingFileHandler
-import os
 from typing import Optional, List, Dict, Any, Union
 
 from hivemind.state import HivemindOpinion, HivemindState, verify_message
@@ -770,7 +767,6 @@ async def create_option(option: OptionCreate):
                                 logger.info(f"Used complex value as dictionary: {new_option.value}")
                             else:
                                 # Otherwise, try to parse it as a JSON string
-                                import json
                                 new_option.value = json.loads(option.value)
                                 logger.info(f"Parsed complex value from JSON: {new_option.value}")
                         except (json.JSONDecodeError, TypeError) as ex:
