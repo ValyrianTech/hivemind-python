@@ -26,7 +26,8 @@ def verify_message(message: str, address: str, signature: str) -> bool:
     """
     try:
         return VerifyMessage(address, BitcoinMessage(message), signature)
-    except Exception:
+    except Exception as ex:
+        LOG.error('Error verifying message: %s' % ex)
         return False
 
 
