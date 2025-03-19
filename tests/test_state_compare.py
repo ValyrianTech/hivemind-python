@@ -47,6 +47,11 @@ class TestHivemindStateCompare:
         opinion.ranking = opinion.ranking.to_dict()
         opinion_hash = opinion.save()
         
+        # Add the opinion to the state
+        timestamp = int(time.time())
+        signature = sign_message(f"{timestamp}{opinion_hash}", private_key)
+        state.add_opinion(timestamp, opinion_hash, signature, address)
+        
         # Compare options using this opinion
         # This should use the auto_high branch (line 687)
         result = state.compare(first_hash, third_hash, opinion_hash)
