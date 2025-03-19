@@ -26,7 +26,7 @@ class HivemindOption(IPFSDict):
     :ivar _answer_type: Type of the answer ('String', 'Bool', 'Integer', etc.)
     :type _answer_type: str
     :ivar hivemind_id: The IPFS hash of the associated hivemind issue
-    :type hivemind_id: Optional[str]
+    :type hivemind_id: str
     """
 
     def __init__(self, cid: Optional[str] = None) -> None:
@@ -39,7 +39,7 @@ class HivemindOption(IPFSDict):
         self.text: str = ''
         self._hivemind_issue: Optional[HivemindIssue] = None
         self._answer_type: str = 'String'
-        self.hivemind_id: Optional[str] = None
+        self.hivemind_id: str | None = None
         super().__init__(cid=cid)
         if cid is not None:
             self.load(cid=cid)
@@ -59,7 +59,8 @@ class HivemindOption(IPFSDict):
         :type cid: str
         """
         super().load(cid=cid)
-        self.set_hivemind_issue(hivemind_issue_hash=self.hivemind_id)
+        if self.hivemind_id:
+            self.set_hivemind_issue(hivemind_issue_hash=self.hivemind_id)
 
     def set_hivemind_issue(self, hivemind_issue_hash: str) -> None:
         """Set the hivemind issue for this option.
