@@ -32,6 +32,14 @@ class TestHivemindStateParticipants:
         # Verify participant was added with correct name
         assert address in state.participants
         assert state.participants[address].get('name') == name
+        
+        # Test with name exceeding maximum length
+        long_name = 'A' * 51  # 51 characters, exceeding the 50 character limit
+        long_message = f"{timestamp}{long_name}"
+        long_signature = sign_message(long_message, private_key)
+        
+        with pytest.raises(Exception, match='Name exceeds maximum length of 50 characters'):
+            state.update_participant_name(timestamp, long_name, address, long_signature, long_message)
 
 @pytest.mark.participants
 class TestHivemindStateParticipantManagement:

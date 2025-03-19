@@ -34,7 +34,11 @@
                     <label for="name" class="block text-lg font-medium">Your Name</label>
                     <input type="text" id="name" name="name" 
                            class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                           placeholder="Enter your name">
+                           placeholder="Enter your name" maxlength="50" oninput="updateCharCount()">
+                    <div class="flex justify-between">
+                        <p class="text-sm text-gray-400">Maximum 50 characters allowed</p>
+                        <p class="text-sm text-gray-400"><span id="charCount">0</span>/50</p>
+                    </div>
                 </div>
 
                 <div class="flex justify-center">
@@ -62,12 +66,25 @@
     <script>
         let ws;
         
+        function updateCharCount() {
+            const nameInput = document.getElementById('name');
+            const charCount = document.getElementById('charCount');
+            charCount.textContent = nameInput.value.length;
+        }
+        
         async function prepareNameUpdate() {
             const nameInput = document.getElementById('name');
             const name = nameInput.value.trim();
             
             if (!name) {
                 showStatus('Please enter your name', 'error');
+                return;
+            }
+            
+            // Check name length
+            const MAX_NAME_LENGTH = 50;
+            if (name.length > MAX_NAME_LENGTH) {
+                showStatus(`Name cannot exceed ${MAX_NAME_LENGTH} characters`, 'error');
                 return;
             }
             

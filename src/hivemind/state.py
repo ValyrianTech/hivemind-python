@@ -668,8 +668,13 @@ class HivemindState(IPFSDictChain):
         :type signature: str
         :param message: The message that was signed
         :type message: str
-        :raises Exception: If the signature is invalid
+        :raises Exception: If the signature is invalid or name exceeds maximum length
         """
+        # Check if name exceeds maximum length
+        MAX_NAME_LENGTH = 50
+        if len(name) > MAX_NAME_LENGTH:
+            raise Exception(f'Name exceeds maximum length of {MAX_NAME_LENGTH} characters')
+            
         # Only need to update name if it is not known yet or if it has changed
         if address not in self.participants or name != self.participants[address]['name']:
             if verify_message(address=address, message=message, signature=signature) is True:
