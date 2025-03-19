@@ -671,9 +671,9 @@ class HivemindState(IPFSDictChain):
         :raises Exception: If the signature is invalid or name exceeds maximum length
         """
         # Check if name exceeds maximum length
-        MAX_NAME_LENGTH = 50
-        if len(name) > MAX_NAME_LENGTH:
-            raise Exception(f'Name exceeds maximum length of {MAX_NAME_LENGTH} characters')
+        max_name_length = 50
+        if len(name) > max_name_length:
+            raise Exception(f'Name exceeds maximum length of {max_name_length} characters')
             
         # Only need to update name if it is not known yet or if it has changed
         if address not in self.participants or name != self.participants[address]['name']:
