@@ -9,11 +9,10 @@ import asyncio
 import csv
 import logging
 
+from logging.handlers import RotatingFileHandler
+from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
 from pathlib import Path
-
-# Add parent directory to Python path to find hivemind package
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -21,17 +20,18 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from logging.handlers import RotatingFileHandler
-from typing import Optional, List, Dict, Any, Union
+from ipfs_dict_chain.IPFSDict import IPFSDict
+from ipfs_dict_chain.IPFS import connect
+
+from websocket_handlers import active_connections, register_websocket_routes, name_update_connections
+
+# Add parent directory to Python path to find hivemind package
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from hivemind.state import HivemindOpinion, HivemindState, verify_message
 from hivemind.issue import HivemindIssue
 from hivemind.option import HivemindOption
 from hivemind.ranking import Ranking
-from ipfs_dict_chain.IPFSDict import IPFSDict
-from ipfs_dict_chain.IPFS import connect
-
-from websocket_handlers import active_connections, register_websocket_routes, name_update_connections
 
 
 class StateLoadingStats:
