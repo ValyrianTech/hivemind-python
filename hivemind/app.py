@@ -712,7 +712,9 @@ async def create_option(option: OptionCreate):
         
         # Handle different answer types
         if option.value is not None:
+            logger.info(f"Setting option value: {option.value} (type: {type(option.value).__name__})")
             new_option.value = option.value
+            logger.info(f"Option value set successfully, answer_type: {new_option._answer_type}")
         
         # Save the option to IPFS
         option_cid = await asyncio.to_thread(lambda: new_option.save())
@@ -1126,6 +1128,7 @@ async def sign_option(request: Request):
         try:
             # First load the option to get its hivemind_id
             option = await asyncio.to_thread(lambda: HivemindOption(cid=option_hash))
+            logger.info(f"Loaded option with value: {option.value} (type: {type(option.value).__name__}), answer_type: {option._answer_type}")
 
             if not option.hivemind_id:
                 raise HTTPException(status_code=400, detail="Option does not have an associated hivemind state")

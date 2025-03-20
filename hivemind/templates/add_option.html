@@ -175,8 +175,19 @@
                     // Parse it back to an object for the API
                     formData.value = JSON.parse(document.getElementById('value').value);
                 } else {
-                    // For other types, use the raw value
-                    formData.value = document.getElementById('value').value;
+                    // For other types, use the raw value but convert to the appropriate type
+                    const rawValue = document.getElementById('value').value;
+                    const answerType = '{{ issue.answer_type }}';
+                    
+                    if (answerType === 'Integer') {
+                        formData.value = parseInt(rawValue, 10);
+                    } else if (answerType === 'Float') {
+                        formData.value = parseFloat(rawValue);
+                    } else if (answerType === 'Bool') {
+                        formData.value = rawValue === 'true';
+                    } else {
+                        formData.value = rawValue;
+                    }
                 }
                 
                 const response = await fetch('/api/options/create', {
