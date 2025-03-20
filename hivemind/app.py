@@ -221,9 +221,6 @@ class SignOpinionRequest(BaseModel):
 # Initialize FastAPI app
 app = FastAPI(title="Hivemind Insights")
 
-# Dictionary to store active WebSocket connections
-active_connections = {}
-
 # Mount static files and templates
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 templates_dir = os.path.join(os.path.dirname(__file__), "templates")
@@ -1457,58 +1454,6 @@ def extract_ranking_from_opinion_object(opinion_ranking):
             ranking = [preferred_option]
 
     return ranking, ranking_type
-
-
-@app.websocket("/ws/opinion/{opinion_hash}")
-async def websocket_opinion_endpoint(websocket: WebSocket, opinion_hash: str):
-    """WebSocket endpoint for opinion signing notifications.
-    
-    Args:
-        websocket: The WebSocket connection
-        opinion_hash: The opinion hash to subscribe to
-    """
-    await websocket.accept()
-    
-    # Add the connection to the active connections
-    if opinion_hash not in active_connections:
-        active_connections[opinion_hash] = []
-    active_connections[opinion_hash].append(websocket)
-    
-    try:
-        # Keep the connection open until the client disconnects
-        while True:
-            await websocket.receive_text()
-    except WebSocketDisconnect:
-        # Remove the connection when the client disconnects
-        active_connections[opinion_hash].remove(websocket)
-        if not active_connections[opinion_hash]:
-            del active_connections[opinion_hash]
-
-
-@app.websocket("/ws/option/{option_hash}")
-async def websocket_option_endpoint(websocket: WebSocket, option_hash: str):
-    """WebSocket endpoint for option signing notifications.
-    
-    Args:
-        websocket: The WebSocket connection
-        option_hash: The option hash to subscribe to
-    """
-    await websocket.accept()
-    
-    # Add the connection to the active connections
-    if option_hash not in active_connections:
-        active_connections[option_hash] = []
-    active_connections[option_hash].append(websocket)
-    
-    try:
-        # Keep the connection open until the client disconnects
-        while True:
-            await websocket.receive_text()
-    except WebSocketDisconnect:
-        # Remove the connection when the client disconnects
-        active_connections[option_hash].remove(websocket)
-        if not active_connections[option_hash]:
-            del active_connections[option_hash]
 
 
 register_websocket_routes(app)
