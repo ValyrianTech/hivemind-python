@@ -701,7 +701,7 @@ async def create_option(option: OptionCreate):
         HTTPException: If the option creation fails
     """
     try:
-        logger.info(f"Creating option: {option.dict()}")
+        logger.info(f"Creating option: {option.model_dump()}")
         
         # Create the new option
         new_option = HivemindOption()
