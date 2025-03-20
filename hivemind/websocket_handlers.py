@@ -13,7 +13,7 @@ active_connections: Dict[str, List[WebSocket]] = {}
 # Store active WebSocket connections for name updates
 name_update_connections: Dict[str, List[WebSocket]] = {}
 
-async def websocket_endpoint(websocket: WebSocket, opinion_hash: str):
+async def websocket_opinion_endpoint(websocket: WebSocket, opinion_hash: str):
     """WebSocket endpoint for opinion notifications."""
     await websocket.accept()
     
@@ -81,8 +81,8 @@ def register_websocket_routes(app: FastAPI):
         app: The FastAPI application instance
     """
     @app.websocket("/ws/opinion/{opinion_hash}")
-    async def ws_endpoint(websocket: WebSocket, opinion_hash: str):
-        await websocket_endpoint(websocket, opinion_hash)
+    async def ws_opinion_endpoint(websocket: WebSocket, opinion_hash: str):
+        await websocket_opinion_endpoint(websocket, opinion_hash)
     
     @app.websocket("/ws/option/{option_hash}")
     async def ws_option_endpoint(websocket: WebSocket, option_hash: str):

@@ -17,7 +17,7 @@ sys.path.insert(0, project_root)
 sys.path.append(os.path.join(project_root, "hivemind"))
 import app
 from app import active_connections
-from websocket_handlers import register_websocket_routes, websocket_endpoint, websocket_name_update_endpoint, name_update_connections
+from websocket_handlers import register_websocket_routes, websocket_opinion_endpoint, websocket_name_update_endpoint, name_update_connections
 
 from fastapi import FastAPI
 from fastapi.websockets import WebSocket, WebSocketDisconnect
@@ -65,7 +65,7 @@ class TestWebSocketEndpoint:
         mock_websocket1.receive_text.side_effect = WebSocketDisconnect("Connection closed")
 
         # Call the websocket endpoint
-        await websocket_endpoint(mock_websocket1, opinion_hash)
+        await websocket_opinion_endpoint(mock_websocket1, opinion_hash)
 
         # Verify the connection was accepted
         mock_websocket1.accept.assert_called_once()
@@ -83,7 +83,7 @@ class TestWebSocketEndpoint:
         mock_websocket.receive_text.side_effect = Exception("Test exception")
 
         # Call the websocket endpoint
-        await websocket_endpoint(mock_websocket, opinion_hash)
+        await websocket_opinion_endpoint(mock_websocket, opinion_hash)
 
         # Verify the connection was accepted
         mock_websocket.accept.assert_called_once()
@@ -105,7 +105,7 @@ class TestWebSocketEndpoint:
         mock_websocket2.receive_text.side_effect = Exception("Test exception")
 
         # First, add the first connection
-        await websocket_endpoint(mock_websocket1, opinion_hash)
+        await websocket_opinion_endpoint(mock_websocket1, opinion_hash)
 
         # Verify the first connection was accepted
         mock_websocket1.accept.assert_called_once()
@@ -116,7 +116,7 @@ class TestWebSocketEndpoint:
         active_connections[opinion_hash] = [mock_websocket1]
 
         # Now test the second connection
-        await websocket_endpoint(mock_websocket2, opinion_hash)
+        await websocket_opinion_endpoint(mock_websocket2, opinion_hash)
 
         # Verify the second connection was accepted
         mock_websocket2.accept.assert_called_once()
@@ -134,7 +134,7 @@ class TestWebSocketEndpoint:
         test_app = FastAPI()
 
         # Create a mock for the websocket_endpoint function
-        original_endpoint = websocket_endpoint
+        original_endpoint = websocket_opinion_endpoint
 
         # Create a mock WebSocket
         mock_websocket = AsyncMock(spec=WebSocket)
@@ -153,7 +153,7 @@ class TestWebSocketEndpoint:
         assert websocket_route is not None, "WebSocket route was not registered"
 
         # Create a patch to intercept calls to the original websocket_endpoint
-        with patch('websocket_handlers.websocket_endpoint') as mock_endpoint:
+        with patch('websocket_handlers.websocket_opinion_endpoint') as mock_endpoint:
             # Set up the mock to return immediately
             mock_endpoint.return_value = None
 
