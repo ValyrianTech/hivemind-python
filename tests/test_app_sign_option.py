@@ -408,6 +408,96 @@ class TestSignOption:
         assert notification_data["option_hash"] == option_hash
         assert notification_data["hivemind_id"] == VALID_HIVEMIND_ID
 
+    @patch("app.asyncio.to_thread", mock_to_thread)
+    @patch("app.verify_message")
+    @patch("app.load_state_mapping")
+    @patch("app.active_connections")
+    def test_sign_option_websocket_notification_exception(self, mock_active_connections, mock_load_state_mapping, mock_verify_message):
+        """Test sign_option with WebSocket notification that raises an exception."""
+        # Configure mocks
+        mock_verify_message.return_value = True
+
+        # Mock state mapping
+        mock_mapping = {VALID_HIVEMIND_ID: {"state_hash": VALID_STATE_CID}}
+        mock_load_state_mapping.return_value = mock_mapping
+
+        # Mock HivemindOption
+        mock_option = MagicMock()
+        mock_option.value = "Test Option"
+        mock_option.hivemind_id = VALID_HIVEMIND_ID
+        mock_option._answer_type = "String"
+
+        # Mock HivemindState
+        mock_state = MagicMock()
+        mock_state.option_cids = [VALID_OPTION_CID]
+        mock_state.save.return_value = VALID_STATE_CID
+        mock_state.add_option.return_value = None
+
+        # Mock HivemindIssue
+        mock_issue = MagicMock()
+        mock_issue.name = "Test Issue"
+        mock_issue.description = "Test Description"
+        mock_issue.answer_type = "String"
+        mock_issue.questions = ["Test Question"]
+        mock_issue.tags = ["test"]
+
+        # Set up the hivemind_issue method to return the mock issue
+        mock_state.hivemind_issue.return_value = mock_issue
+
+        # Mock WebSocket connections - one that works and one that raises an exception
+        mock_connection_success = AsyncMock()
+        mock_connection_failure = AsyncMock()
+        # Make the second connection raise an exception when send_json is called
+        mock_connection_failure.send_json.side_effect = Exception("WebSocket connection error")
+        
+        # Set up active_connections to contain both connections
+        mock_active_connections.__getitem__.return_value = [mock_connection_success, mock_connection_failure]
+        mock_active_connections.__contains__.return_value = True
+
+        # Patch update_state to be a coroutine that returns None
+        async def mock_update_state(*args, **kwargs):
+            return None
+
+        # Patch HivemindOption, HivemindState, and update_state
+        with patch("app.HivemindOption", return_value=mock_option):
+            with patch("app.HivemindState", return_value=mock_state):
+                with patch("app.update_state", side_effect=mock_update_state):
+                    # Create test data
+                    timestamp = int(time.time())
+                    option_hash = VALID_OPTION_CID
+                    message = f"{timestamp}{option_hash}"
+                    signature = sign_message(message, self.private_key)
+
+                    # Test request data
+                    request_data = {
+                        "address": self.address,
+                        "message": message,
+                        "signature": signature,
+                        "data": {
+                            "hivemind_id": VALID_HIVEMIND_ID,
+                            "value": "Test Option"
+                        }
+                    }
+
+                    # Test the endpoint
+                    response = self.client.post("/api/sign_option", json=request_data)
+
+                    # Verify response
+                    assert response.status_code == 200
+                    response_data = response.json()
+                    assert response_data["success"] is True
+                    assert "cid" in response_data
+
+        # Verify both WebSocket connections were attempted
+        mock_connection_success.send_json.assert_called_once()
+        mock_connection_failure.send_json.assert_called_once()
+        
+        # The exception in the second connection should not have affected the overall result
+        notification_data = mock_connection_success.send_json.call_args[0][0]
+        assert notification_data["success"] is True
+        assert notification_data["option_hash"] == option_hash
+        assert notification_data["hivemind_id"] == VALID_HIVEMIND_ID
+
 
 if __name__ == "__main__":
     pytest.main(["-xvs", "test_app_sign_option.py"])
