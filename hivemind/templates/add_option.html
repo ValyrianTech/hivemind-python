@@ -6,6 +6,7 @@
     <title>Add Option - Hivemind Protocol</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
 </head>
 <body class="bg-gradient-to-br from-gray-900 to-gray-800 min-h-screen text-white">
     <nav class="bg-gray-800 bg-opacity-50 text-white p-4">
@@ -117,6 +118,15 @@
 
             <!-- Error Message -->
             <div id="error" class="mt-4 text-red-500 hidden"></div>
+            
+            <!-- QR Code Container (Initially Hidden) -->
+            <div id="qrCodeContainer" class="mt-8 bg-gray-800 rounded-lg shadow-lg p-6 hidden">
+                <div class="text-center mb-4">
+                    <h3 class="text-xl font-semibold">Option Created Successfully!</h3>
+                    <p class="text-gray-300 mt-2">Scan this QR code with your Bitcoin wallet to sign your option</p>
+                </div>
+                <div id="qrcode" class="mx-auto bg-white p-4 rounded-lg w-64 h-64 flex items-center justify-center"></div>
+            </div>
         </div>
     </div>
 
@@ -183,17 +193,78 @@
                 }
 
                 const result = await response.json();
-                // Redirect to insights page with the new state CID
-                window.location.href = `/insights?cid=${result.state_cid}`;
+                
+                // Check if we need to show QR code for signing
+                if (result.needsSignature) {
+                    // Create QR code data
+                    const timestamp = Math.floor(Date.now() / 1000);  // Convert to Unix timestamp
+                    const qrData = {
+                        msg: `${timestamp}${result.option_cid}`,
+                        url: `${window.location.protocol}//${window.location.hostname}:${window.location.port}/api/sign_option`
+                    };
+                    
+                    console.log("QR code data:", qrData);
+                    
+                    // Show QR code container
+                    const qrContainer = document.getElementById('qrCodeContainer');
+                    qrContainer.classList.remove('hidden');
+                    
+                    // Clear any existing QR code
+                    const qrElement = document.getElementById('qrcode');
+                    qrElement.innerHTML = '';
+                    
+                    // Generate new QR code
+                    new QRCode(qrElement, {
+                        text: JSON.stringify(qrData),
+                        width: 256,
+                        height: 256
+                    });
+                    
+                    // Connect to WebSocket for signature notification
+                    const ws = new WebSocket(`ws://${window.location.hostname}:${window.location.port}/ws/option/${result.option_cid}`);
+                    
+                    ws.onopen = function() {
+                        console.log("WebSocket connection established");
+                    };
+                    
+                    ws.onerror = function(error) {
+                        console.error("WebSocket error:", error);
+                    };
+                    
+                    ws.onmessage = function(event) {
+                        const notification = JSON.parse(event.data);
+                        if (notification.success) {
+                            // Create success notification
+                            const notificationDiv = document.createElement('div');
+                            notificationDiv.className = 'bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mt-4';
+                            notificationDiv.innerHTML = `
+                                <strong class="font-bold">Success!</strong>
+                                <span class="block sm:inline"> ${notification.message}</span>
+                            `;
+                            qrContainer.appendChild(notificationDiv);
+                            
+                            // Redirect back to insights page after successful submission
+                            setTimeout(() => {
+                                window.location.href = `/insights?cid=${notification.state_cid}`;
+                            }, 2000);
+                            
+                            // Close WebSocket connection
+                            ws.close();
+                        }
+                    };
+                } else {
+                    // If no signature needed, redirect immediately to insights page
+                    window.location.href = `/insights?cid=${result.state_cid}`;
+                }
             } catch (error) {
                 errorDiv.textContent = error.message;
                 errorDiv.classList.remove('hidden');
+                console.error('Error:', error);
             }
         });
-
-        // Set constraints from server-side data
-        const issueConstraints = JSON.parse('{{ issue.constraints|tojson|safe }}');
         
+        // Initialize complex value fields if needed
+        const issueConstraints = JSON.parse('{{ issue.constraints|tojson|safe if issue.constraints else "null" }}');
         if (issueConstraints && issueConstraints.specs) {
             const constraints = issueConstraints;
             

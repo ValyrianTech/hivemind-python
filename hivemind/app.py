@@ -14,7 +14,7 @@ from typing import Optional, List, Dict, Any, Union
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -197,6 +197,13 @@ class OptionCreate(BaseModel):
     text: Optional[str] = None
 
 
+class OptionCreateResponse(BaseModel):
+    """Response model for option creation."""
+    option_cid: str
+    state_cid: str
+    needsSignature: bool = False
+
+
 class OpinionCreate(BaseModel):
     """Pydantic model for creating a new opinion."""
     hivemind_id: str
@@ -213,6 +220,9 @@ class SignOpinionRequest(BaseModel):
 
 # Initialize FastAPI app
 app = FastAPI(title="Hivemind Insights")
+
+# Dictionary to store active WebSocket connections
+active_connections = {}
 
 # Mount static files and templates
 static_dir = os.path.join(os.path.dirname(__file__), "static")
@@ -677,197 +687,106 @@ async def add_option_page(request: Request, hivemind_id: str):
         raise HTTPException(status_code=404, detail=str(e))
 
 
-@app.post("/api/options/create")
+@app.post("/api/options/create", response_model=OptionCreateResponse)
 async def create_option(option: OptionCreate):
-    """Create a new option for a hivemind issue."""
+    """Create a new option for a hivemind issue.
+    
+    Args:
+        option: The option data including hivemind ID, text and value
+        
+    Returns:
+        Dict containing the new option CID and state CID
+        
+    Raises:
+        HTTPException: If the option creation fails
+    """
     try:
-        logger.info(f"=== Starting option creation process ===")
-        logger.info(f"Input parameters - hivemind_id: {option.hivemind_id}")
-        logger.info(f"Input parameters - value: {option.value} (type: {type(option.value)})")
-        logger.info(f"Input parameters - text: {option.text}")
+        logger.info(f"Creating option: {option.dict()}")
+        
+        # Create the new option
+        new_option = HivemindOption()
+        new_option.set_hivemind_issue(hivemind_issue_hash=option.hivemind_id)
+        
+        # Set text and value based on option type
+        new_option.text = option.text
+        
+        # Handle different answer types
+        if option.value is not None:
+            new_option.value = option.value
+        
+        # Save the option to IPFS
+        option_cid = await asyncio.to_thread(lambda: new_option.save())
+        logger.info(f"Option saved with CID: {option_cid}")
+        
+        # Get the latest state hash from hivemind_states.json
+        state_data = load_state_mapping().get(option.hivemind_id)
+        if not state_data:
+            raise HTTPException(status_code=404, detail="No state data found for hivemind ID")
+        
+        latest_state_hash = state_data["state_hash"]
+        logger.info(f"Using latest state hash: {latest_state_hash}")
+        
+        # Load the state
+        state = await asyncio.to_thread(lambda: HivemindState(cid=latest_state_hash))
+        logger.info(f"Loaded state with CID: {latest_state_hash}")
+        
+        # Check if this hivemind has address restrictions for options
+        issue = await asyncio.to_thread(lambda: state.hivemind_issue())
+        has_address_restrictions = False
+        
+        if hasattr(issue, 'restrictions') and issue.restrictions:
+            if 'addresses' in issue.restrictions:
+                has_address_restrictions = True
+                logger.info(f"Hivemind has address restrictions: {issue.restrictions['addresses']}")
 
-        # Get the latest state for this hivemind
-        mapping = load_state_mapping()
-        if option.hivemind_id not in mapping:
-            logger.error(f"No state found for hivemind_id: {option.hivemind_id}")
-            logger.debug(f"Available hivemind IDs in mapping: {list(mapping.keys())}")
-            raise HTTPException(status_code=404, detail="No state found for this hivemind ID")
-
-        latest_state_cid = mapping[option.hivemind_id]["state_hash"]
-        logger.info(f"Latest state CID: {latest_state_cid}")
-
-        def create_and_save():
+        # If there are address restrictions, we'll need a signature
+        needs_signature = has_address_restrictions
+        logger.info(f"Needs signature: {needs_signature}")
+        
+        if not needs_signature:
+            # If no signature needed, add the option directly
             try:
-                # Load the current state and issue
-                logger.info(f"Loading current state from CID: {latest_state_cid}")
-                state = HivemindState(cid=latest_state_cid)
-                logger.info(f"Current state loaded successfully")
-                logger.info(f"State details - Number of options: {len(state.option_cids)}")
-                logger.info(f"State details - Number of opinions: {len(state.opinion_cids[0]) if state.opinion_cids else 0}")
-
-                logger.info(f"Loading issue from CID: {option.hivemind_id}")
-                issue = HivemindIssue(cid=option.hivemind_id)
-                logger.info(f"Issue loaded successfully")
-                logger.info(f"Issue details - Answer type: {issue.answer_type}")
-                logger.info(f"Issue details - Constraints: {issue.constraints}")
-
-                # Create the new option
-                logger.info("Creating new option object...")
-                new_option = HivemindOption()
-                new_option.set_hivemind_issue(hivemind_issue_hash=option.hivemind_id)
-
-                # Handle complex answer type conversion
-                if issue.answer_type == 'Complex' and isinstance(option.value, dict):
-                    specs = issue.constraints.get('specs', {})
-                    for field_name, field_type in specs.items():
-                        if field_name in option.value:
-                            field_value = option.value[field_name]
-
-                            # Convert field values to the correct type
-                            if field_type == 'Integer':
-                                if isinstance(field_value, str) and field_value.isdigit():
-                                    option.value[field_name] = int(field_value)
-                                elif isinstance(field_value, float) and field_value.is_integer():
-                                    option.value[field_name] = int(field_value)
-
-                            elif field_type == 'Float':
-                                if isinstance(field_value, str):
-                                    try:
-                                        option.value[field_name] = float(field_value)
-                                    except ValueError:
-                                        pass  # Let validation handle the error
-                                elif isinstance(field_value, int):
-                                    option.value[field_name] = float(field_value)
-
-                            elif field_type == 'Bool' and isinstance(field_value, str):
-                                if field_value.lower() in ('true', 'yes', '1'):
-                                    option.value[field_name] = True
-                                elif field_value.lower() in ('false', 'no', '0'):
-                                    option.value[field_name] = False
-
-                # Set the option value based on the answer type
-                try:
-                    if issue.answer_type == 'Integer':
-                        logger.info(f"Converting value to integer: {option.value}")
-                        new_option.value = int(option.value)
-                    elif issue.answer_type == 'Float':
-                        logger.info(f"Converting value to float: {option.value}")
-                        new_option.value = float(option.value)
-                    elif issue.answer_type == 'Complex':
-                        logger.info(f"Converting value to dictionary: {option.value}")
-                        try:
-                            # If the value is already a dictionary, use it directly
-                            if isinstance(option.value, dict):
-                                new_option.value = option.value
-                                logger.info(f"Used complex value as dictionary: {new_option.value}")
-                            else:
-                                # Otherwise, try to parse it as a JSON string
-                                new_option.value = json.loads(option.value)
-                                logger.info(f"Parsed complex value from JSON: {new_option.value}")
-                        except (json.JSONDecodeError, TypeError) as ex:
-                            logger.error(f"Failed to convert value to Complex: {str(ex)}")
-                            raise HTTPException(
-                                status_code=400,
-                                detail=f"Invalid format for Complex answer type: {str(ex)}"
-                            )
-                    else:
-                        logger.info(f"Using value as string: {option.value}")
-                        new_option.value = str(option.value)
-                except (ValueError, TypeError) as ex:
-                    logger.error(f"Failed to convert value to {issue.answer_type}: {str(ex)}")
-                    raise HTTPException(
-                        status_code=400,
-                        detail=f"Invalid value format for answer type {issue.answer_type}: {str(ex)}"
-                    )
-
-                new_option.text = option.text or ''
-
-                # Validate the option
-                logger.info("Validating option...")
-                try:
-                    if not new_option.valid():
-                        logger.error("Option validation failed")
-                        # Get the validation method name for the answer type
-                        validation_method = f"is_valid_{issue.answer_type.lower()}_option"
-                        if hasattr(new_option, validation_method):
-                            # Call the specific validation method to get more detailed error info
-                            getattr(new_option, validation_method)()
-                        raise HTTPException(status_code=400, detail="Option validation failed")
-                    logger.info("Option validation successful")
-                except Exception as ex:
-                    logger.error(f"Option validation error: {ex}")
-                    raise HTTPException(status_code=400, detail=f"Option validation error: {ex}")
-
-                # Save the option to IPFS
-                logger.info("Saving new option to IPFS...")
-                option_cid = new_option.save()
-                logger.info(f"Option saved successfully with CID: {option_cid}")
-
-                # Add the option to the state
-                logger.info("Adding option to state...")
                 current_time = int(time.time())
-                state.add_option(timestamp=current_time, option_hash=option_cid)
-                logger.info(f"Option added successfully. New number of options: {len(state.option_cids)}")
-
+                await asyncio.to_thread(lambda: state.add_option(timestamp=current_time, option_hash=option_cid))
+                logger.info(f"Option added to state")
+                
                 # Save the updated state
-                logger.info("Saving updated state...")
-                new_state_cid = state.save()
-                logger.info(f"New state saved successfully with CID: {new_state_cid}")
-
-                # Return the CIDs and metadata
-                result_metadata = {
+                new_state_cid = await asyncio.to_thread(lambda: state.save())
+                logger.info(f"Updated state saved with CID: {new_state_cid}")
+                
+                # Update the state mapping
+                await update_state(StateHashUpdate(
+                    hivemind_id=option.hivemind_id,
+                    state_hash=new_state_cid,
+                    name=issue.name,
+                    description=issue.description,
+                    num_options=len(state.option_cids),
+                    num_opinions=len(state.opinion_cids[0]) if state.opinion_cids else 0,
+                    answer_type=issue.answer_type,
+                    questions=issue.questions,
+                    tags=issue.tags
+                ))
+                logger.info(f"State mapping updated")
+                
+                return {
                     "option_cid": option_cid,
                     "state_cid": new_state_cid,
-                    "issue_name": issue.name,
-                    "issue_description": issue.description,
-                    "num_options": len(state.option_cids),
-                    "num_opinions": len(state.opinion_cids[0]) if state.opinion_cids else 0,
-                    "answer_type": issue.answer_type,
-                    "questions": issue.questions,
-                    "tags": issue.tags
+                    "needsSignature": False
                 }
-                logger.info("Result metadata prepared successfully")
-                return result_metadata
-
-            except HTTPException:
-                raise
-            except Exception as ex:
-                logger.error(f"Unexpected error in create_and_save: {str(ex)}")
-                logger.exception("Full traceback:")
-                raise HTTPException(status_code=500, detail=f"Internal error: {str(ex)}")
-
-        # Run the creation in a thread to avoid blocking
-        logger.info("Running option creation in background thread...")
-        result = await asyncio.to_thread(create_and_save)
-
-        # Update the state mapping
-        logger.info("Updating state mapping...")
-        await update_state(StateHashUpdate(
-            hivemind_id=option.hivemind_id,
-            state_hash=result["state_cid"],
-            name=result["issue_name"],
-            description=result["issue_description"],
-            num_options=result["num_options"],
-            num_opinions=result["num_opinions"],
-            answer_type=result["answer_type"],
-            questions=result["questions"],
-            tags=result["tags"]
-        ))
-        logger.info("State mapping updated successfully")
-
-        logger.info("=== Option creation process completed successfully ===")
-        return {
-            "status": "success",
-            "option_cid": result["option_cid"],
-            "state_cid": result["state_cid"]
-        }
-
-    except HTTPException:
-        raise
+            except Exception as e:
+                logger.error(f"Failed to add option to state: {str(e)}")
+                raise HTTPException(status_code=400, detail=str(e))
+        else:
+            # Return the option CID and indicate that a signature is needed
+            return {
+                "option_cid": option_cid,
+                "state_cid": latest_state_hash,
+                "needsSignature": True
+            }
+        
     except Exception as e:
-        logger.error(f"Unexpected error in create_option: {str(e)}")
-        logger.exception("Full traceback:")
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+        logger.error(f"Failed to create option: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.get("/add_opinion")
@@ -1167,6 +1086,130 @@ async def sign_opinion(request: Request):
         raise HTTPException(status_code=400, detail="Invalid JSON data")
 
 
+@app.post("/api/sign_option")
+async def sign_option(request: Request):
+    """Add a signed option to the hivemind state.
+    
+    Args:
+        request: Raw request containing address, message, signature and data
+        
+    Returns:
+        Dict indicating success status and any error message
+    
+    Raises:
+        HTTPException: If the request data is invalid or signature verification fails
+    """
+    try:
+        data = await request.json()
+
+        # Extract required fields
+        address = data.get('address')
+        message = data.get('message')
+        signature = data.get('signature')
+        option_data = data.get('data')
+
+        if not all([address, message, signature, option_data]):
+            raise HTTPException(status_code=400, detail="Missing required fields")
+
+        # Parse timestamp and option_hash from message format: "timestampCID"
+        try:
+            # First 10 chars are timestamp, rest is CID
+            timestamp_str = message[:10]
+            option_hash = message[10:]
+            timestamp = int(timestamp_str)
+            logger.info(f"Parsed timestamp: {timestamp}, option_hash: {option_hash}")
+        except ValueError:
+            logger.error(f"Failed to parse message format: {message}")
+            raise HTTPException(status_code=400, detail="Invalid message format")
+
+        # Get hivemind state from the option data
+        try:
+            # First load the option to get its hivemind_id
+            option = await asyncio.to_thread(lambda: HivemindOption(cid=option_hash))
+
+            if not option.hivemind_id:
+                raise HTTPException(status_code=400, detail="Option does not have an associated hivemind state")
+
+            # Get the latest state hash from hivemind_states.json
+            state_data = load_state_mapping().get(option.hivemind_id)
+            if not state_data:
+                raise HTTPException(status_code=404, detail="No state data found for hivemind ID")
+
+            latest_state_hash = state_data["state_hash"]
+            logger.info(f"Using latest state hash: {latest_state_hash}")
+
+            # Use to_thread to run the synchronous HivemindState operations
+            state = await asyncio.to_thread(lambda: HivemindState(cid=latest_state_hash))
+            logger.info(f"Loaded state with CID: {option.hivemind_id}")
+
+            # Verify the message signature before adding the option
+            if not verify_message(message, address, signature):
+                logger.error(f"Message verification failed for address {address}")
+                raise HTTPException(status_code=400, detail="Signature is invalid")
+            logger.info(f"signature ok")
+
+            # Add the option using to_thread as well
+            await asyncio.to_thread(
+                lambda: state.add_option(
+                    timestamp=timestamp,
+                    option_hash=option_hash,
+                    signature=signature,
+                    address=address
+                )
+            )
+
+            logger.info(f"Added option successfully")
+
+            # Save the state using to_thread
+            new_cid = await asyncio.to_thread(lambda: state.save())
+            logger.info(f"Latest state CID: {new_cid}")
+
+            # Update the state mapping with new state hash and metadata
+            issue = state.hivemind_issue()
+            logger.info("Loading issue done")
+
+            await update_state(StateHashUpdate(
+                hivemind_id=option.hivemind_id,
+                state_hash=new_cid,
+                name=issue.name,
+                description=issue.description,
+                num_options=len(state.option_cids),
+                num_opinions=len(state.opinion_cids[0]) if state.opinion_cids else 0,
+                answer_type=issue.answer_type,
+                questions=issue.questions,
+                tags=issue.tags
+            ))
+            logger.info("State mapping updated successfully")
+
+            # Send notification to connected WebSocket clients
+            if option_hash in active_connections:
+                notification_data = {
+                    "success": True,
+                    "message": "Option signed successfully",
+                    "option_hash": option_hash,
+                    "state_cid": new_cid,
+                    "hivemind_id": option.hivemind_id
+                }
+                for connection in active_connections[option_hash]:
+                    try:
+                        await connection.send_json(notification_data)
+                    except Exception as e:
+                        logger.error(f"Failed to send WebSocket notification: {str(e)}")
+                        continue  # Skip failed connections
+
+            return {
+                "success": True,
+                "cid": new_cid
+            }
+
+        except Exception as e:
+            logger.error(f"Failed to process option: {str(e)}")
+            raise HTTPException(status_code=400, detail=str(e))
+
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON data")
+
+
 @app.get("/update_name/{hivemind_id}")
 async def update_name_page_path(request: Request, hivemind_id: str):
     """Render the page for updating a participant's name using path parameter.
@@ -1411,6 +1454,58 @@ def extract_ranking_from_opinion_object(opinion_ranking):
             ranking = [preferred_option]
 
     return ranking, ranking_type
+
+
+@app.websocket("/ws/opinion/{opinion_hash}")
+async def websocket_opinion_endpoint(websocket: WebSocket, opinion_hash: str):
+    """WebSocket endpoint for opinion signing notifications.
+    
+    Args:
+        websocket: The WebSocket connection
+        opinion_hash: The opinion hash to subscribe to
+    """
+    await websocket.accept()
+    
+    # Add the connection to the active connections
+    if opinion_hash not in active_connections:
+        active_connections[opinion_hash] = []
+    active_connections[opinion_hash].append(websocket)
+    
+    try:
+        # Keep the connection open until the client disconnects
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        # Remove the connection when the client disconnects
+        active_connections[opinion_hash].remove(websocket)
+        if not active_connections[opinion_hash]:
+            del active_connections[opinion_hash]
+
+
+@app.websocket("/ws/option/{option_hash}")
+async def websocket_option_endpoint(websocket: WebSocket, option_hash: str):
+    """WebSocket endpoint for option signing notifications.
+    
+    Args:
+        websocket: The WebSocket connection
+        option_hash: The option hash to subscribe to
+    """
+    await websocket.accept()
+    
+    # Add the connection to the active connections
+    if option_hash not in active_connections:
+        active_connections[option_hash] = []
+    active_connections[option_hash].append(websocket)
+    
+    try:
+        # Keep the connection open until the client disconnects
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        # Remove the connection when the client disconnects
+        active_connections[option_hash].remove(websocket)
+        if not active_connections[option_hash]:
+            del active_connections[option_hash]
 
 
 register_websocket_routes(app)
