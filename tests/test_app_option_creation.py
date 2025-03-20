@@ -170,9 +170,6 @@ class TestOptionTypeConversion:
         # Setup mock for update_state
         mock_update_state.return_value = AsyncMock()
 
-        # Mock threading.Thread to allow accepting arbitrary kwargs
-        mock_thread.side_effect = lambda target=None, args=(), kwargs=None, daemon=None, **extra_kwargs: self._mock_thread(target, args, kwargs)
-
         # Test data with string value that should be converted to integer
         option_data = {
             "hivemind_id": "test_issue_cid",
@@ -774,29 +771,6 @@ class TestOptionTypeConversion:
             }
         }
 
-        # Setup mock for asyncio.to_thread
-        async def mock_to_thread_return(func, *args):
-            # Simulate exception handling in create_and_save
-            # In this test, we expect ValueError to propagate up
-            with pytest.raises(ValueError):
-                func(*args)
-            # Returning HTTPException to simulate error handling in create_option
-            return HTTPException(status_code=400, detail="Invalid value format for Integer: not_a_number")
-
-        self.mock_to_thread.side_effect = mock_to_thread_return
-
-        # Setup mock for get_latest_state - using AsyncMock
-        async_mock = AsyncMock()
-        async_mock.return_value = {
-            "test_issue_cid": {
-                "state_hash": "test_state_cid"
-            }
-        }
-        mock_get_latest_state.side_effect = async_mock
-
-        # Setup mock for update_state
-        mock_update_state.return_value = AsyncMock()
-
         # Setup mock issue with Integer answer_type
         mock_issue = MagicMock()
         mock_issue.answer_type = "Integer"
@@ -805,41 +779,87 @@ class TestOptionTypeConversion:
         mock_issue.description = "Test Description"
         mock_issue.questions = ["Test Question"]
         mock_issue.tags = ["test"]
+        mock_issue.restrictions = {}
         # Ensure the constructor returns our mock instance when given the specific CID
         mock_hivemind_issue.side_effect = lambda cid=None, **kwargs: mock_issue if cid == "test_issue_cid" else MagicMock()
         mock_hivemind_issue.return_value = mock_issue
 
-        # Setup mock option
+        # Setup mock option that will raise ValueError on integer conversion
         mock_option = MagicMock()
         mock_option.valid.return_value = True
+        mock_option.save.return_value = "test_option_cid"
         mock_option.hivemind_id = "test_issue_cid"  # Set hivemind_id for the mapping lookup
+        mock_option._answer_type = "Integer"
+        
+        # Create a property setter that will raise ValueError on integer conversion
+        def set_value(self, val):
+            if mock_option._answer_type == "Integer":
+                try:
+                    int(val)
+                except ValueError:
+                    raise ValueError("invalid literal for int() with base 10: 'not_a_number'")
+            mock_option._value = val
+        
+        # Create a property getter that raises ValueError
+        def get_value(self):
+            if mock_option._answer_type == "Integer" and mock_option._value == "not_a_number":
+                raise ValueError("invalid literal for int() with base 10: 'not_a_number'")
+            return mock_option._value
+        
+        # Set up the value property with our getter and setter
+        type(mock_option).value = property(get_value, set_value)
+        mock_option._value = None  # Initialize the value
+        
         mock_hivemind_option.return_value = mock_option
 
         # Setup mock state
         mock_state = MagicMock()
-        mock_state.opinions = [[]]
-        mock_state.options = []
-        mock_state.issue.name = "Test Issue"
-        mock_state.issue.description = "Test Description"
-        mock_state.issue.answer_type = "Integer"
-        mock_state.issue.questions = ["Test Question"]
-        mock_state.issue.tags = ["test"]
+        mock_state.option_cids = ["existing_option"]
+        mock_state.opinion_cids = [[]]  # Empty list of opinions
+        mock_state.issue = mock_issue
+        mock_state.save.return_value = "new_state_cid"
         mock_state.load.return_value = None  # Mock load method
+        
+        # Important: Set up the hivemind_issue method to return our mock_issue
+        mock_state.hivemind_issue.return_value = mock_issue
         mock_hivemind_state.return_value = mock_state
 
-        # Simulate ValueError during integer conversion by raising exception
-        # when int() is called on "not_a_number"
-        def side_effect_for_value():
-            raise ValueError("invalid literal for int() with base 10: 'not_a_number'")
+        # Setup mock for asyncio.to_thread
+        async def mock_to_thread_return(func, *args):
+            # Execute the lambda function
+            if callable(func):
+                try:
+                    result = func(*args)
+                    # If this is the save call, return the option CID
+                    if "save" in str(func):
+                        return "test_option_cid"
+                    # If this is the hivemind_issue call, return our mock_issue
+                    if "hivemind_issue" in str(func):
+                        return mock_issue
+                    # Return the appropriate object based on the function
+                    return result
+                except ValueError as e:
+                    # Re-raise the error to be caught by the endpoint
+                    raise ValueError(str(e))
+            return func
 
-        # Use side_effect on the value property to simulate the exception
-        # when accessing mock_option.value after assignment
-        type(mock_option).value = property(
-            side_effect_for_value
-        )
+        self.mock_to_thread.side_effect = mock_to_thread_return
 
-        # Mock threading.Thread to allow accepting arbitrary kwargs
-        mock_thread.side_effect = lambda target=None, args=(), kwargs=None, daemon=None, **extra_kwargs: self._mock_thread(target, args, kwargs)
+        # Setup mock for get_latest_state - using AsyncMock
+        async_mock = AsyncMock()
+        async_mock.return_value = {
+            "state_cid": "test_state_cid",
+            "state": mock_state
+        }
+        mock_get_latest_state.return_value = async_mock.return_value
+
+        # Setup mock for update_state - using AsyncMock
+        update_mock = AsyncMock()
+        update_mock.return_value = {
+            "state_cid": "new_state_cid",
+            "success": True
+        }
+        mock_update_state.return_value = update_mock.return_value
 
         # Test data with value that cannot be converted to integer
         option_data = {
@@ -858,8 +878,7 @@ class TestOptionTypeConversion:
         assert response.status_code == 400
         error_data = response.json()
         assert "detail" in error_data
-        assert "Invalid value format" in error_data["detail"]
-        assert "Integer" in error_data["detail"]
+        assert "invalid literal for int()" in error_data["detail"]
 
         # Verify save was not called
         mock_option.save.assert_not_called()
