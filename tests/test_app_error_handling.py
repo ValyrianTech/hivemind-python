@@ -283,6 +283,43 @@ class TestErrorHandling:
         # Verify logger calls
         mock_logger.error.assert_called_once_with("Failed to create issue: Test issue creation error")
 
+    @patch("app.load_state_mapping")
+    @patch("app.HivemindOption")
+    @patch("app.logger")
+    def test_create_option_no_state_data(self, mock_logger, mock_hivemind_option, mock_load_state_mapping):
+        """Test the create_option endpoint when state_data is None for the hivemind ID."""
+        # Setup test client
+        client = TestClient(app.app)
+
+        # Configure mocks
+        test_hivemind_id = "QmXG8yk8UJjMT6qtE2zSxzz3U7z5jSYRgQEjuFKXTVYWoL"
+        
+        # Mock HivemindOption to work normally
+        mock_option = MagicMock()
+        mock_option.save.return_value = "test_option_cid"
+        mock_hivemind_option.return_value = mock_option
+        
+        # Configure load_state_mapping to return a dict that has the hivemind_id but with None value
+        # This will make state_data evaluate to None in the condition at line 724-726
+        mock_mapping = {test_hivemind_id: None}
+        mock_load_state_mapping.return_value = mock_mapping
+
+        # Test the endpoint
+        option_data = {
+            "hivemind_id": test_hivemind_id,
+            "value": "test_value",
+            "text": "Test option text"
+        }
+        response = client.post("/api/options/create", json=option_data)
+
+        # Verify response
+        assert response.status_code == 400  # It will be 400 because of the outer exception handler
+        data = response.json()
+        assert "No state data found for hivemind ID" in data["detail"]
+
+        # Verify logger calls
+        mock_logger.error.assert_called_with(f"Failed to create option: 404: No state data found for hivemind ID")
+
     @pytest.mark.asyncio
     @patch("app.logger")
     @patch("app.HivemindState")
