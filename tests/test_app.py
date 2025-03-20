@@ -644,6 +644,7 @@ class TestEndpoints:
         # Setup mock option instance
         mock_option_instance = MagicMock()
         mock_option_instance.save.return_value = "test_option_cid"
+        mock_option_instance._answer_type = "string"
         mock_hivemind_option.return_value = mock_option_instance
 
         # Setup mock issue instance
@@ -658,8 +659,10 @@ class TestEndpoints:
         # Setup mock state instance
         mock_state = MagicMock()
         mock_state.option_cids = ["existing_option"]
+        mock_state.opinion_cids = [[]]  # Empty list of opinions
         mock_state.save.return_value = "new_state_cid"
         mock_state.add_option = MagicMock()
+        mock_state.hivemind_issue.return_value = mock_issue  # Set up hivemind_issue method
 
         # Mock the add_option method to update the options list
         def side_effect_add_option(timestamp, option_hash):
@@ -695,9 +698,9 @@ class TestEndpoints:
         # Verify response
         assert response.status_code == 200
         data = response.json()
-        assert data["status"] == "success"
         assert data["option_cid"] == "test_option_cid"
         assert data["state_cid"] == "new_state_cid"
+        assert data["needsSignature"] == False
 
         # Verify the HivemindOption was created with correct attributes
         mock_hivemind_option.assert_called_once()
