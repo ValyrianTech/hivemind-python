@@ -17,7 +17,7 @@ sys.path.insert(0, project_root)
 sys.path.append(os.path.join(project_root, "hivemind"))
 import app
 from app import active_connections
-from websocket_handlers import register_websocket_routes, websocket_opinion_endpoint, websocket_name_update_endpoint, name_update_connections
+from websocket_handlers import register_websocket_routes, websocket_opinion_endpoint, websocket_name_update_endpoint, name_update_connections, websocket_option_endpoint
 
 from fastapi import FastAPI
 from fastapi.websockets import WebSocket, WebSocketDisconnect
@@ -269,6 +269,112 @@ class TestWebSocketEndpoint:
 
             # Verify that the websocket_name_update_endpoint function was called with the correct arguments
             mock_endpoint.assert_called_once_with(mock_websocket, name)
+            
+    async def test_option_websocket_connection_management(self):
+        """Test option WebSocket connection management functionality."""
+        # Create mock WebSocket
+        mock_websocket = AsyncMock(spec=WebSocket)
+        option_hash = "test_option_hash"
+
+        # Set up the WebSocketDisconnect exception for the receive_text call
+        mock_websocket.receive_text.side_effect = WebSocketDisconnect("Connection closed")
+
+        # Call the websocket option endpoint
+        await websocket_option_endpoint(mock_websocket, option_hash)
+
+        # Verify the connection was accepted
+        mock_websocket.accept.assert_called_once()
+
+        # Verify the connection was removed from active_connections after disconnect
+        assert option_hash not in active_connections
+
+    async def test_option_general_exception_handling(self):
+        """Test handling of general exceptions in the option WebSocket endpoint."""
+        # Create mock WebSocket
+        mock_websocket = AsyncMock(spec=WebSocket)
+        option_hash = "test_option_hash"
+
+        # Set up a general exception for the receive_text call
+        mock_websocket.receive_text.side_effect = Exception("Test exception")
+
+        # Call the websocket option endpoint
+        await websocket_option_endpoint(mock_websocket, option_hash)
+
+        # Verify the connection was accepted
+        mock_websocket.accept.assert_called_once()
+
+        # Verify the connection was removed from active_connections after exception
+        assert option_hash not in active_connections
+
+    async def test_multiple_option_connections_same_hash(self):
+        """Test multiple WebSocket connections with the same option hash."""
+        # Create mock WebSockets
+        mock_websocket1 = AsyncMock(spec=WebSocket)
+        mock_websocket2 = AsyncMock(spec=WebSocket)
+        option_hash = "shared_option_hash"
+
+        # Set up the first connection to stay alive for one receive_text call then disconnect
+        mock_websocket1.receive_text.side_effect = asyncio.CancelledError
+
+        # Set up the second connection to raise an exception
+        mock_websocket2.receive_text.side_effect = Exception("Test exception")
+
+        # First, add the first connection
+        await websocket_option_endpoint(mock_websocket1, option_hash)
+
+        # Verify the first connection was accepted
+        mock_websocket1.accept.assert_called_once()
+
+        # Reset active_connections for the second test
+        # This is necessary because the first connection would have been removed
+        # due to the exception
+        active_connections[option_hash] = [mock_websocket1]
+
+        # Now test the second connection
+        await websocket_option_endpoint(mock_websocket2, option_hash)
+
+        # Verify the second connection was accepted
+        mock_websocket2.accept.assert_called_once()
+
+        # Verify active_connections was properly cleaned up for the second connection
+        # but the first connection should still be there
+        assert option_hash in active_connections
+        assert len(active_connections[option_hash]) == 1
+        assert mock_websocket1 in active_connections[option_hash]
+        assert mock_websocket2 not in active_connections[option_hash]
+
+    async def test_option_route_registration(self):
+        """Test option WebSocket route registration functionality."""
+        # Create a test FastAPI app
+        test_app = FastAPI()
+
+        # Create a mock WebSocket
+        mock_websocket = AsyncMock(spec=WebSocket)
+        option_hash = "test_option_hash"
+
+        # Register the WebSocket routes with our test app
+        register_websocket_routes(test_app)
+
+        # Get the route handler that was registered
+        option_route = None
+        for route in test_app.routes:
+            if route.path == "/ws/option/{option_hash}":
+                option_route = route
+                break
+
+        assert option_route is not None, "Option WebSocket route was not registered"
+
+        # Create a patch to intercept calls to the websocket_option_endpoint
+        with patch('websocket_handlers.websocket_option_endpoint') as mock_endpoint:
+            # Set up the mock to return immediately
+            mock_endpoint.return_value = None
+
+            # Call the route handler directly with our mock WebSocket
+            # This simulates what FastAPI would do when a WebSocket connection is received
+            await option_route.endpoint(mock_websocket, option_hash)
+
+            # Verify that the websocket_option_endpoint function was called with the correct arguments
+            mock_endpoint.assert_called_once_with(mock_websocket, option_hash)
 
 
 if __name__ == "__main__":
