@@ -654,10 +654,15 @@
 
             const address = stateData.issue.author;
             const timestamp = Math.floor(Date.now() / 1000);
-            const message = `select_consensus:${stateData.hivemind_id}:${timestamp}`;
-            const url = `/api/select_consensus?address=${address}&message=${encodeURIComponent(message)}&timestamp=${timestamp}`;
+            const message = `${timestamp}:select_consensus:${stateData.hivemind_id}`;
+            
+            const qrData = {
+                msg: message,
+                url: `${window.location.protocol}//${window.location.hostname}:${window.location.port}/api/select_consensus`
+            };
+            
+            console.log("QR code data:", qrData);
 
-            console.log("Select consensus URL:", url);
             // Show QR code container
             document.getElementById('qrCodeContainer').classList.remove('hidden');
             
@@ -667,13 +672,54 @@
             
             // Generate new QR code
             new QRCode(qrCodeElement, {
-                text: url,
+                text: JSON.stringify(qrData),
                 width: 256,
                 height: 256,
                 colorDark: "#000000",
                 colorLight: "#ffffff",
                 correctLevel: QRCode.CorrectLevel.H
             });
+            
+            // Set up WebSocket connection to listen for signature confirmation
+            setupWebSocket(stateData.hivemind_id);
+        }
+        
+        function setupWebSocket(hivemindId) {
+            // Close existing connection if any
+            if (window.authorSignatureSocket && window.authorSignatureSocket.readyState === WebSocket.OPEN) {
+                window.authorSignatureSocket.close();
+            }
+            
+            // Create new WebSocket connection
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/author_signature/${hivemindId}`;
+            
+            window.authorSignatureSocket = new WebSocket(wsUrl);
+            
+            window.authorSignatureSocket.onopen = function() {
+                console.log('WebSocket connection established for author signature');
+            };
+            
+            window.authorSignatureSocket.onerror = function(error) {
+                console.error('WebSocket error:', error);
+            };
+            
+            window.authorSignatureSocket.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                
+                if (data.success) {
+                    // Hide QR code container
+                    document.getElementById('qrCodeContainer').classList.add('hidden');
+                    
+                    // Show success message
+                    showError('Consensus selected successfully!');
+                    
+                    // Reload state
+                    fetchState();
+                } else {
+                    showError(data.error || 'Failed to select consensus');
+                }
+            };
         }
     </script>
 </body>

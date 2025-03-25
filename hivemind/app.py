@@ -1463,4 +1463,85 @@ def extract_ranking_from_opinion_object(opinion_ranking):
     return ranking, ranking_type
 
 
+@app.post("/api/select_consensus")
+async def select_consensus(request: Request):
+    """Select consensus for a hivemind issue.
+    
+    Args:
+        request: Raw request containing address, message, signature
+        
+    Returns:
+        Dict indicating success status and any error message
+    
+    Raises:
+        HTTPException: If the request data is invalid or signature verification fails
+    """
+    try:
+        data = await request.json()
+
+        # Extract required fields
+        address = data.get('address')
+        message = data.get('msg')
+        signature = data.get('signature')
+
+        if not all([address, message, signature]):
+            raise HTTPException(status_code=400, detail="Missing required fields")
+
+        # Parse timestamp and hivemind_id from message format: "timestamp:select_consensus:hivemind_id"
+        try:
+            parts = message.split(':')
+            if len(parts) != 3 or parts[1] != 'select_consensus':
+                raise ValueError("Invalid message format")
+                
+            timestamp = int(parts[0])
+            hivemind_id = parts[2]
+        except (ValueError, IndexError) as e:
+            raise HTTPException(status_code=400, detail=f"Invalid message format: {str(e)}")
+
+        # Load the state
+        try:
+            state = HivemindState(hivemind_id=hivemind_id)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Failed to load state: {str(e)}")
+
+        # Select consensus
+        try:
+            selected_options = state.select_consensus(
+                timestamp=timestamp,
+                address=address,
+                signature=signature
+            )
+            
+            # Save the state
+            new_cid = state.save()
+            
+            # Notify WebSocket clients
+            await notify_author_signature(hivemind_id, {
+                'success': True,
+                'state_cid': new_cid,
+                'selected_options': selected_options
+            })
+            
+            return {
+                'success': True,
+                'state_cid': new_cid,
+                'selected_options': selected_options
+            }
+        except Exception as e:
+            logger.error(f"Error selecting consensus: {str(e)}")
+            
+            # Notify WebSocket clients about the error
+            await notify_author_signature(hivemind_id, {
+                'success': False,
+                'error': str(e)
+            })
+            
+            raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error processing select_consensus request: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 register_websocket_routes(app)

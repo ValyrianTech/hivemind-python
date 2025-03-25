@@ -12,6 +12,8 @@ logger = logging.getLogger(__name__)
 active_connections: Dict[str, List[WebSocket]] = {}
 # Store active WebSocket connections for name updates
 name_update_connections: Dict[str, List[WebSocket]] = {}
+# Store active WebSocket connections for author signatures
+author_signature_connections: Dict[str, List[WebSocket]] = {}
 
 async def websocket_opinion_endpoint(websocket: WebSocket, opinion_hash: str):
     """WebSocket endpoint for opinion notifications."""
@@ -74,6 +76,45 @@ async def websocket_name_update_endpoint(websocket: WebSocket, name: str):
             if not name_update_connections[name]:
                 del name_update_connections[name]
 
+async def websocket_author_signature_endpoint(websocket: WebSocket, hivemind_id: str):
+    """WebSocket endpoint for author signature notifications.
+    
+    Args:
+        websocket: The WebSocket connection
+        hivemind_id: The hivemind ID to subscribe to
+    """
+    await websocket.accept()
+    
+    # Add the connection to the active connections
+    if hivemind_id not in author_signature_connections:
+        author_signature_connections[hivemind_id] = []
+    author_signature_connections[hivemind_id].append(websocket)
+    
+    try:
+        # Keep the connection open until the client disconnects
+        while True:
+            await websocket.receive_text()
+    except (WebSocketDisconnect, Exception, asyncio.CancelledError):
+        # Handle any type of exception, including WebSocketDisconnect and CancelledError
+        if hivemind_id in author_signature_connections and websocket in author_signature_connections[hivemind_id]:
+            author_signature_connections[hivemind_id].remove(websocket)
+            if not author_signature_connections[hivemind_id]:
+                del author_signature_connections[hivemind_id]
+
+async def notify_author_signature(hivemind_id: str, data: dict):
+    """Notify clients about author signature events.
+    
+    Args:
+        hivemind_id: The hivemind ID
+        data: The data to send to the clients
+    """
+    if hivemind_id in author_signature_connections:
+        for connection in author_signature_connections[hivemind_id]:
+            try:
+                await connection.send_json(data)
+            except Exception as e:
+                logger.error(f"Error sending author signature notification: {str(e)}")
+
 def register_websocket_routes(app: FastAPI):
     """Register WebSocket routes with the FastAPI application.
     
@@ -81,13 +122,17 @@ def register_websocket_routes(app: FastAPI):
         app: The FastAPI application instance
     """
     @app.websocket("/ws/opinion/{opinion_hash}")
-    async def ws_opinion_endpoint(websocket: WebSocket, opinion_hash: str):
+    async def opinion_endpoint(websocket: WebSocket, opinion_hash: str):
         await websocket_opinion_endpoint(websocket, opinion_hash)
     
     @app.websocket("/ws/option/{option_hash}")
-    async def ws_option_endpoint(websocket: WebSocket, option_hash: str):
+    async def option_endpoint(websocket: WebSocket, option_hash: str):
         await websocket_option_endpoint(websocket, option_hash)
     
     @app.websocket("/ws/name_update/{name}")
-    async def ws_name_update_endpoint(websocket: WebSocket, name: str):
+    async def name_update_endpoint(websocket: WebSocket, name: str):
         await websocket_name_update_endpoint(websocket, name)
+    
+    @app.websocket("/ws/author_signature/{hivemind_id}")
+    async def author_signature_endpoint(websocket: WebSocket, hivemind_id: str):
+        await websocket_author_signature_endpoint(websocket, hivemind_id)
