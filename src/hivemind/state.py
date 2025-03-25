@@ -250,7 +250,7 @@ class HivemindState(IPFSDictChain):
         :raises Exception: If the opinion is invalid or restrictions are not met
         """
         if self.final is True:
-            return
+            raise Exception('Can not add opinion: hivemind issue is finalized')
 
         opinion = self.get_opinion(cid=opinion_hash)
         if not verify_message(address=address, message='%s%s' % (timestamp, opinion_hash), signature=signature):
