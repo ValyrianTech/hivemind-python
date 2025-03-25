@@ -1477,16 +1477,33 @@ async def select_consensus(request: Request):
         HTTPException: If the request data is invalid or signature verification fails
     """
     try:
+        # Log the raw request body for debugging
+        body = await request.body()
+        logger.info(f"Raw request body: {body.decode('utf-8')}")
+        
         data = await request.json()
+        logger.info(f"Parsed request data: {data}")
 
         # Extract required fields
         address = data.get('address')
-        message = data.get('msg')
+        message = data.get('message')
+        # If message is not present, try to get it from the data field
+        if not message and 'data' in data:
+            message = data.get('data')
+            logger.info(f"Using 'data' field as message: {message}")
         signature = data.get('signature')
+        
+        logger.info(f"Extracted fields - address: {address}, message: {message}, signature: {signature}")
 
         if not all([address, message, signature]):
-            raise HTTPException(status_code=400, detail="Missing required fields")
-
+            missing = []
+            if not address: missing.append("address")
+            if not message: missing.append("message")
+            if not signature: missing.append("signature")
+            detail = f"Missing required fields: {', '.join(missing)}"
+            logger.error(detail)
+            raise HTTPException(status_code=400, detail=detail)
+        
         # Parse timestamp and hivemind_id from message format: "timestamp:select_consensus:hivemind_id"
         try:
             parts = message.split(':')
@@ -1495,25 +1512,33 @@ async def select_consensus(request: Request):
                 
             timestamp = int(parts[0])
             hivemind_id = parts[2]
+            logger.info(f"Parsed timestamp: {timestamp}, hivemind_id: {hivemind_id}")
         except (ValueError, IndexError) as e:
             raise HTTPException(status_code=400, detail=f"Invalid message format: {str(e)}")
 
         # Load the state
         try:
             state = HivemindState(hivemind_id=hivemind_id)
+            logger.info(f"Successfully loaded state for hivemind_id: {hivemind_id}")
         except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Failed to load state: {str(e)}")
+            error_msg = f"Failed to load state: {str(e)}"
+            logger.error(error_msg)
+            raise HTTPException(status_code=400, detail=error_msg)
 
         # Select consensus
         try:
+            logger.info(f"Attempting to select consensus with timestamp: {timestamp}, address: {address}")
             selected_options = state.select_consensus(
                 timestamp=timestamp,
                 address=address,
                 signature=signature
             )
             
+            logger.info(f"Successfully selected consensus: {selected_options}")
+            
             # Save the state
             new_cid = state.save()
+            logger.info(f"Saved state with new CID: {new_cid}")
             
             # Notify WebSocket clients
             await notify_author_signature(hivemind_id, {
