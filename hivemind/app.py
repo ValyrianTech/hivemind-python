@@ -1519,46 +1519,96 @@ async def select_consensus(request: Request):
 
         # Load the state
         try:
-            state = await asyncio.to_thread(lambda: HivemindState(cid=hivemind_id))
+            # Get the latest state hash from hivemind_states.json
+            state_mapping = load_state_mapping()
+            if hivemind_id not in state_mapping:
+                raise HTTPException(status_code=404, detail=f"No state data found for hivemind ID: {hivemind_id}")
+            
+            latest_state_hash = state_mapping[hivemind_id]["state_hash"]
+            logger.info(f"Using latest state hash: {latest_state_hash}")
+            
+            # Load the state with the correct CID
+            state = await asyncio.to_thread(lambda: HivemindState(cid=latest_state_hash))
             logger.info(f"Successfully loaded state for hivemind_id: {hivemind_id}")
+            
+            # Load the hivemind issue
+            issue = await asyncio.to_thread(lambda: HivemindIssue(cid=hivemind_id))
+            logger.info(f"Loaded hivemind issue: {issue}")
+            logger.info(f"Questions: {issue.questions}")
+            
+            # Set the hivemind issue on the state
+            state._hivemind_issue = issue
+            state.hivemind_id = hivemind_id
+            
+            # Debug the hivemind issue
+            if hasattr(issue, 'questions'):
+                logger.info(f"Questions: {issue.questions}")
+            else:
+                logger.info("Issue has no questions attribute")
+            
+            # Select consensus
+            try:
+                logger.info(f"Attempting to select consensus with timestamp: {timestamp}, address: {address}")
+                
+                # First calculate results for each question
+                num_questions = await asyncio.to_thread(lambda: len(issue.questions))
+                logger.info(f"Calculating results for {num_questions} questions")
+                
+                # Check if there are any options
+                options = await asyncio.to_thread(lambda: state.option_cids)
+                logger.info(f"Options: {options}")
+                
+                if not options:
+                    logger.warning("No options found for this hivemind issue")
+                    return {
+                        'success': False,
+                        'error': "No options found for this hivemind issue"
+                    }
+                
+                for q_index in range(num_questions):
+                    results = await asyncio.to_thread(lambda: state.calculate_results(question_index=q_index))
+                    logger.info(f"Results for question {q_index}: {results}")
+                    
+                    # Check if there are any results for this question
+                    if not results:
+                        logger.warning(f"No results found for question {q_index}")
+                    
+                    # Now select consensus
+                    selected_options = await asyncio.to_thread(
+                        lambda: state.select_consensus(
+                            timestamp=timestamp,
+                            address=address,
+                            signature=signature
+                        )
+                    )
+                    
+                    logger.info(f"Successfully selected consensus: {selected_options}")
+                
+                # Save the state
+                new_cid = await asyncio.to_thread(lambda: state.save())
+                logger.info(f"Saved state with new CID: {new_cid}")
+                
+                # Notify WebSocket clients
+                await notify_author_signature(hivemind_id, {
+                    'success': True,
+                    'state_cid': new_cid,
+                    'selected_options': selected_options
+                })
+                
+                return {
+                    'success': True,
+                    'state_cid': new_cid,
+                    'selected_options': selected_options
+                }
+            except Exception as e:
+                error_msg = f"Error selecting consensus: {str(e)}"
+                logger.error(error_msg)
+                raise HTTPException(status_code=500, detail=error_msg)
         except Exception as e:
-            error_msg = f"Failed to load state: {str(e)}"
+            error_msg = f"Error loading state: {str(e)}"
             logger.error(error_msg)
             raise HTTPException(status_code=400, detail=error_msg)
 
-        # Select consensus
-        try:
-            logger.info(f"Attempting to select consensus with timestamp: {timestamp}, address: {address}")
-            selected_options = await asyncio.to_thread(
-                lambda: state.select_consensus(
-                    timestamp=timestamp,
-                    address=address,
-                    signature=signature
-                )
-            )
-            
-            logger.info(f"Successfully selected consensus: {selected_options}")
-            
-            # Save the state
-            new_cid = await asyncio.to_thread(lambda: state.save())
-            logger.info(f"Saved state with new CID: {new_cid}")
-            
-            # Notify WebSocket clients
-            await notify_author_signature(hivemind_id, {
-                'success': True,
-                'state_cid': new_cid,
-                'selected_options': selected_options
-            })
-            
-            return {
-                'success': True,
-                'state_cid': new_cid,
-                'selected_options': selected_options
-            }
-        except Exception as e:
-            error_msg = f"Error selecting consensus: {str(e)}"
-            logger.error(error_msg)
-            raise HTTPException(status_code=500, detail=error_msg)
     except HTTPException:
         raise
     except Exception as e:
