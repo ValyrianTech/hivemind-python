@@ -1563,10 +1563,6 @@ async def select_consensus(request: Request):
                     results = await asyncio.to_thread(lambda: state.calculate_results(question_index=q_index))
                     logger.info(f"Results for question {q_index}: {results}")
                     
-                    # Check if there are any results for this question
-                    if not results:
-                        logger.warning(f"No results found for question {q_index}")
-                    
                     # Now select consensus
                     selected_options = state.select_consensus(
                             timestamp=timestamp,
