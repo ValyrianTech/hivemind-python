@@ -584,6 +584,9 @@ class TestHivemindStateFinalizeSelectionMode:
         # Verify state is not final before selecting consensus
         assert not state.final
 
+        # Calculate results
+        state.calculate_results()
+
         # Generate timestamp and signature for consensus selection
         timestamp = int(time.time())
         message = f"{timestamp}select_consensus"
@@ -657,7 +660,7 @@ class TestHivemindStateFinalizeSelectionMode:
         assert not state.final
 
         # Calculate results
-        results = state.calculate_results()
+        state.calculate_results()
 
         # Generate timestamp and signature for consensus selection
         timestamp = int(time.time())
@@ -665,7 +668,7 @@ class TestHivemindStateFinalizeSelectionMode:
         signature = sign_message(message, private_key)
 
         # Select consensus with valid author signature
-        state.select_consensus(results, timestamp=timestamp, address=address, signature=signature)
+        state.select_consensus(timestamp=timestamp, address=address, signature=signature)
 
         # Verify state is now final
         assert state.final
@@ -736,6 +739,9 @@ class TestHivemindStateResetSelectionMode:
         color_choice_issue.on_selection = 'Reset'
         state._hivemind_issue = color_choice_issue
 
+        # Calculate results
+        state.calculate_results()
+
         # Generate timestamp and signature for consensus selection
         timestamp = int(time.time())
         message = f"{timestamp}select_consensus"
@@ -796,7 +802,7 @@ class TestHivemindStateResetSelectionMode:
         state._hivemind_issue = color_choice_issue
 
         # Calculate results
-        results = state.calculate_results()
+        state.calculate_results()
 
         # Generate timestamp and signature for consensus selection
         timestamp = int(time.time())
@@ -804,7 +810,7 @@ class TestHivemindStateResetSelectionMode:
         signature = sign_message(message, private_key)
 
         # Call select_consensus with valid author signature
-        state.select_consensus(results, timestamp=timestamp, address=address, signature=signature)
+        state.select_consensus(timestamp=timestamp, address=address, signature=signature)
 
         # Verify opinions were reset
         assert state.opinion_cids == [{}]
@@ -857,6 +863,9 @@ class TestHivemindStateUnknownSelectionMode:
         # Set an invalid selection mode
         color_choice_issue.on_selection = 'InvalidMode'
         state._hivemind_issue = color_choice_issue
+
+        # Calculate results
+        state.calculate_results()
 
         # Generate timestamp and signature for consensus selection
         timestamp = int(time.time())
@@ -912,7 +921,7 @@ class TestHivemindStateUnknownSelectionMode:
         state._hivemind_issue = color_choice_issue
 
         # Calculate results
-        results = state.calculate_results()
+        state.calculate_results()
 
         # Generate timestamp and signature for consensus selection
         timestamp = int(time.time())
@@ -921,7 +930,7 @@ class TestHivemindStateUnknownSelectionMode:
 
         # Verify NotImplementedError is raised
         with pytest.raises(NotImplementedError, match='Unknown selection mode: InvalidMode'):
-            state.select_consensus(results, timestamp=timestamp, address=address, signature=signature)
+            state.select_consensus(timestamp=timestamp, address=address, signature=signature)
 
 
 @pytest.mark.consensus
