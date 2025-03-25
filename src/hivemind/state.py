@@ -603,8 +603,7 @@ class HivemindState(IPFSDictChain):
 
         return contributions
 
-    def select_consensus(self, timestamp: Optional[int] = None, address: Optional[str] = None, 
-                        signature: Optional[str] = None, message: Optional[str] = None) -> List[str]:
+    def select_consensus(self, timestamp: Optional[int] = None, address: Optional[str] = None, signature: Optional[str] = None) -> List[str]:
         """Select the consensus of the hivemind.
         
         This method selects the option with the highest consensus for each question
@@ -617,8 +616,6 @@ class HivemindState(IPFSDictChain):
         :type address: Optional[str]
         :param signature: Signature of the message
         :type signature: Optional[str]
-        :param message: The message that was signed
-        :type message: Optional[str]
         :return: List of selected option CIDs
         :rtype: List[str]
         :raises ValueError: If the hivemind is already finalized
@@ -639,7 +636,7 @@ class HivemindState(IPFSDictChain):
             # Verify signature if provided
             if address and timestamp and signature:
                 # Use the provided message if available, otherwise generate it
-                message_to_verify = message if message else f"{timestamp}:select_consensus:{self.hivemind_id}"
+                message_to_verify = f"{timestamp}:select_consensus:{self.hivemind_id}"
 
                 if not verify_message(message=message_to_verify, address=author, signature=signature):
                     raise ValueError("Invalid signature")
