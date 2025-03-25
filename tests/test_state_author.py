@@ -195,11 +195,12 @@ class TestHivemindStateAuthor:
         
         # Generate timestamp and signature with the wrong private key
         timestamp = int(time.time())
-        message = f"{timestamp}select_consensus"
-        signature = sign_message(message, user_private_key)  # Using user's key, not author's
+        # Create a message with the wrong format
+        message = f"{timestamp}:select_consensus:wrong_id"
+        signature = sign_message(message, author_private_key)  # Using author's key with wrong message format
         
         # Attempt to select consensus with invalid signature
-        with pytest.raises(Exception, match='Invalid signature'):
+        with pytest.raises(ValueError, match='Invalid signature'):
             state.select_consensus(timestamp=timestamp, address=author_address, signature=signature)
         
         # Verify state is still not final
@@ -256,11 +257,11 @@ class TestHivemindStateAuthor:
         
         # Generate timestamp and signature with the user's key
         timestamp = int(time.time())
-        message = f"{timestamp}select_consensus"
+        message = f"{timestamp}:select_consensus:{state.hivemind_id}"
         signature = sign_message(message, user_private_key)
         
-        # Attempt to select consensus with wrong address
-        with pytest.raises(Exception, match='Not authorized'):
+        # Attempt to select consensus with non-author address
+        with pytest.raises(ValueError, match='Only the author'):
             state.select_consensus(timestamp=timestamp, address=user_address, signature=signature)
         
         # Verify state is still not final

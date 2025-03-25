@@ -633,8 +633,8 @@ class HivemindState(IPFSDictChain):
             
             # Verify signature if provided
             if address and timestamp and signature:
-                message = f"select_consensus:{self.hivemind_id}:{timestamp}"
-                if not self.verify_signature(address, timestamp, message, signature):
+                message = f"{timestamp}:select_consensus:{self.hivemind_id}"
+                if not verify_message(message=message, address=address, signature=signature):
                     raise ValueError("Invalid signature")
         
         # Get the option hash with highest consensus for each question
@@ -773,14 +773,3 @@ class HivemindState(IPFSDictChain):
                     return opinion
 
         return HivemindOpinion(cid=cid)
-
-    def verify_signature(self, address: str, timestamp: int, message: str, signature: str) -> bool:
-        """Verify a signature.
-
-        :param address: The address of the participant
-        :param timestamp: Unix timestamp
-        :param message: The message that was signed
-        :param signature: The signature of the message
-        :return: Whether the signature is valid
-        """
-        return verify_message(message=f"{timestamp}{message}", address=address, signature=signature)
