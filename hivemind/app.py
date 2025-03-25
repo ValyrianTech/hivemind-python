@@ -1540,12 +1540,6 @@ async def select_consensus(request: Request):
             state._hivemind_issue = issue
             state.hivemind_id = hivemind_id
             
-            # Debug the hivemind issue
-            if hasattr(issue, 'questions'):
-                logger.info(f"Questions: {issue.questions}")
-            else:
-                logger.info("Issue has no questions attribute")
-            
             # Select consensus
             try:
                 logger.info(f"Attempting to select consensus with timestamp: {timestamp}, address: {address}")
