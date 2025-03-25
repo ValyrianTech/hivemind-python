@@ -544,6 +544,9 @@ class TestHivemindStateFinalizeSelectionMode:
         color_choice_issue.on_selection = 'Finalize'
         issue_hash = color_choice_issue.save()
         state.set_hivemind_issue(issue_hash)
+        
+        # Set the author
+        state.author = address
 
         # Add options from constraints
         options = []
@@ -581,8 +584,88 @@ class TestHivemindStateFinalizeSelectionMode:
         # Verify state is not final before selecting consensus
         assert not state.final
 
-        # Select consensus
-        state.select_consensus()
+        # Generate timestamp and signature for consensus selection
+        timestamp = int(time.time())
+        message = f"{timestamp}select_consensus"
+        signature = sign_message(message, private_key)
+
+        # Select consensus with valid author signature
+        state.select_consensus(timestamp=timestamp, address=address, signature=signature)
+
+        # Verify state is now final
+        assert state.final
+
+        # Verify we can't add new options or opinions
+        new_option = HivemindOption()
+        new_option.set_hivemind_issue(issue_hash)
+        new_option.set(color_choice_issue.constraints['choices'][0]['value'])  # Use 'red' from constraints
+        new_option_hash = new_option.save()
+
+        timestamp = int(time.time())
+        message = f"{timestamp}{new_option_hash}"
+        signature = sign_message(message, private_key)
+
+        with pytest.raises(Exception):
+            state.add_option(timestamp, new_option_hash, address, signature)
+
+    def test_select_consensus_finalize_with_results(self, state: HivemindState, color_choice_issue: HivemindIssue, test_keypair) -> None:
+        """Test that select_consensus sets final=True when on_selection='Finalize'."""
+        private_key, address = test_keypair
+
+        # Set on_selection to 'Finalize'
+        color_choice_issue.on_selection = 'Finalize'
+        issue_hash = color_choice_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Set the author
+        state.author = address
+
+        # Add options from constraints
+        options = []
+        for choice in color_choice_issue.constraints['choices']:
+            option = HivemindOption()
+            option.set_hivemind_issue(issue_hash)
+            option.set(choice['value'])
+            option.text = choice['text']
+            option_hash = option.save()
+            options.append(option_hash)
+
+            # Sign and add option
+            timestamp = int(time.time())
+            message = f"{timestamp}{option_hash}"
+            signature = sign_message(message, private_key)
+            state.add_option(timestamp, option_hash, address, signature)
+
+        # Add an opinion to ensure we have a consensus
+        opinion = HivemindOpinion()
+        opinion.hivemind_id = issue_hash
+        opinion.question_index = 0
+        opinion.ranking.set_fixed(options)
+        opinion.ranking = opinion.ranking.get()
+        opinion_hash = opinion.save()
+
+        # Initialize participants dictionary and add participant
+        timestamp = int(time.time())
+        state.participants[address] = {'name': 'Test User', 'timestamp': timestamp}
+
+        # Add opinion with valid signature
+        message = f"{timestamp}{opinion_hash}"
+        signature = sign_message(message, private_key)
+        state.add_opinion(timestamp, opinion_hash, signature, address)
+
+        # Verify state is not final before selecting consensus
+        assert not state.final
+
+        # Calculate results
+        results = state.calculate_results()
+
+        # Generate timestamp and signature for consensus selection
+        timestamp = int(time.time())
+        message = f"{timestamp}select_consensus"
+        signature = sign_message(message, private_key)
+
+        # Select consensus with valid author signature
+        state.select_consensus(results, timestamp=timestamp, address=address, signature=signature)
 
         # Verify state is now final
         assert state.final
@@ -610,6 +693,9 @@ class TestHivemindStateResetSelectionMode:
         private_key, address = test_keypair
         issue_hash = color_choice_issue.save()
         state.set_hivemind_issue(issue_hash)
+        
+        # Set the author
+        state.author = address
 
         # Add options from constraints
         options = []
@@ -650,17 +736,92 @@ class TestHivemindStateResetSelectionMode:
         color_choice_issue.on_selection = 'Reset'
         state._hivemind_issue = color_choice_issue
 
-        # Call select_consensus
-        state.select_consensus()
+        # Generate timestamp and signature for consensus selection
+        timestamp = int(time.time())
+        message = f"{timestamp}select_consensus"
+        signature = sign_message(message, private_key)
+
+        # Call select_consensus with valid author signature
+        state.select_consensus(timestamp=timestamp, address=address, signature=signature)
 
         # Verify opinions were reset
         assert state.opinion_cids == [{}]
+
+    def test_select_consensus_reset_with_results(self, state: HivemindState, color_choice_issue: HivemindIssue, test_keypair) -> None:
+        """Test that select_consensus resets all opinions when on_selection='Reset'."""
+        private_key, address = test_keypair
+        issue_hash = color_choice_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Set the author
+        state.author = address
+
+        # Add options from constraints
+        options = []
+        for choice in color_choice_issue.constraints['choices']:
+            option = HivemindOption()
+            option.set_hivemind_issue(issue_hash)
+            option.set(choice['value'])
+            option.text = choice['text']
+            option_hash = option.save()
+            options.append(option_hash)
+
+            # Sign and add option
+            timestamp = int(time.time())
+            message = f"{timestamp}{option_hash}"
+            signature = sign_message(message, private_key)
+            state.add_option(timestamp, option_hash, address, signature)
+
+        # Add an opinion
+        opinion = HivemindOpinion()
+        opinion.hivemind_id = issue_hash
+        opinion.question_index = 0
+        opinion.ranking.set_fixed(options)
+        opinion.ranking = opinion.ranking.get()
+        opinion_hash = opinion.save()
+
+        # Add participant and opinion
+        timestamp = int(time.time())
+        state.participants[address] = {'name': 'Test User', 'timestamp': timestamp}
+        message = f"{timestamp}{opinion_hash}"
+        signature = sign_message(message, private_key)
+        state.add_opinion(timestamp, opinion_hash, signature, address)
+
+        # Verify opinion was added
+        assert len(state.opinion_cids) > 0
+        assert state.opinion_cids != [{}]
+
+        # Set on_selection to Reset
+        color_choice_issue.on_selection = 'Reset'
+        state._hivemind_issue = color_choice_issue
+
+        # Calculate results
+        results = state.calculate_results()
+
+        # Generate timestamp and signature for consensus selection
+        timestamp = int(time.time())
+        message = f"{timestamp}select_consensus"
+        signature = sign_message(message, private_key)
+
+        # Call select_consensus with valid author signature
+        state.select_consensus(results, timestamp=timestamp, address=address, signature=signature)
+
+        # Verify opinions were reset
+        assert state.opinion_cids == [{}]
+
+
+@pytest.mark.consensus
+class TestHivemindStateUnknownSelectionMode:
+    """Tests for when on_selection is None."""
 
     def test_select_consensus_unknown_mode(self, state: HivemindState, color_choice_issue: HivemindIssue, test_keypair) -> None:
         """Test that select_consensus raises NotImplementedError for unknown selection mode."""
         private_key, address = test_keypair
         issue_hash = color_choice_issue.save()
         state.set_hivemind_issue(issue_hash)
+        
+        # Set the author
+        state.author = address
 
         # Add options from constraints
         options = []
@@ -697,9 +858,70 @@ class TestHivemindStateResetSelectionMode:
         color_choice_issue.on_selection = 'InvalidMode'
         state._hivemind_issue = color_choice_issue
 
+        # Generate timestamp and signature for consensus selection
+        timestamp = int(time.time())
+        message = f"{timestamp}select_consensus"
+        signature = sign_message(message, private_key)
+
         # Verify NotImplementedError is raised
         with pytest.raises(NotImplementedError, match='Unknown selection mode: InvalidMode'):
-            state.select_consensus()
+            state.select_consensus(timestamp=timestamp, address=address, signature=signature)
+
+    def test_select_consensus_unknown_mode_with_results(self, state: HivemindState, color_choice_issue: HivemindIssue, test_keypair) -> None:
+        """Test that select_consensus raises NotImplementedError for unknown selection mode."""
+        private_key, address = test_keypair
+        issue_hash = color_choice_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Set the author
+        state.author = address
+
+        # Add options from constraints
+        options = []
+        for choice in color_choice_issue.constraints['choices']:
+            option = HivemindOption()
+            option.set_hivemind_issue(issue_hash)
+            option.set(choice['value'])
+            option.text = choice['text']
+            option_hash = option.save()
+            options.append(option_hash)
+
+            # Sign and add option
+            timestamp = int(time.time())
+            message = f"{timestamp}{option_hash}"
+            signature = sign_message(message, private_key)
+            state.add_option(timestamp, option_hash, address, signature)
+
+        # Add an opinion
+        opinion = HivemindOpinion()
+        opinion.hivemind_id = issue_hash
+        opinion.question_index = 0
+        opinion.ranking.set_fixed(options)
+        opinion.ranking = opinion.ranking.get()
+        opinion_hash = opinion.save()
+
+        # Add participant and opinion
+        timestamp = int(time.time())
+        state.participants[address] = {'name': 'Test User', 'timestamp': timestamp}
+        message = f"{timestamp}{opinion_hash}"
+        signature = sign_message(message, private_key)
+        state.add_opinion(timestamp, opinion_hash, signature, address)
+
+        # Set an invalid selection mode
+        color_choice_issue.on_selection = 'InvalidMode'
+        state._hivemind_issue = color_choice_issue
+
+        # Calculate results
+        results = state.calculate_results()
+
+        # Generate timestamp and signature for consensus selection
+        timestamp = int(time.time())
+        message = f"{timestamp}select_consensus"
+        signature = sign_message(message, private_key)
+
+        # Verify NotImplementedError is raised
+        with pytest.raises(NotImplementedError, match='Unknown selection mode: InvalidMode'):
+            state.select_consensus(results, timestamp=timestamp, address=address, signature=signature)
 
 
 @pytest.mark.consensus
@@ -714,6 +936,9 @@ class TestHivemindStateNullSelectionMode:
         color_choice_issue.on_selection = None
         issue_hash = color_choice_issue.save()
         state.set_hivemind_issue(issue_hash)
+        
+        # Ensure no author is set
+        state.author = None
 
         # Add an option
         option = HivemindOption()
@@ -743,7 +968,56 @@ class TestHivemindStateNullSelectionMode:
         state.add_opinion(timestamp, opinion_hash, signature, address)
 
         # Select consensus
-        state.select_consensus()
+        selection = state.select_consensus()
+
+        # Verify the selection was made but no side effects occurred
+        assert len(state.selected) == 1  # One selection should be recorded
+        assert len(state.selected[0]) == 1  # With one option
+        assert state.selected[0][0].replace('/ipfs/', '') == option_hash  # The correct option
+        assert not state.final  # Should not be finalized
+        assert len(state.opinion_cids) == 1  # Opinions should not be reset
+
+    def test_select_consensus_null_selection_with_results(self, state: HivemindState, color_choice_issue: HivemindIssue, test_keypair) -> None:
+        """Test that select_consensus works correctly when on_selection is None."""
+        private_key, address = test_keypair
+
+        # Set on_selection to None
+        color_choice_issue.on_selection = None
+        issue_hash = color_choice_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Ensure no author is set
+        state.author = None
+
+        # Add an option
+        option = HivemindOption()
+        option.set_hivemind_issue(issue_hash)
+        option.set("red")
+        option.text = "Red"
+        option_hash = option.save()
+
+        # Sign and add option
+        timestamp = int(time.time())
+        message = f"{timestamp}{option_hash}"
+        signature = sign_message(message, private_key)
+        state.add_option(timestamp, option_hash, address, signature)
+
+        # Add an opinion
+        opinion = HivemindOpinion()
+        opinion.hivemind_id = issue_hash
+        opinion.question_index = 0
+        opinion.ranking.set_fixed([option_hash])
+        opinion.ranking = opinion.ranking.get()
+        opinion_hash = opinion.save()
+
+        # Sign and add opinion
+        timestamp = int(time.time())
+        message = f"{timestamp}{opinion_hash}"
+        signature = sign_message(message, private_key)
+        state.add_opinion(timestamp, opinion_hash, signature, address)
+
+        # Select consensus
+        selection = state.select_consensus()
 
         # Verify the selection was made but no side effects occurred
         assert len(state.selected) == 1  # One selection should be recorded

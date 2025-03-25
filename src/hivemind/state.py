@@ -54,6 +54,8 @@ class HivemindState(IPFSDictChain):
     :type selected: List[str]
     :ivar final: Whether the hivemind is finalized
     :type final: bool
+    :ivar author: The Bitcoin address of the author
+    :type author: Optional[str]
     """
 
     def __init__(self, cid: Optional[str] = None) -> None:
@@ -70,6 +72,7 @@ class HivemindState(IPFSDictChain):
         self.participants: Dict[str, Any] = {}
         self.selected: List[str] = []
         self.final: bool = False
+        self.author: Optional[str] = None
 
         super(HivemindState, self).__init__(cid=cid)
         self._options: List[HivemindOption] = [HivemindOption(cid=option_cid) for option_cid in self.option_cids]
@@ -603,18 +606,41 @@ class HivemindState(IPFSDictChain):
 
         return contributions
 
-    def select_consensus(self) -> List[str]:
+    def select_consensus(self, timestamp: Optional[int] = None, address: Optional[str] = None, signature: Optional[str] = None) -> List[str]:
         """Select the consensus of the hivemind.
 
+        If an author is set for this hivemind state, this method requires a valid signature
+        from that author to proceed with consensus selection.
+
+        :param timestamp: Unix timestamp for the signature
+        :type timestamp: Optional[int]
+        :param address: The Bitcoin address of the caller
+        :type address: Optional[str]
+        :param signature: The signature of the message
+        :type signature: Optional[str]
         :return: List of option CIDs that have been selected
         :rtype: List[str]
+        :raises Exception: If the signature is invalid or the caller is not authorized
         """
+        # If an author is set, verify the caller is authorized
+        if self.author is not None:
+            if address is None or signature is None or timestamp is None:
+                raise Exception('Author is set: timestamp, address and signature are required to select consensus')
+            
+            if address != self.author:
+                raise Exception('Not authorized: only the author can select consensus')
+            
+            # Verify the signature
+            message = f"{timestamp}select_consensus"
+            if not verify_message(message=message, address=address, signature=signature):
+                raise Exception('Invalid signature')
+
         # Get the option hash with highest consensus for each question
         selection = [self.get_sorted_options(question_index=question_index)[0].cid() for question_index in range(len(self._hivemind_issue.questions))]
         self.selected.append(selection)
 
         if self._hivemind_issue.on_selection is None:
-            return
+            return selection
         elif self._hivemind_issue.on_selection == 'Finalize':
             # The hivemind is final, no more options or opinions can be added
             self.final = True
