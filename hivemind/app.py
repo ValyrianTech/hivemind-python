@@ -1586,6 +1586,11 @@ async def select_consensus(request: Request):
                 new_cid = await asyncio.to_thread(lambda: state.save())
                 logger.info(f"Saved state with new CID: {new_cid}")
                 
+                # Update the state mapping with the new CID
+                state_mapping[hivemind_id]["state_hash"] = new_cid
+                save_state_mapping(state_mapping)
+                logger.info(f"Updated state mapping for {hivemind_id} with new CID: {new_cid}")
+                
                 # Notify WebSocket clients
                 await notify_author_signature(hivemind_id, {
                     'success': True,
