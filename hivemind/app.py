@@ -566,6 +566,11 @@ async def create_issue(issue: HivemindIssueCreate):
             new_issue.tags = issue.tags
             new_issue.answer_type = issue.answer_type
             new_issue.on_selection = issue.on_selection
+            
+            # Set author if provided and on_selection is not None
+            if issue.author and issue.on_selection:
+                new_issue.author = issue.author
+                logger.info(f"Set author to {issue.author}")
 
             # Add questions
             for question in issue.questions:
@@ -624,11 +629,6 @@ async def create_issue(issue: HivemindIssueCreate):
                 initial_state = HivemindState()
                 initial_state.set_hivemind_issue(issue_cid)
                 logger.info("Set hivemind issue in state")
-
-                # Set author if provided and on_selection is not None
-                if issue.author and issue.on_selection:
-                    initial_state.author = issue.author
-                    logger.info(f"Set author to {issue.author}")
 
                 # Initialize options variable
                 options = []

@@ -14,20 +14,18 @@ class TestHivemindStateAuthor:
     """Tests for the author field and authorized consensus selection."""
 
     def test_set_author(self, state: HivemindState, basic_issue: HivemindIssue, test_keypair) -> None:
-        """Test setting the author of a hivemind state."""
+        """Test setting the author of a hivemind issue."""
         private_key, address = test_keypair
-        issue_hash = basic_issue.save()
-        state.set_hivemind_issue(issue_hash)
         
-        # Set the author
-        state.author = address
+        # Set the author on the issue
+        basic_issue.author = address
         
         # Save and reload to ensure the author is persisted
-        state_hash = state.save()
-        new_state = HivemindState(cid=state_hash)
+        issue_hash = basic_issue.save()
+        new_issue = HivemindIssue(cid=issue_hash)
         
         # Verify the author was saved
-        assert new_state.author == address
+        assert new_issue.author == address
     
     def test_select_consensus_with_author(self, state: HivemindState, color_choice_issue: HivemindIssue, test_keypair) -> None:
         """Test that select_consensus requires a valid signature from the author."""
@@ -35,11 +33,11 @@ class TestHivemindStateAuthor:
         
         # Set on_selection to 'Finalize'
         color_choice_issue.on_selection = 'Finalize'
+        # Set the author on the issue
+        color_choice_issue.author = address
+        
         issue_hash = color_choice_issue.save()
         state.set_hivemind_issue(issue_hash)
-        
-        # Set the author
-        state.author = address
         
         # Add options from constraints
         options = []
@@ -99,7 +97,9 @@ class TestHivemindStateAuthor:
         state.set_hivemind_issue(issue_hash)
         
         # Ensure no author is set
-        state.author = None
+        color_choice_issue.author = None
+        issue_hash = color_choice_issue.save()
+        state.set_hivemind_issue(issue_hash)
         
         # Add options from constraints
         options = []
@@ -155,11 +155,10 @@ class TestHivemindStateAuthor:
         
         # Set on_selection to 'Finalize'
         color_choice_issue.on_selection = 'Finalize'
+        # Set the author on the issue
+        color_choice_issue.author = author_address
         issue_hash = color_choice_issue.save()
         state.set_hivemind_issue(issue_hash)
-        
-        # Set the author
-        state.author = author_address
         
         # Add options from constraints
         options = []
@@ -217,11 +216,10 @@ class TestHivemindStateAuthor:
         
         # Set on_selection to 'Finalize'
         color_choice_issue.on_selection = 'Finalize'
+        # Set the author on the issue
+        color_choice_issue.author = author_address
         issue_hash = color_choice_issue.save()
         state.set_hivemind_issue(issue_hash)
-        
-        # Set the author
-        state.author = author_address
         
         # Add options from constraints
         options = []

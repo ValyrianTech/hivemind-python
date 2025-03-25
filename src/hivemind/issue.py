@@ -26,6 +26,8 @@ class HivemindIssue(IPFSDict):
     :type restrictions: Dict[str, Union[List[str], int]] | None
     :ivar on_selection: Action to take when an option is selected
     :type on_selection: Optional[str]
+    :ivar author: Bitcoin address of the author who can finalize the hivemind
+    :type author: Optional[str]
     """
 
     def __init__(self, cid: Optional[str] = None) -> None:
@@ -48,6 +50,9 @@ class HivemindIssue(IPFSDict):
         # Exclude : The selected option is excluded from the results
         # Reset : All opinions are reset
         self.on_selection: Optional[str] = None
+        
+        # Bitcoin address of the author who can finalize the hivemind
+        self.author: Optional[str] = None
 
         super().__init__(cid=cid)
 

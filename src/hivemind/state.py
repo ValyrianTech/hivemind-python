@@ -54,8 +54,6 @@ class HivemindState(IPFSDictChain):
     :type selected: List[str]
     :ivar final: Whether the hivemind is finalized
     :type final: bool
-    :ivar author: The Bitcoin address of the author
-    :type author: Optional[str]
     """
 
     def __init__(self, cid: Optional[str] = None) -> None:
@@ -72,7 +70,6 @@ class HivemindState(IPFSDictChain):
         self.participants: Dict[str, Any] = {}
         self.selected: List[str] = []
         self.final: bool = False
-        self.author: Optional[str] = None
 
         super(HivemindState, self).__init__(cid=cid)
         self._options: List[HivemindOption] = [HivemindOption(cid=option_cid) for option_cid in self.option_cids]
@@ -606,35 +603,40 @@ class HivemindState(IPFSDictChain):
 
         return contributions
 
-    def select_consensus(self, timestamp: Optional[int] = None, address: Optional[str] = None, signature: Optional[str] = None) -> List[str]:
+    def select_consensus(self, timestamp: Optional[int] = None, address: Optional[str] = None, 
+                        signature: Optional[str] = None) -> List[str]:
         """Select the consensus of the hivemind.
-
-        If an author is set for this hivemind state, this method requires a valid signature
-        from that author to proceed with consensus selection.
-
-        :param timestamp: Unix timestamp for the signature
+        
+        This method selects the option with the highest consensus for each question
+        and sets it as the selected option. If the on_selection property of the
+        hivemind issue is set, it will perform the specified action.
+        
+        :param timestamp: Timestamp of the signature
         :type timestamp: Optional[int]
-        :param address: The Bitcoin address of the caller
+        :param address: Bitcoin address of the signer
         :type address: Optional[str]
-        :param signature: The signature of the message
+        :param signature: Signature of the message
         :type signature: Optional[str]
-        :return: List of option CIDs that have been selected
+        :return: List of selected option CIDs
         :rtype: List[str]
-        :raises Exception: If the signature is invalid or the caller is not authorized
+        :raises ValueError: If the hivemind is already finalized
+        :raises ValueError: If the address is not the author of the hivemind
         """
-        # If an author is set, verify the caller is authorized
-        if self.author is not None:
-            if address is None or signature is None or timestamp is None:
-                raise Exception('Author is set: timestamp, address and signature are required to select consensus')
-            
-            if address != self.author:
-                raise Exception('Not authorized: only the author can select consensus')
-            
-            # Verify the signature
-            message = f"{timestamp}select_consensus"
-            if not verify_message(message=message, address=address, signature=signature):
-                raise Exception('Invalid signature')
+        if self.final:
+            raise ValueError("Hivemind is already finalized")
 
+        # Check if the hivemind issue has an author specified
+        if self._hivemind_issue and hasattr(self._hivemind_issue, 'author') and self._hivemind_issue.author:
+            # If author is specified, verify that the address matches
+            if not address or address != self._hivemind_issue.author:
+                raise ValueError(f"Only the author ({self._hivemind_issue.author}) can select consensus")
+            
+            # Verify signature if provided
+            if address and timestamp and signature:
+                message = f"select_consensus:{self.hivemind_id}:{timestamp}"
+                if not self.verify_signature(address, timestamp, message, signature):
+                    raise ValueError("Invalid signature")
+        
         # Get the option hash with highest consensus for each question
         selection = [self.get_sorted_options(question_index=question_index)[0].cid() for question_index in range(len(self._hivemind_issue.questions))]
         self.selected.append(selection)
@@ -771,3 +773,14 @@ class HivemindState(IPFSDictChain):
                     return opinion
 
         return HivemindOpinion(cid=cid)
+
+    def verify_signature(self, address: str, timestamp: int, message: str, signature: str) -> bool:
+        """Verify a signature.
+
+        :param address: The address of the participant
+        :param timestamp: Unix timestamp
+        :param message: The message that was signed
+        :param signature: The signature of the message
+        :return: Whether the signature is valid
+        """
+        return verify_message(message=f"{timestamp}{message}", address=address, signature=signature)
