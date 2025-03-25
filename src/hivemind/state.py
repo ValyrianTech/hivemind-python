@@ -624,76 +624,33 @@ class HivemindState(IPFSDictChain):
         :raises ValueError: If the hivemind is already finalized
         :raises ValueError: If the address is not the author of the hivemind
         """
-        LOG.debug(f"select_consensus called with timestamp={timestamp}, address={address}, signature={signature[:10] if signature else None}, message={message}")
-        
         if self.final:
             LOG.debug("Hivemind is already finalized")
             raise ValueError("Hivemind is already finalized")
 
-        # The issue might be that self._hivemind_issue is a dict, not an object
-        # Let's check the type and handle accordingly
-        if isinstance(self._hivemind_issue, dict):
-            LOG.debug("Hivemind issue is a dictionary")
-            LOG.debug(f"Dictionary representation: {self._hivemind_issue}")
-            LOG.debug(f"Dictionary dir: {dir(self._hivemind_issue)}")
-            
-            # Try direct attribute access first
-            if hasattr(self._hivemind_issue, 'author'):
-                author = self._hivemind_issue.author
-                has_author = bool(author)
-                LOG.debug(f"Got author via attribute: {author}")
-            # Try dictionary access
-            elif 'author' in self._hivemind_issue:
-                author = self._hivemind_issue['author']
-                has_author = bool(author)
-                LOG.debug(f"Got author via dictionary key: {author}")
-            # Try __getitem__ directly
-            else:
-                try:
-                    author = self._hivemind_issue.__getitem__('author')
-                    has_author = bool(author)
-                    LOG.debug(f"Got author via __getitem__: {author}")
-                except (KeyError, Exception) as e:
-                    LOG.debug(f"Error getting author: {e}")
-                    author = None
-                    has_author = False
-        else:
-            LOG.debug("Hivemind issue is an object")
-            has_author = hasattr(self._hivemind_issue, 'author') and bool(self._hivemind_issue.author)
-            author = getattr(self._hivemind_issue, 'author', None)
-            LOG.debug(f"Object author check: has_author={has_author}, author={author}")
-        
-        LOG.debug(f"Has author: {has_author}, Author: {author}")
-        
+        author = self._hivemind_issue.author
+        has_author = bool(author)
+
         if has_author:
-            LOG.debug(f"Hivemind issue has author: {author}")
             # If author is specified, verify that the address matches
             if not address or address != author:
-                LOG.debug(f"Address mismatch: {address} != {author}")
                 raise ValueError(f"Only the author ({author}) can select consensus")
-            
-            LOG.debug(f"Address matches author: {address}")
-            
+
             # Verify signature if provided
             if address and timestamp and signature:
                 # Use the provided message if available, otherwise generate it
                 message_to_verify = message if message else f"{timestamp}:select_consensus:{self.hivemind_id}"
-                LOG.debug(f"Using message for verification: {message_to_verify}")
-                
+
                 if not verify_message(message=message_to_verify, address=author, signature=signature):
                     raise ValueError("Invalid signature")
-                
-                LOG.debug("Signature verified successfully")
-                
+
                 # Add the signature to the state
-                LOG.debug("Adding signature to state")
                 self.add_signature(
                     address=author,
                     timestamp=timestamp,
                     message=message_to_verify,
                     signature=signature
                 )
-                LOG.debug("Signature added to state")
         else:
             LOG.debug("Hivemind issue has no author specified")
         
