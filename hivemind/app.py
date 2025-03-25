@@ -242,6 +242,7 @@ class HivemindIssueCreate(BaseModel):
     constraints: Optional[Dict[str, Union[str, int, float, list, dict]]] = None
     restrictions: Optional[Dict[str, Union[List[str], int]]] = None
     on_selection: Optional[str] = None
+    author: Optional[str] = None
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -623,6 +624,11 @@ async def create_issue(issue: HivemindIssueCreate):
                 initial_state = HivemindState()
                 initial_state.set_hivemind_issue(issue_cid)
                 logger.info("Set hivemind issue in state")
+
+                # Set author if provided and on_selection is not None
+                if issue.author and issue.on_selection:
+                    initial_state.author = issue.author
+                    logger.info(f"Set author to {issue.author}")
 
                 # Initialize options variable
                 options = []
