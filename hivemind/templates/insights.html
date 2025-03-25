@@ -714,6 +714,12 @@
                     // Show success message
                     showError('Consensus selected successfully!');
                     
+                    // Update the CID input field with the new state CID
+                    if (data.state_cid) {
+                        document.getElementById('cid').value = data.state_cid;
+                        console.log("Updated CID to new state:", data.state_cid);
+                    }
+                    
                     // Reload state
                     fetchState();
                 } else {
