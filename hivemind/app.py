@@ -23,7 +23,7 @@ from pydantic import BaseModel
 from ipfs_dict_chain.IPFSDict import IPFSDict
 from ipfs_dict_chain.IPFS import connect
 
-from websocket_handlers import active_connections, register_websocket_routes, name_update_connections
+from websocket_handlers import active_connections, register_websocket_routes, name_update_connections, notify_author_signature
 
 # Add parent directory to Python path to find hivemind package
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -1506,6 +1506,7 @@ async def select_consensus(request: Request):
         
         # Parse timestamp and hivemind_id from message format: "timestamp:select_consensus:hivemind_id"
         try:
+            # First 10 chars are timestamp, rest is hivemind_id
             parts = message.split(':')
             if len(parts) != 3 or parts[1] != 'select_consensus':
                 raise ValueError("Invalid message format")
@@ -1518,7 +1519,7 @@ async def select_consensus(request: Request):
 
         # Load the state
         try:
-            state = HivemindState(hivemind_id=hivemind_id)
+            state = await asyncio.to_thread(lambda: HivemindState(cid=hivemind_id))
             logger.info(f"Successfully loaded state for hivemind_id: {hivemind_id}")
         except Exception as e:
             error_msg = f"Failed to load state: {str(e)}"
@@ -1528,16 +1529,18 @@ async def select_consensus(request: Request):
         # Select consensus
         try:
             logger.info(f"Attempting to select consensus with timestamp: {timestamp}, address: {address}")
-            selected_options = state.select_consensus(
-                timestamp=timestamp,
-                address=address,
-                signature=signature
+            selected_options = await asyncio.to_thread(
+                lambda: state.select_consensus(
+                    timestamp=timestamp,
+                    address=address,
+                    signature=signature
+                )
             )
             
             logger.info(f"Successfully selected consensus: {selected_options}")
             
             # Save the state
-            new_cid = state.save()
+            new_cid = await asyncio.to_thread(lambda: state.save())
             logger.info(f"Saved state with new CID: {new_cid}")
             
             # Notify WebSocket clients
@@ -1553,20 +1556,15 @@ async def select_consensus(request: Request):
                 'selected_options': selected_options
             }
         except Exception as e:
-            logger.error(f"Error selecting consensus: {str(e)}")
-            
-            # Notify WebSocket clients about the error
-            await notify_author_signature(hivemind_id, {
-                'success': False,
-                'error': str(e)
-            })
-            
-            raise HTTPException(status_code=400, detail=str(e))
+            error_msg = f"Error selecting consensus: {str(e)}"
+            logger.error(error_msg)
+            raise HTTPException(status_code=500, detail=error_msg)
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error processing select_consensus request: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        error_msg = f"Error processing select_consensus request: {str(e)}"
+        logger.error(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
 
 
 register_websocket_routes(app)
