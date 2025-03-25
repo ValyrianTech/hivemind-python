@@ -212,7 +212,7 @@
                             <span class="px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-medium">
                                 ${data.total_opinions} Opinion${data.total_opinions !== 1 ? 's' : ''}
                             </span>
-                            ${issue.author ? `
+                            ${issue.author && !data.is_final ? `
                             <button id="selectConsensusBtn" 
                                 class="px-3 py-1 bg-purple-600 text-white rounded-full text-sm font-medium hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
                                 onclick="selectConsensus()">
@@ -337,16 +337,18 @@
                             </span>
                         </h2>
                         <div class="flex space-x-4">
-                            ${stateData.issue && stateData.issue.answer_type !== 'Bool' ? `
+                            ${!data.is_final && stateData.issue && stateData.issue.answer_type !== 'Bool' ? `
                             <a href="/options/add?hivemind_id=${stateData.hivemind_id}" 
                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
                                 Add Option
                             </a>
                             ` : ''}
+                            ${!data.is_final ? `
                             <a href="#" onclick="goToAddOpinion()" 
                                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm">
                                 Add Opinion
                             </a>
+                            ` : ''}
                         </div>
                     </div>
                     ${resultsContent}
@@ -386,10 +388,12 @@
                         <div class="flex items-center justify-between mb-4">
                             <h2 class="text-2xl font-semibold">Opinions</h2>
                             <div class="flex space-x-2">
+                                ${!data.is_final ? `
                                 <button onclick="updateParticipantName()"
                                         class="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded-full text-sm font-medium transition-colors">
                                     Update Name
                                 </button>
+                                ` : ''}
                             </div>
                         </div>
                     `;
