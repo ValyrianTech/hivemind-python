@@ -109,11 +109,18 @@ async def notify_author_signature(hivemind_id: str, data: dict):
         data: The data to send to the clients
     """
     if hivemind_id in author_signature_connections:
-        for connection in author_signature_connections[hivemind_id]:
+        connections_to_notify = author_signature_connections[hivemind_id].copy()
+        for connection in connections_to_notify:
             try:
                 await connection.send_json(data)
+                # Close the connection after sending the notification
+                await connection.close()
+                logger.info(f"Closed websocket connection after sending author signature notification")
             except Exception as e:
                 logger.error(f"Error sending author signature notification: {str(e)}")
+        
+        # Clear the connections for this hivemind_id
+        author_signature_connections[hivemind_id] = []
 
 def register_websocket_routes(app: FastAPI):
     """Register WebSocket routes with the FastAPI application.
