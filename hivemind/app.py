@@ -111,7 +111,7 @@ def setup_logging():
     """Setup logging configuration."""
     # Configure root logger
     root_logger = logging.getLogger()
-    root_logger.setLevel(logging.INFO)
+    root_logger.setLevel(logging.DEBUG)
 
     # Create and configure file handler
     file_handler = RotatingFileHandler(
@@ -1578,7 +1578,8 @@ async def select_consensus(request: Request):
                         lambda: state.select_consensus(
                             timestamp=timestamp,
                             address=address,
-                            signature=signature
+                            signature=signature,
+                            message=message
                         )
                     )
                     

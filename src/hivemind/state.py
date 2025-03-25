@@ -604,7 +604,7 @@ class HivemindState(IPFSDictChain):
         return contributions
 
     def select_consensus(self, timestamp: Optional[int] = None, address: Optional[str] = None, 
-                        signature: Optional[str] = None) -> List[str]:
+                        signature: Optional[str] = None, message: Optional[str] = None) -> List[str]:
         """Select the consensus of the hivemind.
         
         This method selects the option with the highest consensus for each question
@@ -617,25 +617,85 @@ class HivemindState(IPFSDictChain):
         :type address: Optional[str]
         :param signature: Signature of the message
         :type signature: Optional[str]
+        :param message: The message that was signed
+        :type message: Optional[str]
         :return: List of selected option CIDs
         :rtype: List[str]
         :raises ValueError: If the hivemind is already finalized
         :raises ValueError: If the address is not the author of the hivemind
         """
+        LOG.debug(f"select_consensus called with timestamp={timestamp}, address={address}, signature={signature[:10] if signature else None}, message={message}")
+        
         if self.final:
+            LOG.debug("Hivemind is already finalized")
             raise ValueError("Hivemind is already finalized")
 
-        # Check if the hivemind issue has an author specified
-        if self._hivemind_issue and hasattr(self._hivemind_issue, 'author') and self._hivemind_issue.author:
+        # The issue might be that self._hivemind_issue is a dict, not an object
+        # Let's check the type and handle accordingly
+        if isinstance(self._hivemind_issue, dict):
+            LOG.debug("Hivemind issue is a dictionary")
+            LOG.debug(f"Dictionary representation: {self._hivemind_issue}")
+            LOG.debug(f"Dictionary dir: {dir(self._hivemind_issue)}")
+            
+            # Try direct attribute access first
+            if hasattr(self._hivemind_issue, 'author'):
+                author = self._hivemind_issue.author
+                has_author = bool(author)
+                LOG.debug(f"Got author via attribute: {author}")
+            # Try dictionary access
+            elif 'author' in self._hivemind_issue:
+                author = self._hivemind_issue['author']
+                has_author = bool(author)
+                LOG.debug(f"Got author via dictionary key: {author}")
+            # Try __getitem__ directly
+            else:
+                try:
+                    author = self._hivemind_issue.__getitem__('author')
+                    has_author = bool(author)
+                    LOG.debug(f"Got author via __getitem__: {author}")
+                except (KeyError, Exception) as e:
+                    LOG.debug(f"Error getting author: {e}")
+                    author = None
+                    has_author = False
+        else:
+            LOG.debug("Hivemind issue is an object")
+            has_author = hasattr(self._hivemind_issue, 'author') and bool(self._hivemind_issue.author)
+            author = getattr(self._hivemind_issue, 'author', None)
+            LOG.debug(f"Object author check: has_author={has_author}, author={author}")
+        
+        LOG.debug(f"Has author: {has_author}, Author: {author}")
+        
+        if has_author:
+            LOG.debug(f"Hivemind issue has author: {author}")
             # If author is specified, verify that the address matches
-            if not address or address != self._hivemind_issue.author:
-                raise ValueError(f"Only the author ({self._hivemind_issue.author}) can select consensus")
+            if not address or address != author:
+                LOG.debug(f"Address mismatch: {address} != {author}")
+                raise ValueError(f"Only the author ({author}) can select consensus")
+            
+            LOG.debug(f"Address matches author: {address}")
             
             # Verify signature if provided
             if address and timestamp and signature:
-                message = f"{timestamp}:select_consensus:{self.hivemind_id}"
-                if not verify_message(message=message, address=address, signature=signature):
+                # Use the provided message if available, otherwise generate it
+                message_to_verify = message if message else f"{timestamp}:select_consensus:{self.hivemind_id}"
+                LOG.debug(f"Using message for verification: {message_to_verify}")
+                
+                if not verify_message(message=message_to_verify, address=author, signature=signature):
                     raise ValueError("Invalid signature")
+                
+                LOG.debug("Signature verified successfully")
+                
+                # Add the signature to the state
+                LOG.debug("Adding signature to state")
+                self.add_signature(
+                    address=author,
+                    timestamp=timestamp,
+                    message=message_to_verify,
+                    signature=signature
+                )
+                LOG.debug("Signature added to state")
+        else:
+            LOG.debug("Hivemind issue has no author specified")
         
         # Get the option hash with highest consensus for each question
         selection = [self.get_sorted_options(question_index=question_index)[0].cid() for question_index in range(len(self._hivemind_issue.questions))]
@@ -671,17 +731,26 @@ class HivemindState(IPFSDictChain):
         :type signature: str
         :raises Exception: If the signature is invalid
         """
+        LOG.debug(f"Adding signature: address={address}, timestamp={timestamp}, message={message}, signature={signature[:10]}...")
+        
         if address not in self.signatures:
+            LOG.debug(f"Creating new signature entry for address: {address}")
             self.signatures[address] = {message: {signature: timestamp}}
         elif message not in self.signatures[address]:
+            LOG.debug(f"Adding new message for address: {address}")
             self.signatures[address].update({message: {signature: timestamp}})
         else:
+            LOG.debug(f"Message already exists for address: {address}, checking timestamp")
             timestamps = [int(key) for key in self.signatures[address][message].values()]
 
             if timestamp > max(timestamps):
+                LOG.debug(f"Updating signature with newer timestamp: {timestamp}")
                 self.signatures[address][message][signature] = timestamp
             else:
+                LOG.debug(f"Timestamp too old: {timestamp}, max={max(timestamps)}")
                 raise Exception('Invalid timestamp: must be more recent than any previous signature timestamp')
+        
+        LOG.debug(f"Signature added successfully. Current signatures: {self.signatures}")
 
     def update_participant_name(self, timestamp: int, name: str, address: str, signature: str, message: str) -> None:
         """Update the name of a participant.
