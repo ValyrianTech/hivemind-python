@@ -78,7 +78,7 @@ class TestHivemindStateAuthor:
         
         # Generate timestamp and signature for consensus selection
         timestamp = int(time.time())
-        message = f"{timestamp}select_consensus"
+        message = f"{timestamp}:select_consensus:{issue_hash}"
         signature = sign_message(message, private_key)
         
         # Select consensus with valid author signature
