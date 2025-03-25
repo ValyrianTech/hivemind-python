@@ -231,6 +231,68 @@ class TestIssueCreationFunctionality:
         mock_issue_instance.save.assert_called_once()
 
     @patch("app.HivemindIssue")
+    def test_create_issue_with_author(self, mock_hivemind_issue):
+        """Test author setting in create_issue function (lines 573-574).
+        
+        This test verifies that when both author and on_selection are provided,
+        the author attribute is properly set on the HivemindIssue.
+        """
+        # Setup mock issue instance
+        mock_issue_instance = MagicMock()
+        mock_issue_instance.save.return_value = "test_issue_with_author_cid"
+        mock_hivemind_issue.return_value = mock_issue_instance
+
+        # Setup test data with both author and on_selection
+        issue_data = {
+            "name": "Issue With Author",
+            "description": "Test Description for Issue With Author",
+            "questions": ["What is your opinion?"],
+            "tags": ["test", "author"],
+            "answer_type": "Text",
+            "constraints": None,
+            "restrictions": None,
+            "on_selection": "some_selection_action",
+            "author": "test_author_address"
+        }
+
+        # Test the endpoint
+        with patch("app.HivemindState") as mock_hivemind_state, patch("app.logger") as mock_logger:
+            # Configure mock state to return a successful save
+            mock_state_instance = MagicMock()
+            mock_state_instance.save.return_value = "test_state_cid"
+            mock_hivemind_state.return_value = mock_state_instance
+
+            response = self.client.post(
+                "/api/create_issue",
+                json=issue_data
+            )
+
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["issue_cid"] == "test_issue_with_author_cid"
+
+        # Verify the HivemindIssue was created with correct attributes
+        mock_hivemind_issue.assert_called_once()
+
+        # Verify attributes were set correctly
+        assert mock_issue_instance.name == issue_data["name"]
+        assert mock_issue_instance.description == issue_data["description"]
+        assert mock_issue_instance.tags == issue_data["tags"]
+        assert mock_issue_instance.answer_type == issue_data["answer_type"]
+        assert mock_issue_instance.on_selection == issue_data["on_selection"]
+        
+        # Most importantly, verify author was set correctly (line 573)
+        assert mock_issue_instance.author == issue_data["author"]
+        
+        # Verify add_question was called for the question
+        mock_issue_instance.add_question.assert_called_once_with(issue_data["questions"][0])
+        
+        # Verify save was called
+        mock_issue_instance.save.assert_called_once()
+
+    @patch("app.HivemindIssue")
     def test_create_issue_exception_handling(self, mock_hivemind_issue):
         """Test exception handling in create_issue function (lines 645-647).
         
