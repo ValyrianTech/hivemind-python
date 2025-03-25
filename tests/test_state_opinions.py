@@ -77,10 +77,16 @@ class TestHivemindStateOpinions:
         new_timestamp = timestamp + 1
         message = f"{new_timestamp}{new_opinion_hash}"
         signature = sign_message(message, private_key)
-        state.add_opinion(new_timestamp, new_opinion_hash, signature, address)
+        
+        # Expect an exception when trying to add opinion to a finalized state
+        with pytest.raises(Exception, match='Can not add opinion: hivemind issue is finalized'):
+            state.add_opinion(new_timestamp, new_opinion_hash, signature, address)
 
         # Verify the opinion was not added (state remained unchanged)
         assert state.opinion_cids[0][address]['opinion_cid'] == opinion_hash  # Original opinion still there
+
+        # Reset final flag to allow adding new opinions
+        state.final = False
 
         # Test adding opinion with higher question index
         higher_index_opinion = HivemindOpinion()
@@ -95,8 +101,6 @@ class TestHivemindStateOpinions:
         message = f"{new_timestamp}{higher_index_hash}"
         signature = sign_message(message, private_key)
 
-        # Reset final flag to allow adding new opinion
-        state.final = False
         state.add_opinion(new_timestamp, higher_index_hash, signature, address)
 
         # Verify opinions list was extended and opinion was added
