@@ -6,6 +6,7 @@
     <title>Hivemind Insights</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js"></script>
 </head>
 <body class="bg-gradient-to-br from-gray-900 to-gray-800 min-h-screen text-white">
     <nav class="bg-gray-800 bg-opacity-50 text-white p-4">
@@ -48,6 +49,26 @@
 
         <!-- Issues List -->
         <div id="issuesList" class="space-y-6">
+        </div>
+    </div>
+
+    <div id="error" class="hidden fixed top-0 left-0 right-0 bg-red-600 text-white p-4 text-center z-50">
+        Error message will appear here
+    </div>
+
+    <div id="qrCodeContainer" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-lg shadow-lg p-6 max-w-md w-full mx-4">
+            <div class="text-center mb-4">
+                <h3 class="text-xl font-semibold text-white">Author Signature Required</h3>
+                <p class="text-gray-300 mt-2">Scan this QR code with your Bitcoin wallet to sign the consensus selection</p>
+            </div>
+            <div id="qrcode" class="mx-auto bg-white p-4 rounded-lg w-64 h-64 flex items-center justify-center"></div>
+            <div class="mt-4 text-center">
+                <button onclick="document.getElementById('qrCodeContainer').classList.add('hidden')" 
+                        class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                    Close
+                </button>
+            </div>
         </div>
     </div>
 
@@ -191,6 +212,13 @@
                             <span class="px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-medium">
                                 ${data.total_opinions} Opinion${data.total_opinions !== 1 ? 's' : ''}
                             </span>
+                            ${issue.author ? `
+                            <button id="selectConsensusBtn" 
+                                class="px-3 py-1 bg-purple-600 text-white rounded-full text-sm font-medium hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                onclick="selectConsensus()">
+                                Select Consensus
+                            </button>
+                            ` : ''}
                         </div>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -616,6 +644,36 @@
             }
             
             window.location.href = `/update_name?state_cid=${cid}&hivemind_id=${stateData.hivemind_id}`;
+        }
+
+        function selectConsensus() {
+            if (!stateData || !stateData.issue || !stateData.issue.author) {
+                showError('Author information not available');
+                return;
+            }
+
+            const address = stateData.issue.author;
+            const timestamp = Math.floor(Date.now() / 1000);
+            const message = `select_consensus:${stateData.hivemind_id}:${timestamp}`;
+            const url = `/api/select_consensus?address=${address}&message=${encodeURIComponent(message)}&timestamp=${timestamp}`;
+
+            console.log("Select consensus URL:", url);
+            // Show QR code container
+            document.getElementById('qrCodeContainer').classList.remove('hidden');
+            
+            // Clear previous QR code
+            const qrCodeElement = document.getElementById('qrcode');
+            qrCodeElement.innerHTML = '';
+            
+            // Generate new QR code
+            new QRCode(qrCodeElement, {
+                text: url,
+                width: 256,
+                height: 256,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
         }
     </script>
 </body>

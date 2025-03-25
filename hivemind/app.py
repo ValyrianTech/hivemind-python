@@ -387,6 +387,7 @@ async def fetch_state(request: IPFSHashRequest):
                 'answer_type': issue.answer_type or 'Unknown',
                 'constraints': issue.constraints,
                 'restrictions': issue.restrictions,
+                'author': issue.author
             }
 
             stats.num_questions = len(issue.questions) if issue.questions else 0
