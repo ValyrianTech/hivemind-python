@@ -669,7 +669,6 @@ class HivemindState(IPFSDictChain):
         else:
             raise NotImplementedError('Unknown selection mode: %s' % self._hivemind_issue.on_selection)
 
-        self.save()
         return selection
 
     def add_signature(self, address: str, timestamp: int, message: str, signature: str) -> None:

@@ -1532,7 +1532,7 @@ async def select_consensus(request: Request):
             logger.info(f"Successfully loaded state for hivemind_id: {hivemind_id}")
             
             # Load the hivemind issue
-            issue = await asyncio.to_thread(lambda: HivemindIssue(cid=hivemind_id))
+            issue = state.hivemind_issue()
             logger.info(f"Loaded hivemind issue: {issue}")
             logger.info(f"Questions: {issue.questions}")
             
@@ -1551,11 +1551,11 @@ async def select_consensus(request: Request):
                 logger.info(f"Attempting to select consensus with timestamp: {timestamp}, address: {address}")
                 
                 # First calculate results for each question
-                num_questions = await asyncio.to_thread(lambda: len(issue.questions))
+                num_questions = len(issue.questions)
                 logger.info(f"Calculating results for {num_questions} questions")
                 
                 # Check if there are any options
-                options = await asyncio.to_thread(lambda: state.option_cids)
+                options = state.option_cids
                 logger.info(f"Options: {options}")
                 
                 if not options:
@@ -1574,14 +1574,12 @@ async def select_consensus(request: Request):
                         logger.warning(f"No results found for question {q_index}")
                     
                     # Now select consensus
-                    selected_options = await asyncio.to_thread(
-                        lambda: state.select_consensus(
+                    selected_options = state.select_consensus(
                             timestamp=timestamp,
                             address=address,
                             signature=signature
                         )
-                    )
-                    
+
                     logger.info(f"Successfully selected consensus: {selected_options}")
                 
                 # Save the state
