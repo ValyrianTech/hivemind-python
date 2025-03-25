@@ -377,6 +377,31 @@ class TestSelectConsensus:
                             signature=signature
                         )
 
+    def test_select_consensus_unexpected_exception(self):
+        """Test select_consensus with an unexpected exception during request processing."""
+        # Create test data
+        timestamp = int(time.time())
+        message = f"{timestamp}:select_consensus:{VALID_HIVEMIND_ID}"
+        signature = sign_message(message, self.private_key)
+
+        # Test request data
+        request_data = {
+            "address": self.address,
+            "message": message,
+            "signature": signature
+        }
+
+        # Patch Request.json to raise an unexpected exception
+        # This will trigger the outermost exception handler (lines 1607-1610)
+        # since it happens before any of the inner try-except blocks
+        with patch("fastapi.Request.json", side_effect=Exception("Unexpected error during processing")):
+            # Test the endpoint
+            response = self.client.post("/api/select_consensus", json=request_data)
+
+            # Verify response
+            assert response.status_code == 500
+            data = response.json()
+            assert "Error processing select_consensus request: Unexpected error during processing" in data["detail"]
 
 if __name__ == "__main__":
     pytest.main(["-xvs", "test_app_select_consensus.py"])
