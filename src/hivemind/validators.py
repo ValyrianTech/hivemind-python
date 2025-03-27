@@ -4,7 +4,7 @@ This module provides functions for validating both legacy and Bech32 Bitcoin add
 It supports validation for both mainnet and testnet addresses.
 """
 import re
-from typing import Optional, Tuple, List
+from typing import Tuple, List
 
 # Address validation patterns
 MAINNET_ADDRESS_REGEX = "^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$"
@@ -18,13 +18,13 @@ UPPERCASE_MAINNET_BECH32_ADDRESS_REGEX = '^BC1[AC-HJ-NP-Z02-9]{11,71}$'
 CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
 
 
-def bech32_decode(bech: str) -> Tuple[Optional[str], Optional[List[int]]]:
+def bech32_decode(bech: str) -> Tuple[str | None, List[int] | None]:
     """Validate a Bech32 string and determine its HRP and data components.
 
     :param bech: The Bech32 string to decode
     :type bech: str
     :return: A tuple containing the human-readable part (HRP) and data part as integers
-    :rtype: tuple(str or None, list[int] or None)
+    :rtype: Tuple[str | None, List[int] | None]
     
     The function performs various validations including:
     
