@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from typing import Optional, Any, Dict, Union
+from typing import Any, Dict
 import re
 import logging
 from ipfs_dict_chain.IPFSDict import IPFSDict
@@ -18,24 +18,24 @@ class HivemindOption(IPFSDict):
     and complex types.
 
     :ivar value: The value of the option
-    :type value: str | bool | int | float | Dict[str, Any]
+    :type value: str | bool | int | float | Dict[str, Any] | None
     :ivar text: Additional text description of the option
     :type text: str
     :ivar _hivemind_issue: The associated hivemind issue
-    :type _hivemind_issue: HivemindIssue
+    :type _hivemind_issue: HivemindIssue | None
     :ivar _answer_type: Type of the answer ('String', 'Bool', 'Integer', etc.)
     :type _answer_type: str
     :ivar hivemind_id: The IPFS hash of the associated hivemind issue
-    :type hivemind_id: str
+    :type hivemind_id: str | None
     """
 
-    def __init__(self, cid: Optional[str] = None) -> None:
+    def __init__(self, cid: str | None = None) -> None:
         """Initialize a new HivemindOption.
 
         :param cid: The IPFS multihash of the Option
-        :type cid: Optional[str]
+        :type cid: str | None
         """
-        self.value: Union[str, bool, int, float, Dict[str, Any]] | None = None
+        self.value: str | bool | int | float | Dict[str, Any] | None = None
         self.text: str = ''
         self._hivemind_issue: HivemindIssue | None = None
         self._answer_type: str = 'String'
@@ -44,11 +44,11 @@ class HivemindOption(IPFSDict):
         if cid is not None:
             self.load(cid=cid)
 
-    def cid(self) -> Optional[str]:
+    def cid(self) -> str | None:
         """Get the IPFS CID of this option.
 
         :return: The IPFS CID
-        :rtype: Optional[str]
+        :rtype: str | None
         """
         return self._cid
 
@@ -73,7 +73,7 @@ class HivemindOption(IPFSDict):
         self._hivemind_issue = issue
         self._answer_type = issue.answer_type
 
-    def set(self, value: Union[str, bool, int, float, Dict[str, Any]]) -> None:
+    def set(self, value: str | bool | int | float | Dict[str, Any]) -> None:
         """Set the value of this option.
 
         :param value: The value to set
