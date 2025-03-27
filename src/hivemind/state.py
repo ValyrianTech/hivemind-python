@@ -749,16 +749,17 @@ class HivemindState(IPFSDictChain):
             else:
                 raise Exception('Invalid signature')
 
-    def compare(self, a, b, opinion_hash):
-        """
-        Helper function to compare 2 Option objects against each other based on a given Opinion
+    def compare(self, a: str, b: str, opinion_hash: str) -> str | None:
+        """Helper function to compare 2 Option objects against each other based on a given Opinion.
 
-        :param a: The first Option object
-        :param b: The second Option object
-        :param opinion_hash: The Opinion object
-        :return: The Option that is considered better by the Opinion
-        If one of the Options is not given in the Opinion object, the other option wins by default
-        If both Options are not in the Opinion object, None is returned
+        :param a: The first Option object CID
+        :type a: str
+        :param b: The second Option object CID
+        :type b: str
+        :param opinion_hash: The Opinion object CID
+        :type opinion_hash: str
+        :return: The Option CID that is considered better by the Opinion, or None if both options are not in the Opinion
+        :rtype: str | None
         """
         opinion = self.get_opinion(cid=opinion_hash)
         ranked_choice = self._rankings[opinion.question_index][opinion_hash]
