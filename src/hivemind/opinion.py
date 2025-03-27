@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 from ipfs_dict_chain.IPFSDict import IPFSDict
 from .ranking import Ranking
 
@@ -12,20 +12,21 @@ class HivemindOpinion(IPFSDict):
     for a particular hivemind issue question.
 
     :ivar hivemind_id: The IPFS hash of the associated hivemind issue
-    :type hivemind_id: Optional[str]
+    :vartype hivemind_id: str | None
     :ivar question_index: The index of the question this opinion is for
-    :type question_index: int
+    :vartype question_index: int
     :ivar ranking: The ranking of options for this opinion
-    :type ranking: Ranking
+    :vartype ranking: Ranking
     """
 
-    def __init__(self, cid: Optional[str] = None) -> None:
+    def __init__(self, cid: str | None = None) -> None:
         """Initialize a new HivemindOpinion.
 
         :param cid: The IPFS hash of the Opinion object
-        :type cid: Optional[str]
+        :type cid: str | None
+        :return: None
         """
-        self.hivemind_id: Optional[str] = None
+        self.hivemind_id: str | None = None
         self.question_index: int = 0
         self.ranking: Ranking = Ranking()
 
@@ -50,6 +51,7 @@ class HivemindOpinion(IPFSDict):
 
         :param question_index: The index of the question
         :type question_index: int
+        :return: None
         """
         self.question_index = question_index
 
@@ -71,6 +73,7 @@ class HivemindOpinion(IPFSDict):
 
         :param cid: The IPFS hash to load
         :type cid: str
+        :return: None
         """
         super(HivemindOpinion, self).load(cid=cid)
 
@@ -99,5 +102,10 @@ class HivemindOpinion(IPFSDict):
                 self.ranking.set_auto_low(choice=ranking_dict['auto_low'])
             # If none of the expected keys are present, ranking will remain empty
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """Return a string representation of the opinion.
+
+        :return: The IPFS CID of the opinion without the '/ipfs/' prefix
+        :rtype: str
+        """
         return self._cid.replace('/ipfs/', '')
