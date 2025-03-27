@@ -9,11 +9,10 @@ from bitcoin.signmessage import BitcoinMessage, SignMessage
 def get_bitcoin_address(private_key: CBitcoinSecret) -> str:
     """Get the Bitcoin address corresponding to a private key.
     
-    Args:
-        private_key: Bitcoin private key
-        
-    Returns:
-        str: Bitcoin address in base58 format
+    :param private_key: Bitcoin private key
+    :type private_key: CBitcoinSecret
+    :return: Bitcoin address in base58 format
+    :rtype: str
     """
     return str(P2PKHBitcoinAddress.from_pubkey(private_key.pub))
 
@@ -21,8 +20,8 @@ def get_bitcoin_address(private_key: CBitcoinSecret) -> str:
 def generate_bitcoin_keypair() -> Tuple[CBitcoinSecret, str]:
     """Generate a random Bitcoin private key and its corresponding address.
     
-    Returns:
-        Tuple[CBitcoinSecret, str]: (private_key, address) pair where address is in base58 format
+    :return: (private_key, address) pair where address is in base58 format
+    :rtype: Tuple[CBitcoinSecret, str]
     """
     # Generate a random private key
     entropy = random.getrandbits(256).to_bytes(32, byteorder='big')
@@ -37,11 +36,11 @@ def generate_bitcoin_keypair() -> Tuple[CBitcoinSecret, str]:
 def sign_message(message: str, private_key: CBitcoinSecret) -> str:
     """Sign a message with a Bitcoin private key.
     
-    Args:
-        message: The message to sign
-        private_key: Bitcoin private key
-        
-    Returns:
-        str: The signature in base64 format
+    :param message: The message to sign
+    :type message: str
+    :param private_key: Bitcoin private key
+    :type private_key: CBitcoinSecret
+    :return: The signature in base64 format
+    :rtype: str
     """
     return SignMessage(key=private_key, message=BitcoinMessage(message)).decode()
