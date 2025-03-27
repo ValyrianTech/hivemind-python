@@ -11,23 +11,23 @@ class HivemindIssue(IPFSDict):
     questions, constraints, and restrictions on who can vote.
 
     :ivar questions: List of questions associated with this issue
-    :type questions: List[str]
+    :vartype questions: List[str]
     :ivar name: Name of the issue
-    :type name: str | None
+    :vartype name: str | None
     :ivar description: Description of the issue
-    :type description: str
+    :vartype description: str
     :ivar tags: List of tags associated with this issue
-    :type tags: List[str]
+    :vartype tags: List[str]
     :ivar answer_type: Type of answer expected ('String', 'Integer', 'Float', 'Bool', 'Hivemind', 'File', 'Complex', 'Address')
-    :type answer_type: str
+    :vartype answer_type: str
     :ivar constraints: Constraints on voting
-    :type constraints: Dict[str, str | int | float | list] | None
+    :vartype constraints: Dict[str, str | int | float | list] | None
     :ivar restrictions: Restrictions on who can vote
-    :type restrictions: Dict[str, List[str] | int] | None
+    :vartype restrictions: Dict[str, List[str] | int] | None
     :ivar on_selection: Action to take when an option is selected
-    :type on_selection: str | None
+    :vartype on_selection: str | None
     :ivar author: Bitcoin address of the author who can finalize the hivemind
-    :type author: str | None
+    :vartype author: str | None
     """
 
     def __init__(self, cid: str | None = None) -> None:
