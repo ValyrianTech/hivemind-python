@@ -85,6 +85,17 @@ class TestHivemindIssue:
             issue.set_restrictions({'options_per_address': 0})
         assert 'options_per_address in restrictions must be a positive integer' in str(exc_info.value)
 
+    def test_set_restrictions_none(self, issue: HivemindIssue) -> None:
+        """Test setting restrictions to None"""
+        # First set some restrictions
+        restrictions = {'options_per_address': 3}
+        issue.set_restrictions(restrictions)
+        assert issue.restrictions == restrictions
+        
+        # Then set to None
+        issue.set_restrictions(None)
+        assert issue.restrictions is None
+
     def test_initialization(self):
         assert isinstance(HivemindIssue(), HivemindIssue)
 
