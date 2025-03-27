@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from typing import List, Optional, Dict, Any
+from typing import List, Dict, Any
 from .option import HivemindOption
 import logging
 
@@ -15,15 +15,18 @@ class Ranking:
     based on proximity to a preferred choice.
 
     :ivar fixed: List of fixed ranked choices
-    :type fixed: List[str] | None
+    :vartype fixed: List[str] | None
     :ivar auto: The preferred choice for automatic ranking
-    :type auto: str | None
+    :vartype auto: str | None
     :ivar type: The type of ranking ('fixed', 'auto_high', or 'auto_low')
-    :type type: str | None
+    :vartype type: str | None
     """
 
     def __init__(self) -> None:
-        """Initialize a new Ranking instance."""
+        """Initialize a new Ranking instance.
+        
+        :return: None
+        """
         self.fixed: List[str] | None = None
         self.auto: str | None = None
         self.type: str | None = None
@@ -34,6 +37,7 @@ class Ranking:
         :param ranked_choice: A list of option cids in order of preference
         :type ranked_choice: List[str]
         :raises Exception: If ranked_choice is invalid
+        :return: None
         """
         if not isinstance(ranked_choice, list) or not all(isinstance(item, str) for item in ranked_choice):
             raise Exception('Invalid ranked choice')
@@ -52,6 +56,7 @@ class Ranking:
         :param choice: Option cid of the preferred choice
         :type choice: str
         :raises Exception: If choice is invalid
+        :return: None
         """
         if not isinstance(choice, str):
             raise Exception('Invalid choice for auto ranking')
@@ -70,6 +75,7 @@ class Ranking:
         :param choice: Option cid of the preferred choice
         :type choice: str
         :raises Exception: If choice is invalid
+        :return: None
         """
         if not isinstance(choice, str):
             raise Exception('Invalid choice for auto ranking')
@@ -78,11 +84,11 @@ class Ranking:
         self.type = 'auto_low'
         self.fixed = None
 
-    def get(self, options: Optional[List[HivemindOption]] = None) -> List[str]:
+    def get(self, options: List[HivemindOption] | None = None) -> List[str]:
         """Get the ranked choices.
 
         :param options: List of HivemindOptions, required for auto ranking
-        :type options: Optional[List[HivemindOption]]
+        :type options: List[HivemindOption] | None
         :return: A list of option cids in ranked order
         :rtype: List[str]
         :raises Exception: If ranking is not set or options are invalid for auto ranking
@@ -127,7 +133,7 @@ class Ranking:
     def to_dict(self) -> Dict[str, Any]:
         """Convert ranking settings to dict for IPFS storage.
 
-        :return: Ranking settings as a Dict[str, Any]
+        :return: Ranking settings as a Dict
         :rtype: Dict[str, Any]
         """
         if self.type == 'fixed':
