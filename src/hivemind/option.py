@@ -18,15 +18,15 @@ class HivemindOption(IPFSDict):
     and complex types.
 
     :ivar value: The value of the option
-    :type value: str | bool | int | float | Dict[str, Any] | None
+    :vartype value: str | bool | int | float | Dict[str, Any] | None
     :ivar text: Additional text description of the option
-    :type text: str
+    :vartype text: str
     :ivar _hivemind_issue: The associated hivemind issue
-    :type _hivemind_issue: HivemindIssue | None
+    :vartype _hivemind_issue: HivemindIssue | None
     :ivar _answer_type: Type of the answer ('String', 'Bool', 'Integer', etc.)
-    :type _answer_type: str
+    :vartype _answer_type: str
     :ivar hivemind_id: The IPFS hash of the associated hivemind issue
-    :type hivemind_id: str | None
+    :vartype hivemind_id: str | None
     """
 
     def __init__(self, cid: str | None = None) -> None:
@@ -34,6 +34,7 @@ class HivemindOption(IPFSDict):
 
         :param cid: The IPFS multihash of the Option
         :type cid: str | None
+        :return: None
         """
         self.value: str | bool | int | float | Dict[str, Any] | None = None
         self.text: str = ''
@@ -57,6 +58,7 @@ class HivemindOption(IPFSDict):
 
         :param cid: The IPFS multihash to load
         :type cid: str
+        :return: None
         """
         super().load(cid=cid)
         if self.hivemind_id:
@@ -67,6 +69,7 @@ class HivemindOption(IPFSDict):
 
         :param hivemind_issue_hash: The IPFS hash of the hivemind issue
         :type hivemind_issue_hash: str
+        :return: None
         """
         self.hivemind_id = hivemind_issue_hash
         issue = HivemindIssue(cid=hivemind_issue_hash)
@@ -79,6 +82,7 @@ class HivemindOption(IPFSDict):
         :param value: The value to set
         :type value: str | bool | int | float | Dict[str, Any]
         :raises Exception: If the value is invalid for the answer type
+        :return: None
         """
         self.value = value
 
@@ -342,5 +346,10 @@ class HivemindOption(IPFSDict):
             info += f'Text: {self.text}\n'
         return info
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """Return a string representation of the option.
+
+        :return: The IPFS CID of the option without the '/ipfs/' prefix
+        :rtype: str
+        """
         return self._cid.replace('/ipfs/', '')
