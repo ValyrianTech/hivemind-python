@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from typing import List, Dict, Union
+from typing import List, Dict
 from ipfs_dict_chain.IPFSDict import IPFSDict
 
 
@@ -21,9 +21,9 @@ class HivemindIssue(IPFSDict):
     :ivar answer_type: Type of answer expected ('String', 'Integer', 'Float', 'Bool', 'Hivemind', 'File', 'Complex', 'Address')
     :type answer_type: str
     :ivar constraints: Constraints on voting
-    :type constraints: Dict[str, Union[str, int, float, list]] | None
+    :type constraints: Dict[str, str | int | float | list] | None
     :ivar restrictions: Restrictions on who can vote
-    :type restrictions: Dict[str, Union[List[str], int]] | None
+    :type restrictions: Dict[str, List[str] | int] | None
     :ivar on_selection: Action to take when an option is selected
     :type on_selection: str | None
     :ivar author: Bitcoin address of the author who can finalize the hivemind
@@ -42,8 +42,8 @@ class HivemindIssue(IPFSDict):
         self.description: str = ''
         self.tags: List[str] = []
         self.answer_type: str = 'String'
-        self.constraints: Dict[str, Union[str, int, float, list]] | None = None
-        self.restrictions: Dict[str, Union[List[str], int]] | None = None
+        self.constraints: Dict[str, str | int | float | list] | None = None
+        self.restrictions: Dict[str, List[str] | int] | None = None
 
         # What happens when an option is selected: valid values are None, Finalize, Exclude, Reset
         # None : nothing happens
@@ -68,7 +68,7 @@ class HivemindIssue(IPFSDict):
         if isinstance(question, str) and question not in self.questions:
             self.questions.append(question)
 
-    def set_constraints(self, constraints: Dict[str, Union[str, int, float, list]] | None) -> None:
+    def set_constraints(self, constraints: Dict[str, str | int | float | list]) -> None:
         """Set constraints for the hivemind issue.
 
         Constraints can include various limitations on the answers, such as:
@@ -83,52 +83,51 @@ class HivemindIssue(IPFSDict):
         - filetype: For file answer types
 
         :param constraints: Dictionary of constraints
-        :type constraints: Dict[str, Union[str, int, float, list]] | None
+        :type constraints: Dict[str, str | int | float | list]
         :return: None
         :raises Exception: If constraints are invalid
         """
-        if constraints is not None and not isinstance(constraints, dict):
-            raise Exception('constraints must be a dict or None, got %s' % type(constraints))
+        if not isinstance(constraints, dict):
+            raise Exception('constraints must be a dict, got %s' % type(constraints))
 
-        if constraints is not None:
-            if 'specs' in constraints:
-                specs = constraints['specs']
-                if not isinstance(constraints['specs'], dict):
-                    raise Exception('constraint "specs" must be a dict, got %s' % type(specs))
+        if 'specs' in constraints:
+            specs = constraints['specs']
+            if not isinstance(constraints['specs'], dict):
+                raise Exception('constraint "specs" must be a dict, got %s' % type(specs))
 
-                for key in specs:
-                    if specs[key] not in ['String', 'Integer', 'Float', 'Bool']:
-                        raise Exception('Spec type must be String, Integer, Float, or Bool, got %s' % specs[key])
+            for key in specs:
+                if specs[key] not in ['String', 'Integer', 'Float', 'Bool']:
+                    raise Exception('Spec type must be String, Integer, Float, or Bool, got %s' % specs[key])
 
-            for constraint_type in ['min_length', 'max_length', 'min_value', 'max_value', 'decimals']:
-                if constraint_type in constraints and not isinstance(constraints[constraint_type], (int, float)):
-                    raise Exception('Value of constraint %s must be a number' % constraint_type)
+        for constraint_type in ['min_length', 'max_length', 'min_value', 'max_value', 'decimals']:
+            if constraint_type in constraints and not isinstance(constraints[constraint_type], (int, float)):
+                raise Exception('Value of constraint %s must be a number' % constraint_type)
 
-            for constraint_type in ['regex', 'true_value', 'false_value']:
-                if constraint_type in constraints and not isinstance(constraints[constraint_type], str):
-                    raise Exception('Value of constraint %s must be a string' % constraint_type)
+        for constraint_type in ['regex', 'true_value', 'false_value']:
+            if constraint_type in constraints and not isinstance(constraints[constraint_type], str):
+                raise Exception('Value of constraint %s must be a string' % constraint_type)
 
-            for constraint_type in ['choices']:
-                if constraint_type in constraints and not isinstance(constraints[constraint_type], list):
-                    raise Exception('Value of constraint %s must be a list' % constraint_type)
+        for constraint_type in ['choices']:
+            if constraint_type in constraints and not isinstance(constraints[constraint_type], list):
+                raise Exception('Value of constraint %s must be a list' % constraint_type)
 
-            for constraint_type in ['block_height']:
-                if constraint_type in constraints and not isinstance(constraints[constraint_type], int):
-                    raise Exception('Value of constraint %s must be a integer' % constraint_type)
+        for constraint_type in ['block_height']:
+            if constraint_type in constraints and not isinstance(constraints[constraint_type], int):
+                raise Exception('Value of constraint %s must be a integer' % constraint_type)
 
-            # Updated list of valid constraint keys
-            valid_constraints = [
-                'min_length', 'max_length', 'min_value', 'max_value', 'decimals', 
-                'regex', 'true_value', 'false_value', 'specs', 'choices', 'block_height',
-                'filetype'
-            ]
-                
-            if all([key in valid_constraints for key in constraints.keys()]):
-                self.constraints = constraints
-            else:
-                raise Exception('constraints contain an invalid key: %s' % constraints)
+        # Updated list of valid constraint keys
+        valid_constraints = [
+            'min_length', 'max_length', 'min_value', 'max_value', 'decimals', 
+            'regex', 'true_value', 'false_value', 'specs', 'choices', 'block_height',
+            'filetype'
+        ]
+            
+        if all([key in valid_constraints for key in constraints.keys()]):
+            self.constraints = constraints
+        else:
+            raise Exception('constraints contain an invalid key: %s' % constraints)
 
-    def set_restrictions(self, restrictions: Dict[str, Union[List[str], int]] | None) -> None:
+    def set_restrictions(self, restrictions: Dict[str, List[str] | int] | None) -> None:
         """Set voting restrictions for the hivemind issue.
 
         Restrictions can include:
@@ -136,7 +135,7 @@ class HivemindIssue(IPFSDict):
         - options_per_address: Maximum number of options each address can submit
 
         :param restrictions: Dictionary of restrictions
-        :type restrictions: Dict[str, Union[List[str], int]] | None
+        :type restrictions: Dict[str, List[str] | int] | None
         :return: None
         :raises Exception: If restrictions are invalid
         """
@@ -183,7 +182,7 @@ class HivemindIssue(IPFSDict):
         info += 'Hivemind tags: %s\n' % self.tags
         info += 'Answer type: %s\n' % self.answer_type
 
-        if self.constraints is not None:
+        if self.constraints:
             for constraint_type, constraint_value in self.constraints.items():
                 info += 'Constraint %s: %s\n' % (constraint_type, constraint_value)
 
