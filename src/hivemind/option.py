@@ -41,9 +41,7 @@ class HivemindOption(IPFSDict):
         self._hivemind_issue: HivemindIssue | None = None
         self._answer_type: str = 'String'
         self.hivemind_id: str | None = None
-        super().__init__(cid=cid)
-        if cid is not None:
-            self.load(cid=cid)
+        super().__init__(cid=cid)  # base method will call the load method
 
     def cid(self) -> str | None:
         """Get the IPFS CID of this option.
