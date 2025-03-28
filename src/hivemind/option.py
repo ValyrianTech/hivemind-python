@@ -337,7 +337,7 @@ class HivemindOption(IPFSDict):
         :return: A string containing formatted information about the option
         :rtype: str
         """
-        info = f'Option hash: {self.cid}\n'
+        info = f'Option cid: {self.cid}\n'
         info += f'Answer type: {self._answer_type}\n'
         info += f'Value: {self.value}\n'
         if self.text:
