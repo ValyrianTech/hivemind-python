@@ -195,7 +195,7 @@ class TestOptionTypeConversion:
 
         # Most importantly, verify the value was converted to integer
         # This specifically tests Integer conversion
-        mock_option.set_hivemind_issue.assert_called_once_with(hivemind_issue_hash=option_data["hivemind_id"])
+        mock_option.set_issue.assert_called_once_with(hivemind_issue_cid=option_data["hivemind_id"])
         assert isinstance(mock_option.value, int)
         assert mock_option.value == 42
 
@@ -334,7 +334,7 @@ class TestOptionTypeConversion:
         assert data["needsSignature"] == False
 
         # Most importantly, verify the value was converted to float
-        mock_option.set_hivemind_issue.assert_called_once_with(hivemind_issue_hash=option_data["hivemind_id"])
+        mock_option.set_issue.assert_called_once_with(hivemind_issue_cid=option_data["hivemind_id"])
         assert isinstance(mock_option.value, float)
         assert mock_option.value == 3.14
 
@@ -467,7 +467,7 @@ class TestOptionTypeConversion:
         assert data["needsSignature"] == False
     
         # Verify the value remains a string (no conversion)
-        mock_option.set_hivemind_issue.assert_called_once_with(hivemind_issue_hash=option_data["hivemind_id"])
+        mock_option.set_issue.assert_called_once_with(hivemind_issue_cid=option_data["hivemind_id"])
         assert isinstance(mock_option.value, str)
         assert mock_option.value == "test_value"
     
@@ -606,7 +606,7 @@ class TestOptionTypeConversion:
         assert data["needsSignature"] == False
     
         # Verify the value was parsed from JSON string to dict
-        mock_option.set_hivemind_issue.assert_called_once_with(hivemind_issue_hash=option_data["hivemind_id"])
+        mock_option.set_issue.assert_called_once_with(hivemind_issue_cid=option_data["hivemind_id"])
         assert isinstance(mock_option.value, dict)
         assert mock_option.value == {"key1": "value1", "key2": 42, "key3": True}
     

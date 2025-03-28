@@ -62,17 +62,17 @@ class HivemindOption(IPFSDict):
         """
         super().load(cid=cid)
         if self.hivemind_id:
-            self.set_hivemind_issue(hivemind_issue_hash=self.hivemind_id)
+            self.set_issue(hivemind_issue_cid=self.hivemind_id)
 
-    def set_hivemind_issue(self, hivemind_issue_hash: str) -> None:
+    def set_issue(self, hivemind_issue_cid: str) -> None:
         """Set the hivemind issue for this option.
 
-        :param hivemind_issue_hash: The IPFS hash of the hivemind issue
-        :type hivemind_issue_hash: str
+        :param hivemind_issue_cid: The IPFS hash of the hivemind issue
+        :type hivemind_issue_cid: str
         :return: None
         """
-        self.hivemind_id = hivemind_issue_hash
-        issue = HivemindIssue(cid=hivemind_issue_hash)
+        self.hivemind_id = hivemind_issue_cid
+        issue = HivemindIssue(cid=hivemind_issue_cid)
         self._hivemind_issue = issue
         self._answer_type = issue.answer_type
 
