@@ -135,7 +135,7 @@ def test_string_answer_type_constraints() -> None:
     for option_value in valid_options:
         log_substep(f'Adding valid option: {option_value}')
         option = HivemindOption()
-        option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
+        option.set_issue(hivemind_issue_cid=hivemind_issue_hash)
         option._answer_type = option_type
         option.set(value=option_value)
         option.text = f"{option_value} Programming Language"
@@ -165,7 +165,7 @@ def test_string_answer_type_constraints() -> None:
     log_substep('Testing min_length constraint')
     try:
         invalid_option = HivemindOption()
-        invalid_option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
+        invalid_option.set_issue(hivemind_issue_cid=hivemind_issue_hash)
         invalid_option._answer_type = option_type
         invalid_option.set(value='AB')  # Too short (min_length is 3)
         assert False, "Should have rejected option due to min_length constraint"
@@ -177,7 +177,7 @@ def test_string_answer_type_constraints() -> None:
     log_substep('Testing max_length constraint')
     try:
         invalid_option = HivemindOption()
-        invalid_option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
+        invalid_option.set_issue(hivemind_issue_cid=hivemind_issue_hash)
         invalid_option._answer_type = option_type
         invalid_option.set(value='ThisIsAVeryLongProgrammingLanguageName')  # Too long (max_length is 20)
         assert False, "Should have rejected option due to max_length constraint"
@@ -189,7 +189,7 @@ def test_string_answer_type_constraints() -> None:
     log_substep('Testing regex constraint')
     try:
         invalid_option = HivemindOption()
-        invalid_option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
+        invalid_option.set_issue(hivemind_issue_cid=hivemind_issue_hash)
         invalid_option._answer_type = option_type
         invalid_option.set(value='Python!')  # Contains '!' which doesn't match regex
         assert False, "Should have rejected option due to regex constraint"
@@ -201,7 +201,7 @@ def test_string_answer_type_constraints() -> None:
     log_substep('Testing choices constraint')
     try:
         invalid_option = HivemindOption()
-        invalid_option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
+        invalid_option.set_issue(hivemind_issue_cid=hivemind_issue_hash)
         invalid_option._answer_type = option_type
         invalid_option.set(value='Ruby')  # Not in choices list
         assert False, "Should have rejected option due to choices constraint"

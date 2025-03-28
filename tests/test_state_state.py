@@ -124,7 +124,7 @@ class TestHivemindStateVerification:
         # Test state finalization
         state.final = True
         option = HivemindOption()
-        option.set_hivemind_issue(issue_hash)
+        option.set_issue(issue_hash)
         option.set("New Option")
         option_hash = option.save()
 
@@ -205,7 +205,7 @@ class TestHivemindStateVerification:
 
         # 1. Test option verification
         option = HivemindOption()
-        option.set_hivemind_issue(issue_hash)
+        option.set_issue(issue_hash)
         option.set(color_choice_issue.constraints['choices'][0]['value'])  # Use 'red'
         option.text = color_choice_issue.constraints['choices'][0]['text']
         option_hash = option.save()

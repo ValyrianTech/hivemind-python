@@ -126,7 +126,7 @@ def test_bool_answer_type_constraints() -> None:
     for i, option_value in enumerate(valid_options):
         log_substep(f'Adding valid option: {option_value}')
         option = HivemindOption()
-        option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
+        option.set_issue(hivemind_issue_cid=hivemind_issue_hash)
         option._answer_type = option_type
         option.text = option_texts[i]  # Set the text before validating
         option.set(value=option_value)
@@ -156,7 +156,7 @@ def test_bool_answer_type_constraints() -> None:
     log_substep('Testing type constraint')
     try:
         invalid_option = HivemindOption()
-        invalid_option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
+        invalid_option.set_issue(hivemind_issue_cid=hivemind_issue_hash)
         invalid_option._answer_type = option_type
         invalid_option.set(value="True")  # String instead of boolean
         assert False, "Should have rejected option due to type constraint"
@@ -168,7 +168,7 @@ def test_bool_answer_type_constraints() -> None:
     log_substep('Testing integer as bool')
     try:
         invalid_option = HivemindOption()
-        invalid_option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
+        invalid_option.set_issue(hivemind_issue_cid=hivemind_issue_hash)
         invalid_option._answer_type = option_type
         invalid_option.set(value=1)  # Integer instead of boolean
         assert False, "Should have rejected option due to type constraint"

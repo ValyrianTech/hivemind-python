@@ -123,7 +123,7 @@ def test_address_answer_type_constraints() -> None:
     for i, option_value in enumerate(valid_addresses):
         log_substep(f'Adding valid address option: {option_value}')
         option = HivemindOption()
-        option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
+        option.set_issue(hivemind_issue_cid=hivemind_issue_hash)
         option._answer_type = option_type
         option.set(value=option_value)
         option.text = option_texts[i]
@@ -153,7 +153,7 @@ def test_address_answer_type_constraints() -> None:
     log_substep('Testing invalid address format')
     try:
         invalid_option = HivemindOption()
-        invalid_option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
+        invalid_option.set_issue(hivemind_issue_cid=hivemind_issue_hash)
         invalid_option._answer_type = option_type
         invalid_option.set(value="not_a_bitcoin_address")
         assert False, "Should have rejected option due to invalid address format"
@@ -165,7 +165,7 @@ def test_address_answer_type_constraints() -> None:
     log_substep('Testing empty address')
     try:
         invalid_option = HivemindOption()
-        invalid_option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
+        invalid_option.set_issue(hivemind_issue_cid=hivemind_issue_hash)
         invalid_option._answer_type = option_type
         invalid_option.set(value="")
         assert False, "Should have rejected option due to empty address"
@@ -177,7 +177,7 @@ def test_address_answer_type_constraints() -> None:
     log_substep('Testing address with invalid checksum')
     try:
         invalid_option = HivemindOption()
-        invalid_option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
+        invalid_option.set_issue(hivemind_issue_cid=hivemind_issue_hash)
         invalid_option._answer_type = option_type
         # Modify a character in a valid address to make it invalid
         invalid_address = valid_addresses[0][:-1] + ('0' if valid_addresses[0][-1] != '0' else '1')

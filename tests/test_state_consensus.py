@@ -28,7 +28,7 @@ class TestHivemindStateConsensus:
         options = []
         for choice in color_choice_issue.constraints['choices']:
             option = HivemindOption()
-            option.set_hivemind_issue(issue_hash)
+            option.set_issue(issue_hash)
             option.set(choice['value'])
             option.text = choice['text']
             option_hash = option.save()
@@ -85,7 +85,7 @@ class TestHivemindStateConsensus:
         options = []
         for choice in color_choice_issue.constraints['choices']:
             option = HivemindOption()
-            option.set_hivemind_issue(issue_hash)
+            option.set_issue(issue_hash)
             option.set(choice['value'])
             option.text = choice['text']
             option_hash = option.save()
@@ -144,7 +144,7 @@ class TestHivemindStateRankedConsensus:
         options = []
         for choice in color_choice_issue.constraints['choices']:
             option = HivemindOption()
-            option.set_hivemind_issue(issue_hash)
+            option.set_issue(issue_hash)
             option.set(choice['value'])
             option.text = choice['text']
             option_hash = option.save()
@@ -384,7 +384,7 @@ class TestHivemindStateConsensusEdgeCases:
         options = []
         for i in range(3):
             option = HivemindOption()
-            option.set_hivemind_issue(issue_hash)
+            option.set_issue(issue_hash)
             option.set(f"Option {i + 1}")
             option_hash = option.save()
             options.append(option_hash)
@@ -473,7 +473,7 @@ class TestHivemindStateExcludeSelectionMode:
         option_values = []
         for choice in color_choice_issue.constraints['choices']:
             option = HivemindOption()
-            option.set_hivemind_issue(issue_hash)
+            option.set_issue(issue_hash)
             option.set(choice['value'])
             option.text = choice['text']
             option_hash = option.save()
@@ -552,7 +552,7 @@ class TestHivemindStateFinalizeSelectionMode:
         options = []
         for choice in color_choice_issue.constraints['choices']:
             option = HivemindOption()
-            option.set_hivemind_issue(issue_hash)
+            option.set_issue(issue_hash)
             option.set(choice['value'])
             option.text = choice['text']
             option_hash = option.save()
@@ -600,7 +600,7 @@ class TestHivemindStateFinalizeSelectionMode:
 
         # Verify we can't add new options or opinions
         new_option = HivemindOption()
-        new_option.set_hivemind_issue(issue_hash)
+        new_option.set_issue(issue_hash)
         new_option.set(color_choice_issue.constraints['choices'][0]['value'])  # Use 'red' from constraints
         new_option_hash = new_option.save()
 
@@ -627,7 +627,7 @@ class TestHivemindStateFinalizeSelectionMode:
         options = []
         for choice in color_choice_issue.constraints['choices']:
             option = HivemindOption()
-            option.set_hivemind_issue(issue_hash)
+            option.set_issue(issue_hash)
             option.set(choice['value'])
             option.text = choice['text']
             option_hash = option.save()
@@ -675,7 +675,7 @@ class TestHivemindStateFinalizeSelectionMode:
 
         # Verify we can't add new options or opinions
         new_option = HivemindOption()
-        new_option.set_hivemind_issue(issue_hash)
+        new_option.set_issue(issue_hash)
         new_option.set(color_choice_issue.constraints['choices'][0]['value'])  # Use 'red' from constraints
         new_option_hash = new_option.save()
 
@@ -704,7 +704,7 @@ class TestHivemindStateResetSelectionMode:
         options = []
         for choice in color_choice_issue.constraints['choices']:
             option = HivemindOption()
-            option.set_hivemind_issue(issue_hash)
+            option.set_issue(issue_hash)
             option.set(choice['value'])
             option.text = choice['text']
             option_hash = option.save()
@@ -766,7 +766,7 @@ class TestHivemindStateResetSelectionMode:
         options = []
         for choice in color_choice_issue.constraints['choices']:
             option = HivemindOption()
-            option.set_hivemind_issue(issue_hash)
+            option.set_issue(issue_hash)
             option.set(choice['value'])
             option.text = choice['text']
             option_hash = option.save()
@@ -833,7 +833,7 @@ class TestHivemindStateUnknownSelectionMode:
         options = []
         for choice in color_choice_issue.constraints['choices']:
             option = HivemindOption()
-            option.set_hivemind_issue(issue_hash)
+            option.set_issue(issue_hash)
             option.set(choice['value'])
             option.text = choice['text']
             option_hash = option.save()
@@ -889,7 +889,7 @@ class TestHivemindStateUnknownSelectionMode:
         options = []
         for choice in color_choice_issue.constraints['choices']:
             option = HivemindOption()
-            option.set_hivemind_issue(issue_hash)
+            option.set_issue(issue_hash)
             option.set(choice['value'])
             option.text = choice['text']
             option_hash = option.save()
@@ -951,7 +951,7 @@ class TestHivemindStateNullSelectionMode:
 
         # Add an option
         option = HivemindOption()
-        option.set_hivemind_issue(issue_hash)
+        option.set_issue(issue_hash)
         option.set("red")
         option.text = "Red"
         option_hash = option.save()
@@ -1000,7 +1000,7 @@ class TestHivemindStateNullSelectionMode:
 
         # Add an option
         option = HivemindOption()
-        option.set_hivemind_issue(issue_hash)
+        option.set_issue(issue_hash)
         option.set("red")
         option.text = "Red"
         option_hash = option.save()
@@ -1050,7 +1050,7 @@ class TestHivemindStateContributions:
         options = []
         for choice in color_choice_issue.constraints['choices']:
             option = HivemindOption()
-            option.set_hivemind_issue(issue_hash)
+            option.set_issue(issue_hash)
             option.set(choice['value'])
             option.text = choice['text']
             option_hash = option.save()
@@ -1099,7 +1099,7 @@ class TestHivemindStateConsensusTie:
         options = []
         for choice in color_choice_issue.constraints['choices']:
             option = HivemindOption()
-            option.set_hivemind_issue(issue_hash)
+            option.set_issue(issue_hash)
             option.set(choice['value'])
             option.text = choice['text']
             option_hash = option.save()
@@ -1226,7 +1226,7 @@ class TestHivemindStateIncomparableOptions:
         options = []
         for choice in color_choice_issue.constraints['choices']:
             option = HivemindOption()
-            option.set_hivemind_issue(issue_hash)
+            option.set_issue(issue_hash)
             option.set(choice['value'])
             option.text = choice['text']
             option_hash = option.save()

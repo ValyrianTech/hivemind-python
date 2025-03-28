@@ -44,7 +44,7 @@ class TestHivemindStateAuthor:
         options = []
         for choice in color_choice_issue.constraints['choices']:
             option = HivemindOption()
-            option.set_hivemind_issue(issue_hash)
+            option.set_issue(issue_hash)
             option.set(choice['value'])
             option.text = choice['text']
             option_hash = option.save()
@@ -106,7 +106,7 @@ class TestHivemindStateAuthor:
         options = []
         for choice in color_choice_issue.constraints['choices']:
             option = HivemindOption()
-            option.set_hivemind_issue(issue_hash)
+            option.set_issue(issue_hash)
             option.set(choice['value'])
             option.text = choice['text']
             option_hash = option.save()
@@ -184,7 +184,7 @@ class TestHivemindStateAuthor:
         options = []
         for choice in color_choice_issue.constraints['choices']:
             option = HivemindOption()
-            option.set_hivemind_issue(issue_hash)
+            option.set_issue(issue_hash)
             option.set(choice['value'])
             option.text = choice['text']
             option_hash = option.save()
@@ -281,7 +281,7 @@ class TestHivemindStateAuthor:
         options = []
         for choice in color_choice_issue.constraints['choices']:
             option = HivemindOption()
-            option.set_hivemind_issue(issue_hash)
+            option.set_issue(issue_hash)
             option.set(choice['value'])
             option.text = choice['text']
             option_hash = option.save()

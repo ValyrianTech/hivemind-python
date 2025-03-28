@@ -55,13 +55,13 @@ class TestHivemindStateErrors:
 
         # Test with invalid option value
         option = HivemindOption()
-        option.set_hivemind_issue(issue_hash)
+        option.set_issue(issue_hash)
         with pytest.raises(Exception):
             option.set("invalid_color")  # Not in color_choice_issue constraints
 
         # Test with invalid signature
         valid_option = HivemindOption()
-        valid_option.set_hivemind_issue(issue_hash)
+        valid_option.set_issue(issue_hash)
         valid_option.set(color_choice_issue.constraints['choices'][0]['value'])  # Use 'red'
         valid_option.text = color_choice_issue.constraints['choices'][0]['text']
         valid_option_hash = valid_option.save()
@@ -92,7 +92,7 @@ class TestHivemindStateErrors:
 
         # Add a valid option first
         option = HivemindOption()
-        option.set_hivemind_issue(issue_hash)
+        option.set_issue(issue_hash)
         option.set(color_choice_issue.constraints['choices'][0]['value'])  # Use 'red'
         option.text = color_choice_issue.constraints['choices'][0]['text']
         option_hash = option.save()
@@ -144,7 +144,7 @@ class TestHivemindStateErrors:
 
         # Add options first
         option = HivemindOption()
-        option.set_hivemind_issue(issue_hash)
+        option.set_issue(issue_hash)
         option.set("Test Option")
         option_hash = option.save()
 

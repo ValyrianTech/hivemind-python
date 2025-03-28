@@ -134,7 +134,7 @@ def test_float_answer_type_constraints() -> None:
     for i, option_value in enumerate(valid_options):
         log_substep(f'Adding valid option: {option_value}')
         option = HivemindOption()
-        option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
+        option.set_issue(hivemind_issue_cid=hivemind_issue_hash)
         option._answer_type = option_type
         option.set(value=option_value)
         option.text = option_texts[i]
@@ -164,7 +164,7 @@ def test_float_answer_type_constraints() -> None:
     log_substep('Testing min_value constraint')
     try:
         invalid_option = HivemindOption()
-        invalid_option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
+        invalid_option.set_issue(hivemind_issue_cid=hivemind_issue_hash)
         invalid_option._answer_type = option_type
         invalid_option.set(value=-1.0)  # Too small (min_value is 0.0)
         assert False, "Should have rejected option due to min_value constraint"
@@ -176,7 +176,7 @@ def test_float_answer_type_constraints() -> None:
     log_substep('Testing max_value constraint')
     try:
         invalid_option = HivemindOption()
-        invalid_option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
+        invalid_option.set_issue(hivemind_issue_cid=hivemind_issue_hash)
         invalid_option._answer_type = option_type
         invalid_option.set(value=41.0)  # Too large (max_value is 40.0)
         assert False, "Should have rejected option due to max_value constraint"
@@ -188,7 +188,7 @@ def test_float_answer_type_constraints() -> None:
     log_substep('Testing decimals constraint')
     try:
         invalid_option = HivemindOption()
-        invalid_option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
+        invalid_option.set_issue(hivemind_issue_cid=hivemind_issue_hash)
         invalid_option._answer_type = option_type
         invalid_option.set(value=20.25)  # Has 2 decimal places (decimals constraint is 1)
         assert False, "Should have rejected option due to decimals constraint"
@@ -200,7 +200,7 @@ def test_float_answer_type_constraints() -> None:
     log_substep('Testing type constraint')
     try:
         invalid_option = HivemindOption()
-        invalid_option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
+        invalid_option.set_issue(hivemind_issue_cid=hivemind_issue_hash)
         invalid_option._answer_type = option_type
         invalid_option.set(value=20)  # Integer instead of float
         assert False, "Should have rejected option due to type constraint"
@@ -212,7 +212,7 @@ def test_float_answer_type_constraints() -> None:
     log_substep('Testing choices constraint')
     try:
         invalid_option = HivemindOption()
-        invalid_option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
+        invalid_option.set_issue(hivemind_issue_cid=hivemind_issue_hash)
         invalid_option._answer_type = option_type
         invalid_option.set(value=20.0)  # Valid float but not in choices list
         assert False, "Should have rejected option due to choices constraint"

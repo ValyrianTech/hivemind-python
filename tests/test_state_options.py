@@ -89,7 +89,7 @@ class TestHivemindStateOptions:
 
         # Test with unauthorized address
         option = HivemindOption()
-        option.set_hivemind_issue(issue_hash)
+        option.set_issue(issue_hash)
         option.set('test option')
         option_hash = option.save()
 

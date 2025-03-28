@@ -92,7 +92,7 @@ class TestHelper:
             str: Hash of the created option
         """
         option = HivemindOption()
-        option.set_hivemind_issue(issue_hash)
+        option.set_issue(issue_hash)
         option.set(value=value)
         option.text = text
         option_hash = option.save()

@@ -132,7 +132,7 @@ def test_integer_answer_type_constraints() -> None:
     for i, option_value in enumerate(valid_options):
         log_substep(f'Adding valid option: {option_value}')
         option = HivemindOption()
-        option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
+        option.set_issue(hivemind_issue_cid=hivemind_issue_hash)
         option._answer_type = option_type
         option.set(value=option_value)
         option.text = option_texts[i]
@@ -162,7 +162,7 @@ def test_integer_answer_type_constraints() -> None:
     log_substep('Testing min_value constraint')
     try:
         invalid_option = HivemindOption()
-        invalid_option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
+        invalid_option.set_issue(hivemind_issue_cid=hivemind_issue_hash)
         invalid_option._answer_type = option_type
         invalid_option.set(value=0)  # Too small (min_value is 1)
         assert False, "Should have rejected option due to min_value constraint"
@@ -174,7 +174,7 @@ def test_integer_answer_type_constraints() -> None:
     log_substep('Testing max_value constraint')
     try:
         invalid_option = HivemindOption()
-        invalid_option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
+        invalid_option.set_issue(hivemind_issue_cid=hivemind_issue_hash)
         invalid_option._answer_type = option_type
         invalid_option.set(value=101)  # Too large (max_value is 100)
         assert False, "Should have rejected option due to max_value constraint"
@@ -186,7 +186,7 @@ def test_integer_answer_type_constraints() -> None:
     log_substep('Testing type constraint')
     try:
         invalid_option = HivemindOption()
-        invalid_option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
+        invalid_option.set_issue(hivemind_issue_cid=hivemind_issue_hash)
         invalid_option._answer_type = option_type
         invalid_option.set(value=42.5)  # Not an integer
         assert False, "Should have rejected option due to type constraint"
@@ -198,7 +198,7 @@ def test_integer_answer_type_constraints() -> None:
     log_substep('Testing choices constraint')
     try:
         invalid_option = HivemindOption()
-        invalid_option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
+        invalid_option.set_issue(hivemind_issue_cid=hivemind_issue_hash)
         invalid_option._answer_type = option_type
         invalid_option.set(value=50)  # Valid integer but not in choices list
         assert False, "Should have rejected option due to choices constraint"

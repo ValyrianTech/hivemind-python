@@ -167,7 +167,7 @@ def test_full_hivemind_workflow() -> None:
     for option_value, option_text in option_values.items():
         log_substep(f'Adding option {option_value}: {option_text}')
         option = HivemindOption()
-        option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
+        option.set_issue(hivemind_issue_cid=hivemind_issue_hash)
         option._answer_type = option_type
         option.set(value=option_value)
         option.text = option_text
@@ -202,7 +202,7 @@ def test_full_hivemind_workflow() -> None:
 
     # Try to add one more option (should fail)
     extra_option = HivemindOption()
-    extra_option.set_hivemind_issue(hivemind_issue_hash)
+    extra_option.set_issue(hivemind_issue_hash)
     extra_option._answer_type = option_type  # Set the answer type to match others
     extra_option.set(11)  # Use next integer in sequence
     extra_option.text = "Eleven"  # Add descriptive text

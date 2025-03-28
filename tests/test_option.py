@@ -58,7 +58,7 @@ class TestHivemindOption:
         issue_hash = test_issue._cid  # Use _cid directly since it's already a string
 
         # Test setting the issue
-        option.set_hivemind_issue(issue_hash)
+        option.set_issue(issue_hash)
         assert option.hivemind_id == issue_hash
         assert isinstance(option._hivemind_issue, HivemindIssue)
         assert option._answer_type == 'String'
@@ -171,7 +171,7 @@ class TestHivemindOption:
 
     def test_initializing_with_option_hash(self, string_question_hash):
         option = HivemindOption()
-        option.set_hivemind_issue(hivemind_issue_hash=string_question_hash)
+        option.set_issue(hivemind_issue_cid=string_question_hash)
         option.set('42')
 
         option_hash = option.save()
@@ -201,7 +201,7 @@ class TestHivemindOption:
 
     def test_setting_value_that_conflicts_with_answer_type(self, string_question_hash):
         option = HivemindOption()
-        option.set_hivemind_issue(hivemind_issue_hash=string_question_hash)
+        option.set_issue(hivemind_issue_cid=string_question_hash)
         with pytest.raises(Exception):
             option.set(42)  # must be string instead of number
 
@@ -353,7 +353,7 @@ class TestHivemindOption:
 
         # Test with invalid CID
         with pytest.raises(Exception):
-            option.set_hivemind_issue("invalid_cid")
+            option.set_issue("invalid_cid")
 
     def test_set_method_errors(self, option: HivemindOption) -> None:
         """Test error cases in set() method"""

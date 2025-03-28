@@ -28,7 +28,7 @@ class TestHivemindStateOpinions:
         options = []
         for i in range(3):
             option = HivemindOption()
-            option.set_hivemind_issue(issue_hash)
+            option.set_issue(issue_hash)
             option.set(f"Option {i + 1}")
             option_hash = option.save()
             options.append(option_hash)
@@ -132,7 +132,7 @@ class TestHivemindStateOpinions:
 
         # Add an option first
         option = HivemindOption()
-        option.set_hivemind_issue(issue_hash)
+        option.set_issue(issue_hash)
         option.set("Test Option")
         option_hash = option.save()
 
@@ -209,7 +209,7 @@ class TestHivemindStateOpinions:
         options = []
         for i in range(3):
             option = HivemindOption()
-            option.set_hivemind_issue(issue_hash)
+            option.set_issue(issue_hash)
             option.set(i + 1)  # Numeric values: 1, 2, 3
             option_hash = option.save()
             options.append(option_hash)
@@ -289,7 +289,7 @@ class TestHivemindStateOpinions:
 
         # Create and add an option first
         option = HivemindOption()
-        option.set_hivemind_issue(issue_hash)
+        option.set_issue(issue_hash)
         option.set("Test Option")
         option_hash = option.save()
 

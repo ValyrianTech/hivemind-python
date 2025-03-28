@@ -122,7 +122,7 @@ class TestErrorHandling:
 
         # Configure HivemindOption to raise an exception
         test_exception = Exception("Test unexpected error")
-        mock_hivemind_option.return_value.set_hivemind_issue.side_effect = test_exception
+        mock_hivemind_option.return_value.set_issue.side_effect = test_exception
 
         # Test the endpoint
         option_data = {
@@ -154,7 +154,7 @@ class TestErrorHandling:
 
         # Configure HivemindOption to raise an HTTPException
         http_exception = HTTPException(status_code=422, detail="Test HTTP exception")
-        mock_hivemind_option.return_value.set_hivemind_issue.side_effect = http_exception
+        mock_hivemind_option.return_value.set_issue.side_effect = http_exception
 
         # Test the endpoint
         option_data = {

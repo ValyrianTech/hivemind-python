@@ -38,7 +38,7 @@ class TestHivemindStateRestrictions:
         # Helper to create option
         def create_option(content: str) -> str:
             option = HivemindOption()
-            option.set_hivemind_issue(issue_hash)
+            option.set_issue(issue_hash)
             option.set(content)
             return option.save()
 

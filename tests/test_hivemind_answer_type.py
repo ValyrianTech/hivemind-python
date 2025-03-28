@@ -132,7 +132,7 @@ def test_hivemind_answer_type_constraints() -> None:
     for i, option_value in enumerate(reference_hiveminds):
         log_substep(f'Adding valid Hivemind option: {option_value}')
         option = HivemindOption()
-        option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
+        option.set_issue(hivemind_issue_cid=hivemind_issue_hash)
         option._answer_type = option_type
         option.set(value=option_value)
         option.text = option_texts[i]
@@ -162,7 +162,7 @@ def test_hivemind_answer_type_constraints() -> None:
     log_substep('Testing invalid IPFS hash')
     try:
         invalid_option = HivemindOption()
-        invalid_option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
+        invalid_option.set_issue(hivemind_issue_cid=hivemind_issue_hash)
         invalid_option._answer_type = option_type
         invalid_option.set(value="QmInvalidIPFSHash")
         assert False, "Should have rejected option due to invalid IPFS hash"
@@ -174,7 +174,7 @@ def test_hivemind_answer_type_constraints() -> None:
     log_substep('Testing non-existent Hivemind')
     try:
         invalid_option = HivemindOption()
-        invalid_option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
+        invalid_option.set_issue(hivemind_issue_cid=hivemind_issue_hash)
         invalid_option._answer_type = option_type
         # Create a valid-looking but non-existent IPFS hash
         invalid_option.set(value="QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG")
@@ -187,7 +187,7 @@ def test_hivemind_answer_type_constraints() -> None:
     log_substep('Testing empty IPFS hash')
     try:
         invalid_option = HivemindOption()
-        invalid_option.set_hivemind_issue(hivemind_issue_hash=hivemind_issue_hash)
+        invalid_option.set_issue(hivemind_issue_cid=hivemind_issue_hash)
         invalid_option._answer_type = option_type
         invalid_option.set(value="")
         assert False, "Should have rejected option due to empty IPFS hash"

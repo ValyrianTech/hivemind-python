@@ -48,7 +48,7 @@ class TestHivemindStateSignatures:
 
         # Create and add first option without signature
         option1 = HivemindOption()
-        option1.set_hivemind_issue(issue_hash)
+        option1.set_issue(issue_hash)
         option1.set("test option 1")
         option1_hash = option1.save()
 
@@ -61,7 +61,7 @@ class TestHivemindStateSignatures:
 
         # Create and add second option with just address but no signature
         option2 = HivemindOption()
-        option2.set_hivemind_issue(issue_hash)
+        option2.set_issue(issue_hash)
         option2.set("test option 2")
         option2_hash = option2.save()
         state.add_option(timestamp, option2_hash, address="test_address")

@@ -709,7 +709,7 @@ async def create_option(option: OptionCreate):
         
         # Create the new option
         new_option = HivemindOption()
-        new_option.set_hivemind_issue(hivemind_issue_hash=option.hivemind_id)
+        new_option.set_issue(hivemind_issue_cid=option.hivemind_id)
         
         # Set text and value based on option type
         new_option.text = option.text
