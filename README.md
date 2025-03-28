@@ -82,7 +82,7 @@ Options can be predefined or submitted dynamically:
 ```python
 # Dynamic option
 option = HivemindOption()
-option.set_hivemind_issue(issue.cid)
+option.set_issue(issue.cid)
 option.set("Custom implementation approach")
 
 # With signature
@@ -118,14 +118,14 @@ The protocol maintains state through:
 
 ```python
 state = HivemindState()
-state.set_hivemind_issue(issue.cid)
+state.set_issue(issue.cid)
 state.add_option(timestamp, option.cid, voter_address, signature)
 state.add_opinion(timestamp, opinion.cid, signature, voter_address)
 
 # State transitions
 state.finalize()  # Lock the state
-state.reset()     # Clear opinions
-state.exclude()   # Exclude options and recalculate
+state.reset()  # Clear opinions
+state.exclude()  # Exclude options and recalculate
 ```
 
 ### 5. Result Calculation
