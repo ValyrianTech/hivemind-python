@@ -124,7 +124,7 @@ class TestHivemindOpinion:
 
     def test_get_empty_ranking(self, opinion: HivemindOpinion) -> None:
         """Test getting ranking when none is set"""
-        result = opinion.get()
+        result = opinion.to_dict()
         assert isinstance(result, dict)
         assert result['hivemind_id'] is None
         assert result['question_index'] == 0
@@ -133,7 +133,7 @@ class TestHivemindOpinion:
     def test_get_fixed_ranking(self, opinion: HivemindOpinion, test_options: List[str]) -> None:
         """Test getting fixed ranking"""
         opinion.ranking.set_fixed(test_options)
-        result = opinion.get()
+        result = opinion.to_dict()
         assert isinstance(result, dict)
         assert result['hivemind_id'] is None
         assert result['question_index'] == 0
@@ -405,7 +405,7 @@ class TestHivemindOpinion:
         opinion.set_question_index(1)
 
         # Convert the ranking to a serializable format before saving
-        opinion_data = opinion.get()
+        opinion_data = opinion.to_dict()
         for key, value in opinion_data.items():
             opinion[key] = value
 
