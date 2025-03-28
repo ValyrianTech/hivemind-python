@@ -103,7 +103,7 @@ class HivemindIssue(IPFSDict):
             if constraint_type in constraints and not isinstance(constraints[constraint_type], (int, float)):
                 raise Exception('Value of constraint %s must be a number' % constraint_type)
 
-        for constraint_type in ['regex', 'true_value', 'false_value']:
+        for constraint_type in ['regex', 'true_value', 'false_value', 'filetype']:
             if constraint_type in constraints and not isinstance(constraints[constraint_type], str):
                 raise Exception('Value of constraint %s must be a string' % constraint_type)
 
