@@ -902,7 +902,8 @@ async def submit_opinion(opinion: OpinionCreate) -> Dict[str, Any]:
             ranking = Ranking()
             if opinion.ranking_type == "fixed":
                 ranking.set_fixed(opinion.ranking)
-                hivemind_opinion.ranking = ranking.get()
+                # Store the ranking as a dictionary for consistency with auto rankings
+                hivemind_opinion.ranking = ranking.to_dict()
             elif opinion.ranking_type in ["auto_high", "auto_low"]:
                 if not opinion.ranking or len(opinion.ranking) != 1:
                     raise ValueError("Auto ranking requires exactly one preferred option")
