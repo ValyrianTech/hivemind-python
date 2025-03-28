@@ -164,33 +164,6 @@ class HivemindIssue(IPFSDict):
 
         self.restrictions = restrictions
 
-    def info(self) -> str:
-        """Get information about the hivemind issue.
-
-        Returns a formatted string with details about the issue including name,
-        description, questions, tags, answer type, and constraints.
-
-        :return: A string containing formatted information about the hivemind issue
-        :rtype: str
-        """
-        info = 'Hivemind name: %s\n' % self.name
-        info += 'Hivemind description: %s\n' % self.description
-
-        for i, question in enumerate(self.questions):
-            info += 'Hivemind question %s: %s\n' % (i+1, question)
-
-        info += 'Hivemind tags: %s\n' % self.tags
-        info += 'Answer type: %s\n' % self.answer_type
-
-        if self.constraints:
-            for constraint_type, constraint_value in self.constraints.items():
-                info += 'Constraint %s: %s\n' % (constraint_type, constraint_value)
-
-        for i, additional_question in enumerate(self.questions[1:]):
-            info += 'Additional question %s: %s\n' % (i + 1, additional_question)
-
-        return info
-
     def save(self) -> str:
         """Save the hivemind issue to IPFS.
 

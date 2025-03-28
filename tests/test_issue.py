@@ -231,8 +231,8 @@ class TestHivemindIssue:
         hivemind_issue.set_restrictions(restrictions=restrictions)
         assert hivemind_issue.restrictions == restrictions
 
-    def test_info_method(self):
-        """Test the info() method output format"""
+    def test_issue_properties(self):
+        """Test the HivemindIssue properties"""
         hivemind_issue = HivemindIssue()
         hivemind_issue.name = "Test Issue"
         hivemind_issue.description = "Test Description"
@@ -242,15 +242,15 @@ class TestHivemindIssue:
         hivemind_issue.answer_type = "String"
         hivemind_issue.set_constraints({"min_length": 5, "max_length": 10})
 
-        info_text = hivemind_issue.info()
-        assert "Hivemind name: Test Issue" in info_text
-        assert "Hivemind description: Test Description" in info_text
-        assert "Hivemind question 1: Main Question?" in info_text
-        assert "Hivemind question 2: Follow-up Question?" in info_text
-        assert "Hivemind tags: ['tag1', 'tag2']" in info_text
-        assert "Answer type: String" in info_text
-        assert "Constraint min_length: 5" in info_text
-        assert "Constraint max_length: 10" in info_text
+        # Test properties directly instead of using info() method
+        assert hivemind_issue.name == "Test Issue"
+        assert hivemind_issue.description == "Test Description"
+        assert hivemind_issue.questions[0] == "Main Question?"
+        assert hivemind_issue.questions[1] == "Follow-up Question?"
+        assert hivemind_issue.tags == ["tag1", "tag2"]
+        assert hivemind_issue.answer_type == "String"
+        assert hivemind_issue.constraints["min_length"] == 5
+        assert hivemind_issue.constraints["max_length"] == 10
 
     def test_valid_description_length(self):
         """Test validation of description length"""
