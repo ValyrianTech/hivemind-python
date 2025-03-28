@@ -68,7 +68,7 @@ class HivemindIssue(IPFSDict):
         if isinstance(question, str) and question not in self.questions:
             self.questions.append(question)
 
-    def set_constraints(self, constraints: Dict[str, str | int | float | list]) -> None:
+    def set_constraints(self, constraints: Dict[str, str | int | float | list] | None) -> None:
         """Set constraints for the hivemind issue.
 
         Constraints can include various limitations on the answers, such as:
@@ -83,10 +83,14 @@ class HivemindIssue(IPFSDict):
         - filetype: For file answer types
 
         :param constraints: Dictionary of constraints
-        :type constraints: Dict[str, str | int | float | list]
+        :type constraints: Dict[str, str | int | float | list] | None
         :return: None
         :raises Exception: If constraints are invalid
         """
+        if constraints is None:
+            self.constraints = None
+            return
+            
         if not isinstance(constraints, dict):
             raise Exception('constraints must be a dict, got %s' % type(constraints))
 

@@ -409,3 +409,14 @@ class TestHivemindIssue:
         # Verify the data contains the correct hivemind_id and name
         assert identification_data['hivemind_id'] == issue_cid.replace('/ipfs/', '')
         assert identification_data['name'] == participant_name
+
+    def test_set_constraints_none(self, issue: HivemindIssue) -> None:
+        """Test setting constraints to None"""
+        # First set some constraints
+        constraints = {'min_length': 5, 'max_length': 10}
+        issue.set_constraints(constraints)
+        assert issue.constraints == constraints
+        
+        # Then set to None
+        issue.set_constraints(None)
+        assert issue.constraints is None
