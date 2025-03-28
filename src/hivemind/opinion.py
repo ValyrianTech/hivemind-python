@@ -100,7 +100,6 @@ class HivemindOpinion(IPFSDict):
                 self.ranking.set_auto_high(choice=ranking_dict['auto_high'])
             elif 'auto_low' in ranking_dict:
                 self.ranking.set_auto_low(choice=ranking_dict['auto_low'])
-            # If none of the expected keys are present, ranking will remain empty
 
     def __repr__(self) -> str:
         """Return a string representation of the opinion.
