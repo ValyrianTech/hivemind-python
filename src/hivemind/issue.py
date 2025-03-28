@@ -189,7 +189,7 @@ class HivemindIssue(IPFSDict):
 
         Validates all properties of the issue including:
         - name: Must be a non-empty string ≤ 50 characters
-        - description: Must be a string ≤ 255 characters
+        - description: Must be a string ≤ 5000 characters
         - tags: Must be a list of unique strings without spaces, each ≤ 20 characters
         - questions: Must be a non-empty list of unique strings, each ≤ 255 characters
         - answer_type: Must be one of the allowed types
@@ -203,8 +203,8 @@ class HivemindIssue(IPFSDict):
         if not isinstance(self.name, str) or not (0 < len(self.name) <= 50):
             raise Exception('Invalid name for Hivemind Issue: %s' % self.name)
 
-        # Description must be a string, not longer than 255 characters
-        if not (isinstance(self.description, str) and len(self.description) <= 255):
+        # Description must be a string, not longer than 5000 characters
+        if not (isinstance(self.description, str) and len(self.description) <= 5000):
             raise Exception('Invalid description for Hivemind Issue: %s' % self.description)
 
         # Tags must be a list of strings, each tag can not contain spaces and can not be empty or longer than 20 characters

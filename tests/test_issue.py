@@ -257,7 +257,7 @@ class TestHivemindIssue:
         hivemind_issue = HivemindIssue()
         hivemind_issue.name = "Test"
         hivemind_issue.add_question("Question?")
-        hivemind_issue.description = "a" * 256  # Too long
+        hivemind_issue.description = "a" * 5001  # Too long
         with pytest.raises(Exception) as exc_info:
             hivemind_issue.valid()
         assert "Invalid description" in str(exc_info.value)

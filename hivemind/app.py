@@ -18,7 +18,7 @@ from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconn
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ipfs_dict_chain.IPFSDict import IPFSDict
 from ipfs_dict_chain.IPFS import connect
@@ -235,7 +235,7 @@ class IPFSHashRequest(BaseModel):
 class HivemindIssueCreate(BaseModel):
     """Pydantic model for creating a new HivemindIssue."""
     name: str
-    description: str
+    description: str = Field(..., max_length=5000)
     questions: List[str]
     tags: List[str]
     answer_type: str
