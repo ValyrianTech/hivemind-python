@@ -927,11 +927,11 @@ class TestEndpoints:
         data = response.json()
         assert "IPFS error" in data["detail"]
 
-    @patch("app.HivemindIssue")
-    @patch("app.HivemindState")
-    @patch("app.HivemindOption")
     @patch("app.HivemindOpinion")
-    def test_fetch_state_option_cid_handling(self, mock_hivemind_opinion_class, mock_hivemind_option_class, mock_hivemind_state_class, mock_hivemind_issue_class):
+    @patch("app.HivemindOption")
+    @patch("app.HivemindState")
+    @patch("app.HivemindIssue")
+    def test_fetch_state_option_cid_handling(self, mock_hivemind_issue_class, mock_hivemind_state_class, mock_hivemind_option_class, mock_hivemind_opinion_class):
         """Test the fetch_state endpoint's handling of option CIDs with '/ipfs/' prefix and None scores."""
         # Setup mock state instance
         mock_state = MagicMock()
@@ -942,6 +942,15 @@ class TestEndpoints:
         ]
         mock_state.final = False
         mock_state.get_questions.return_value = ["Question 1?"]
+        mock_state.get_options_for_question.return_value = [
+            {"id": "/ipfs/option1", "value": "value1", "text": "Option 1"},
+            {"id": "option2", "value": "value2", "text": "Option 2"}
+        ]
+        mock_state.get_rankings.return_value = {
+            "option1": {"rank": 1, "score": 1.0},
+            "option2": {"rank": 2, "score": 0.5}
+        }
+        mock_state.get_participants.return_value = ["participant1"]
 
         # Create mock options with different CID formats
         option1 = MagicMock()
@@ -957,11 +966,11 @@ class TestEndpoints:
         # Set up sorted options to include both types
         mock_state.get_sorted_options.return_value = [option1, option2]
 
-        # Set up calculate_results to return scores where one is None
-        mock_state.calculate_results.return_value = {
+        # Set up results to return scores where one is None (using the new caching mechanism)
+        mock_state.results.return_value = [{
             "option1": {"score": None},  # Test None score handling
             "option2": {"score": 0.75}
-        }
+        }]
 
         # Set up contributions
         mock_state.contributions.return_value = {"address1": 1.0}
@@ -972,10 +981,12 @@ class TestEndpoints:
         mock_issue.description = "Test Description"
         mock_issue.questions = ["Question 1?"]
         mock_issue.answer_type = "ranked"
+        mock_issue.tags = ["test"]
 
         # Configure the mock classes to return our mock instances
         mock_hivemind_state_class.return_value = mock_state
         mock_hivemind_issue_class.return_value = mock_issue
+        mock_hivemind_option_class.side_effect = lambda cid=None: option1 if cid == "/ipfs/option1" else option2
 
         # Setup mock opinion instance
         mock_opinion = MagicMock()
