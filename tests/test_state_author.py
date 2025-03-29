@@ -166,18 +166,18 @@ class TestHivemindStateAuthor:
         # Manually set the author field directly on the _hivemind_issue object
         # This is necessary because the HivemindIssue loaded from IPFS may not 
         # have all fields properly initialized
-        state._hivemind_issue.author = author_address
+        state._issue.author = author_address
         
         logging.info(f"Author address: {author_address}")
         logging.info(f"User address: {user_address}")
         logging.info(f"Issue author: {color_choice_issue.author}")
         logging.info(f"State hivemind_id: {state.hivemind_id}")
-        logging.info(f"State hivemind_issue author: {state._hivemind_issue.author}")
-        logging.info(f"State hivemind_issue is None: {state._hivemind_issue is None}")
-        logging.info(f"hasattr(state._hivemind_issue, 'author'): {hasattr(state._hivemind_issue, 'author')}")
-        logging.info(f"bool(state._hivemind_issue.author): {bool(state._hivemind_issue.author)}")
-        logging.info(f"Type of state._hivemind_issue: {type(state._hivemind_issue)}")
-        logging.info(f"Type of state._hivemind_issue.author: {type(state._hivemind_issue.author)}")
+        logging.info(f"State hivemind_issue author: {state._issue.author}")
+        logging.info(f"State hivemind_issue is None: {state._issue is None}")
+        logging.info(f"hasattr(state._hivemind_issue, 'author'): {hasattr(state._issue, 'author')}")
+        logging.info(f"bool(state._hivemind_issue.author): {bool(state._issue.author)}")
+        logging.info(f"Type of state._hivemind_issue: {type(state._issue)}")
+        logging.info(f"Type of state._hivemind_issue.author: {type(state._issue.author)}")
         
         # Add options from constraints
         options = []
@@ -220,7 +220,7 @@ class TestHivemindStateAuthor:
         
         logging.info(f"Message for signature: {message}")
         logging.info(f"Signature: {signature}")
-        logging.info(f"State hivemind_issue author: {state._hivemind_issue.author}")
+        logging.info(f"State hivemind_issue author: {state._issue.author}")
         
         # Log the verification result directly
         verification_result = verify_message(message=message, address=author_address, signature=signature)
@@ -266,13 +266,13 @@ class TestHivemindStateAuthor:
         # Manually set the author field directly on the _hivemind_issue object
         # This is necessary because the HivemindIssue loaded from IPFS may not 
         # have all fields properly initialized
-        state._hivemind_issue.author = author_address
+        state._issue.author = author_address
         
         logging.info(f"Author address: {author_address}")
         logging.info(f"User address: {user_address}")
         logging.info(f"Issue author: {color_choice_issue.author}")
         logging.info(f"State hivemind_id: {state.hivemind_id}")
-        logging.info(f"State hivemind_issue author: {state._hivemind_issue.author}")
+        logging.info(f"State hivemind_issue author: {state._issue.author}")
         
         # Add options from constraints
         options = []
@@ -313,7 +313,7 @@ class TestHivemindStateAuthor:
         
         logging.info(f"Message for signature: {message}")
         logging.info(f"Signature: {signature}")
-        logging.info(f"State hivemind_issue author: {state._hivemind_issue.author}")
+        logging.info(f"State hivemind_issue author: {state._issue.author}")
         
         # Since we can't modify the core code, we'll test the address check directly
         # This verifies that the address is different from the author

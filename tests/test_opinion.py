@@ -24,8 +24,8 @@ def string_state_hash(string_issue_hash: str) -> str:
     """Create and save a HivemindState with string issue for testing."""
     hivemind_state = HivemindState()
     hivemind_state.hivemind_id = string_issue_hash
-    hivemind_state._hivemind_issue = HivemindIssue(cid=string_issue_hash)
-    hivemind_state._hivemind_issue.load(string_issue_hash)
+    hivemind_state._issue = HivemindIssue(cid=string_issue_hash)
+    hivemind_state._issue.load(string_issue_hash)
     hivemind_state.add_predefined_options()
     return hivemind_state.save()
 
@@ -54,9 +54,9 @@ def integer_state_hash(integer_issue_hash: str) -> str:
     """Create and save a HivemindState with integer issue for testing."""
     hivemind_state = HivemindState()
     hivemind_state.hivemind_id = integer_issue_hash
-    hivemind_state._hivemind_issue = HivemindIssue(cid=integer_issue_hash)
-    hivemind_state._hivemind_issue.load(integer_issue_hash)
-    hivemind_state._answer_type = hivemind_state._hivemind_issue.answer_type  # Set answer type before adding options
+    hivemind_state._issue = HivemindIssue(cid=integer_issue_hash)
+    hivemind_state._issue.load(integer_issue_hash)
+    hivemind_state._answer_type = hivemind_state._issue.answer_type  # Set answer type before adding options
     hivemind_state.add_predefined_options()
     return hivemind_state.save()
 

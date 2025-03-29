@@ -511,7 +511,7 @@ class TestHivemindStateWeightedConsensus:
         test_address = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa@2.5"
         other_address = "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2"
         invalid_weight_address = "1MzQwSR3s7RqxJPuQzF7Y4iybjhHNV4bZq@invalid"
-        state._hivemind_issue.restrictions = {
+        state._issue.restrictions = {
             'addresses': [test_address, other_address, invalid_weight_address]
         }
 
@@ -727,7 +727,7 @@ class TestHivemindStateResetSelectionMode:
 
         # Set on_selection to Reset
         color_choice_issue.on_selection = 'Reset'
-        state._hivemind_issue = color_choice_issue
+        state._issue = color_choice_issue
 
         # Calculate results
         state.calculate_results()
@@ -788,7 +788,7 @@ class TestHivemindStateResetSelectionMode:
 
         # Set on_selection to Reset
         color_choice_issue.on_selection = 'Reset'
-        state._hivemind_issue = color_choice_issue
+        state._issue = color_choice_issue
 
         # Calculate results
         state.calculate_results()
@@ -850,7 +850,7 @@ class TestHivemindStateUnknownSelectionMode:
 
         # Set an invalid selection mode
         color_choice_issue.on_selection = 'InvalidMode'
-        state._hivemind_issue = color_choice_issue
+        state._issue = color_choice_issue
 
         # Calculate results
         state.calculate_results()
@@ -905,7 +905,7 @@ class TestHivemindStateUnknownSelectionMode:
 
         # Set an invalid selection mode
         color_choice_issue.on_selection = 'InvalidMode'
-        state._hivemind_issue = color_choice_issue
+        state._issue = color_choice_issue
 
         # Calculate results
         state.calculate_results()

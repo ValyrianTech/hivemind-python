@@ -12,7 +12,7 @@ class TestHivemindStateInit:
     def test_init(self, state: HivemindState) -> None:
         """Test initialization of HivemindState."""
         assert state.hivemind_id is None
-        assert state._hivemind_issue is None
+        assert state._issue is None
         assert state.option_cids == []
         assert state.opinion_cids == [{}]
         assert state.signatures == {}
@@ -25,8 +25,8 @@ class TestHivemindStateInit:
         issue_hash = color_choice_issue.save()
         state.set_hivemind_issue(issue_hash)
         assert state.hivemind_id is not None
-        assert isinstance(state._hivemind_issue, HivemindIssue)
-        assert len(state.opinion_cids) == len(state._hivemind_issue.questions)
+        assert isinstance(state._issue, HivemindIssue)
+        assert len(state.opinion_cids) == len(state._issue.questions)
 
     def test_hivemind_issue_property(self, state: HivemindState, basic_issue: HivemindIssue) -> None:
         """Test the hivemind_issue method."""
@@ -36,7 +36,7 @@ class TestHivemindStateInit:
         # After setting, should return the issue
         issue_hash = basic_issue.save()
         state.set_hivemind_issue(issue_hash)
-        assert state.hivemind_issue() == state._hivemind_issue
+        assert state.hivemind_issue() == state._issue
         assert isinstance(state.hivemind_issue(), HivemindIssue)
 
     def test_load_with_existing_issue(self, state: HivemindState, basic_issue: HivemindIssue) -> None:

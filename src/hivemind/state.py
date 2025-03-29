@@ -22,7 +22,7 @@ class HivemindState(IPFSDictChain):
 
     :ivar hivemind_id: The IPFS hash of the associated hivemind issue
     :vartype hivemind_id: str | None
-    :ivar _hivemind_issue: The associated hivemind issue object
+    :ivar _issue: The associated hivemind issue object
     :vartype _hivemind_issue: HivemindIssue | None
     :ivar option_cids: List of option CIDs
     :vartype option_cids: List[str]
@@ -45,7 +45,7 @@ class HivemindState(IPFSDictChain):
         :type cid: str
         """
         self.hivemind_id: str | None = None
-        self._hivemind_issue: HivemindIssue | None = None
+        self._issue: HivemindIssue | None = None
         self.option_cids: List[str] = []
         self.opinion_cids: List[Dict[str, Any]] = [{}]
         self.signatures: Dict[str, Dict[str, Dict[str, int]]] = {}
@@ -75,7 +75,7 @@ class HivemindState(IPFSDictChain):
         :return: The associated hivemind issue object
         :rtype: HivemindIssue
         """
-        return self._hivemind_issue
+        return self._issue
 
     def get_options(self) -> List[HivemindOption]:
         """Get list of hivemind options.
@@ -93,8 +93,8 @@ class HivemindState(IPFSDictChain):
         :return: None
         """
         self.hivemind_id = issue_hash
-        self._hivemind_issue = HivemindIssue(cid=self.hivemind_id)
-        self.opinion_cids = [{} for _ in range(len(self._hivemind_issue.questions))]
+        self._issue = HivemindIssue(cid=self.hivemind_id)
+        self.opinion_cids = [{} for _ in range(len(self._issue.questions))]
 
     def add_predefined_options(self) -> Dict[str, Dict[str, Any]]:
         """Add predefined options to the hivemind state.
@@ -104,10 +104,10 @@ class HivemindState(IPFSDictChain):
         """
         options = {}
 
-        if self._hivemind_issue.answer_type == 'Bool':
+        if self._issue.answer_type == 'Bool':
             true_option = HivemindOption()
             true_option.set_issue(self.hivemind_id)
-            true_option.text = self._hivemind_issue.constraints['true_value']
+            true_option.text = self._issue.constraints['true_value']
             true_option.set(value=True)
             true_option_hash = true_option.save()
             if isinstance(true_option, HivemindOption) and true_option.valid():
@@ -117,7 +117,7 @@ class HivemindState(IPFSDictChain):
 
             false_option = HivemindOption()
             false_option.set_issue(self.hivemind_id)
-            false_option.text = self._hivemind_issue.constraints['false_value']
+            false_option.text = self._issue.constraints['false_value']
             false_option.set(value=False)
             false_option_hash = false_option.save()
             if isinstance(false_option, HivemindOption) and false_option.valid():
@@ -125,8 +125,8 @@ class HivemindState(IPFSDictChain):
                     self.option_cids.append(false_option_hash)
                     options[false_option_hash] = {'value': false_option.value, 'text': false_option.text}
 
-        elif 'choices' in self._hivemind_issue.constraints:
-            for choice in self._hivemind_issue.constraints['choices']:
+        elif 'choices' in self._issue.constraints:
+            for choice in self._issue.constraints['choices']:
                 if isinstance(choice, dict):
                     option = HivemindOption()
                     option.set_issue(self.hivemind_id)
@@ -148,11 +148,11 @@ class HivemindState(IPFSDictChain):
         :return: None
         """
         super(HivemindState, self).load(cid=cid)
-        self._hivemind_issue = HivemindIssue(cid=self.hivemind_id)
+        self._issue = HivemindIssue(cid=self.hivemind_id)
 
         # Only initialize opinions if they don't exist
         if not hasattr(self, 'opinion_cids') or self.opinion_cids is None:
-            self.opinion_cids = [{} for _ in range(len(self._hivemind_issue.questions))]
+            self.opinion_cids = [{} for _ in range(len(self._issue.questions))]
 
     def add_option(self, timestamp: int, option_hash: str, address: str = None, signature: str = None) -> None:
         """Add an option to the hivemind state.
@@ -170,18 +170,18 @@ class HivemindState(IPFSDictChain):
         if self.final is True:
             raise Exception('Can not add option: hivemind issue is finalized')
 
-        if not isinstance(self._hivemind_issue, HivemindIssue):
+        if not isinstance(self._issue, HivemindIssue):
             return
 
         # Check for address restrictions
-        has_address_restrictions = (self._hivemind_issue.restrictions is not None and
-                                    'addresses' in self._hivemind_issue.restrictions)
+        has_address_restrictions = (self._issue.restrictions is not None and
+                                    'addresses' in self._issue.restrictions)
 
         # If we have address restrictions, require address and signature
         if has_address_restrictions:
             if address is None or signature is None:
                 raise Exception('Can not add option: no address or signature given')
-            elif address not in self._hivemind_issue.restrictions['addresses']:
+            elif address not in self._issue.restrictions['addresses']:
                 raise Exception('Can not add option: there are address restrictions on this hivemind issue and address %s is not allowed to add options' % address)
 
         # If address and signature are provided, verify the signature regardless of restrictions
@@ -189,9 +189,9 @@ class HivemindState(IPFSDictChain):
             if not verify_message(message='%s%s' % (timestamp, option_hash), address=address, signature=signature):
                 raise Exception('Can not add option: Signature is not valid')
 
-        if self._hivemind_issue.restrictions is not None and 'options_per_address' in self._hivemind_issue.restrictions:
+        if self._issue.restrictions is not None and 'options_per_address' in self._issue.restrictions:
             number_of_options = len(self.options_by_participant(address=address))
-            if number_of_options >= self._hivemind_issue.restrictions['options_per_address']:
+            if number_of_options >= self._issue.restrictions['options_per_address']:
                 raise Exception('Can not add option: address %s already added too many options: %s' % (address, number_of_options))
 
         option = self.get_option(cid=option_hash)
@@ -242,8 +242,8 @@ class HivemindState(IPFSDictChain):
             raise Exception('Signature is invalid')
 
         # Check address restrictions
-        if self._hivemind_issue.restrictions is not None and 'addresses' in self._hivemind_issue.restrictions:
-            if address not in self._hivemind_issue.restrictions['addresses']:
+        if self._issue.restrictions is not None and 'addresses' in self._issue.restrictions:
+            if address not in self._issue.restrictions['addresses']:
                 raise Exception('Can not add opinion: there are address restrictions on this hivemind issue and address %s is not allowed to add opinions' % address)
 
         # Log the opinion details for debugging
@@ -310,9 +310,9 @@ class HivemindState(IPFSDictChain):
         """
         weight = 1.0
 
-        if self._hivemind_issue.restrictions is not None and 'addresses' in self._hivemind_issue.restrictions:
+        if self._issue.restrictions is not None and 'addresses' in self._issue.restrictions:
             weight = 0.0  # Default weight if there are addresses in restrictions
-            for address in self._hivemind_issue.restrictions['addresses']:
+            for address in self._issue.restrictions['addresses']:
                 if address.startswith(opinionator):
                     weight = 1.0
                     # Check if the address has a weight specification (e.g., "address@2")
@@ -337,18 +337,18 @@ class HivemindState(IPFSDictChain):
         """
         ret = "================================================================================="
         ret += '\nHivemind id: ' + self.hivemind_id
-        ret += '\nHivemind main question: ' + self._hivemind_issue.questions[0]
-        ret += '\nHivemind description: ' + self._hivemind_issue.description
-        if self._hivemind_issue.tags is not None:
-            ret += '\nHivemind tags: ' + ' '.join(self._hivemind_issue.tags)
-        ret += '\nAnswer type: ' + self._hivemind_issue.answer_type
-        if self._hivemind_issue.constraints is not None:
-            ret += '\nOption constraints: ' + str(self._hivemind_issue.constraints)
+        ret += '\nHivemind main question: ' + self._issue.questions[0]
+        ret += '\nHivemind description: ' + self._issue.description
+        if self._issue.tags is not None:
+            ret += '\nHivemind tags: ' + ' '.join(self._issue.tags)
+        ret += '\nAnswer type: ' + self._issue.answer_type
+        if self._issue.constraints is not None:
+            ret += '\nOption constraints: ' + str(self._issue.constraints)
         ret += '\n' + "================================================================================="
         ret += '\n' + self.options_info()
 
-        for i, question in enumerate(self._hivemind_issue.questions):
-            ret += '\nHivemind question %s: %s' % (i, self._hivemind_issue.questions[i])
+        for i, question in enumerate(self._issue.questions):
+            ret += '\nHivemind question %s: %s' % (i, self._issue.questions[i])
             ret += '\n' + self.opinions_info(question_index=i)
             results = self.calculate_results(question_index=i)
             ret += '\n' + self.results_info(results=results, question_index=i)
@@ -400,7 +400,7 @@ class HivemindState(IPFSDictChain):
         :raises Exception: If question_index is invalid
         """
         # if selection mode is 'Exclude', we must exclude previously selected options from the results
-        if self._hivemind_issue.on_selection == 'Exclude':
+        if self._issue.on_selection == 'Exclude':
             selected_options = [selection[question_index] for selection in self.selected]
             available_options = [option_hash for option_hash in self.option_cids if option_hash not in selected_options]
         else:
@@ -517,12 +517,12 @@ class HivemindState(IPFSDictChain):
         :rtype: str
         """
         ret = 'Hivemind id: ' + self.hivemind_id + '\n'
-        ret += self._hivemind_issue.questions[question_index]
+        ret += self._issue.questions[question_index]
         ret += '\nResults:\n========'
         i = 0
 
         # if selection mode is 'Exclude', we must exclude previously selected options from the results
-        if self._hivemind_issue.on_selection == 'Exclude':
+        if self._issue.on_selection == 'Exclude':
             selected_options = [selection[question_index] for selection in self.selected]
             available_options = [option_hash for option_hash in self.option_cids if option_hash not in selected_options]
         else:
@@ -610,7 +610,7 @@ class HivemindState(IPFSDictChain):
             LOG.debug("Hivemind is already finalized")
             raise ValueError("Hivemind is already finalized")
 
-        author = self._hivemind_issue.author
+        author = self._issue.author
         has_author = bool(author)
 
         if has_author:
@@ -637,22 +637,22 @@ class HivemindState(IPFSDictChain):
             LOG.debug("Hivemind issue has no author specified")
         
         # Get the option hash with highest consensus for each question
-        selection = [self.get_sorted_options(question_index=question_index)[0].cid() for question_index in range(len(self._hivemind_issue.questions))]
+        selection = [self.get_sorted_options(question_index=question_index)[0].cid() for question_index in range(len(self._issue.questions))]
         self.selected.append(selection)
 
-        if self._hivemind_issue.on_selection is None:
+        if self._issue.on_selection is None:
             return selection
-        elif self._hivemind_issue.on_selection == 'Finalize':
+        elif self._issue.on_selection == 'Finalize':
             # The hivemind is final, no more options or opinions can be added
             self.final = True
-        elif self._hivemind_issue.on_selection == 'Exclude':
+        elif self._issue.on_selection == 'Exclude':
             # The selected option is excluded from future results
             pass
-        elif self._hivemind_issue.on_selection == 'Reset':
+        elif self._issue.on_selection == 'Reset':
             # All opinions are reset
             self.opinion_cids = [{}]
         else:
-            raise NotImplementedError('Unknown selection mode: %s' % self._hivemind_issue.on_selection)
+            raise NotImplementedError('Unknown selection mode: %s' % self._issue.on_selection)
 
         return selection
 

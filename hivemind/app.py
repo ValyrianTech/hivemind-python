@@ -1538,7 +1538,7 @@ async def select_consensus(request: Request):
             logger.info(f"Questions: {issue.questions}")
             
             # Set the hivemind issue on the state
-            state._hivemind_issue = issue
+            state._issue = issue
             state.hivemind_id = hivemind_id
             
             # Select consensus
