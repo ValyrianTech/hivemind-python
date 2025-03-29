@@ -33,7 +33,7 @@ class HivemindState(IPFSDictChain):
     :ivar participants: Dictionary mapping addresses to their participation data
     :vartype participants: Dict[str, Any]
     :ivar selected: List of options that have been selected
-    :vartype selected: List[str]
+    :vartype selected: List[List[str]]
     :ivar final: Whether the hivemind is finalized
     :vartype final: bool
     """
@@ -50,7 +50,7 @@ class HivemindState(IPFSDictChain):
         self.opinion_cids: List[Dict[str, Any]] = [{}]
         self.signatures: Dict[str, Dict[str, Dict[str, int]]] = {}
         self.participants: Dict[str, Any] = {}
-        self.selected: List[str] = []
+        self.selected: List[List[str]] = [[]]
         self.final: bool = False
 
         super(HivemindState, self).__init__(cid=cid)
@@ -625,6 +625,10 @@ class HivemindState(IPFSDictChain):
         
         # Get the option hash with highest consensus for each question
         selection = [self.get_sorted_options(question_index=question_index)[0].cid().replace('/ipfs/', '') for question_index in range(len(self._issue.questions))]        
+
+        # Initialize self.selected if needed
+        if len(self.selected) < len(self._issue.questions):
+            self.selected = [[] for _ in range(len(self._issue.questions))]
 
         if self._issue.on_selection is None:
             return selection

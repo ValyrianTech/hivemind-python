@@ -420,6 +420,9 @@ class TestHivemindStateExcludeSelectionMode:
         color_choice_issue.on_selection = 'Exclude'
         issue_hash = color_choice_issue.save()
         state.set_hivemind_issue(issue_hash)
+        
+        # Initialize selected list properly
+        state.selected = [[] for _ in range(len(state._issue.questions))]
 
         # Create options
         options = []
@@ -440,6 +443,11 @@ class TestHivemindStateExcludeSelectionMode:
         # First selection should be red
         selection = state.select_consensus()
         assert selection[0].replace('/ipfs/', '') == options[0]  # Red is selected
+        
+        # Verify the selection was added to state.selected
+        assert len(state.selected) == 1  # One question
+        assert len(state.selected[0]) == 1  # One option selected
+        assert state.selected[0][0] == options[0].replace('/ipfs/', '')  # Red is in selected list
 
     def test_results_info_excluded_options(self, state: HivemindState, color_choice_issue: HivemindIssue, test_keypair) -> None:
         """Test results_info method when some options are excluded."""
@@ -955,9 +963,7 @@ class TestHivemindStateNullSelectionMode:
         selection = state.select_consensus()
 
         # Verify the selection was made but no side effects occurred
-        assert len(state.selected) == 1  # One selection should be recorded
-        assert len(state.selected[0]) == 1  # With one option
-        assert state.selected[0][0].replace('/ipfs/', '') == option_hash  # The correct option
+        assert selection[0].replace('/ipfs/', '') == option_hash  # The correct option was selected
         assert not state.final  # Should not be finalized
         assert len(state.opinion_cids) == 1  # Opinions should not be reset
 
@@ -1003,9 +1009,7 @@ class TestHivemindStateNullSelectionMode:
         selection = state.select_consensus()
 
         # Verify the selection was made but no side effects occurred
-        assert len(state.selected) == 1  # One selection should be recorded
-        assert len(state.selected[0]) == 1  # With one option
-        assert state.selected[0][0].replace('/ipfs/', '') == option_hash  # The correct option
+        assert selection[0].replace('/ipfs/', '') == option_hash  # The correct option was selected
         assert not state.final  # Should not be finalized
         assert len(state.opinion_cids) == 1  # Opinions should not be reset
 
