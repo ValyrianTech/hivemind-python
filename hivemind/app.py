@@ -1021,13 +1021,10 @@ async def sign_opinion(request: Request):
             # Calculate new results for the specific question
             logger.info("Calculating updated results...")
 
-            def calc_results():
-                return state.calculate_results(opinion.question_index)
-
-            results = await asyncio.to_thread(calc_results)
+            results = state.calculate_results(opinion.question_index)
 
             # Get sorted options to find the winner
-            sorted_options = await asyncio.to_thread(lambda: state.get_sorted_options(question_index=opinion.question_index))
+            sorted_options = state.get_sorted_options(question_index=opinion.question_index)
 
             # Format results with just the winning option
             formatted_results = []
