@@ -85,14 +85,14 @@ class HivemindState(IPFSDictChain):
         """
         return self._options
 
-    def set_hivemind_issue(self, issue_hash: str) -> None:
+    def set_hivemind_issue(self, issue_cid: str) -> None:
         """Set the associated hivemind issue.
 
-        :param issue_hash: IPFS hash of the hivemind issue
-        :type issue_hash: str
+        :param issue_cid: IPFS hash of the hivemind issue
+        :type issue_cid: str
         :return: None
         """
-        self.hivemind_id = issue_hash
+        self.hivemind_id = issue_cid
         self._issue = HivemindIssue(cid=self.hivemind_id)
         self.opinion_cids = [{} for _ in range(len(self._issue.questions))]
 

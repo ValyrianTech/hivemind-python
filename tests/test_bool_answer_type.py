@@ -107,7 +107,7 @@ def test_bool_answer_type_constraints() -> None:
     log_step(3, 'Initializing Hivemind State')
 
     hivemind_state = HivemindState()
-    hivemind_state.set_hivemind_issue(issue_hash=hivemind_issue_hash)
+    hivemind_state.set_hivemind_issue(issue_cid=hivemind_issue_hash)
     statehash: str = hivemind_state.save()
 
     print('Initial state created:')

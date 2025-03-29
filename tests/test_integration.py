@@ -143,7 +143,7 @@ def test_full_hivemind_workflow() -> None:
 
     # Create and set up the state
     hivemind_state = HivemindState()
-    hivemind_state.set_hivemind_issue(issue_hash=hivemind_issue_hash)
+    hivemind_state.set_hivemind_issue(issue_cid=hivemind_issue_hash)
     statehash: str = hivemind_state.save()
 
     print('Initial state created:')
