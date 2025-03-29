@@ -442,8 +442,8 @@ async def fetch_state(request: IPFSHashRequest):
         for question_index in range(len(state.opinion_cids)):
             try:
                 logger.info(f"Calculating results for question {question_index}...")
-                question_results = await asyncio.to_thread(lambda: state.calculate_results(question_index=question_index))
-                sorted_options = await asyncio.to_thread(lambda: state.get_sorted_options(question_index=question_index))
+                question_results = state.results()[question_index]
+                sorted_options = state.get_sorted_options(question_index=question_index)
 
                 # Format full results for the frontend
                 formatted_results = []
@@ -463,7 +463,7 @@ async def fetch_state(request: IPFSHashRequest):
                     })
 
                 # Calculate contribution scores
-                contributions = await asyncio.to_thread(lambda: state.contributions(results=question_results, question_index=question_index))
+                contributions = state.contributions(results=question_results, question_index=question_index)
 
                 # Add contribution scores to opinions
                 for address in full_opinions[question_index]:
