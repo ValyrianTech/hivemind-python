@@ -35,6 +35,31 @@ class TestHivemindStateSignatures:
         state.add_signature(address, timestamp3, message, 'sig3')
         assert 'sig3' in state.signatures[address][message]
 
+    def test_add_duplicate_signature(self, state: HivemindState) -> None:
+        """Test adding the same signature twice doesn't create duplicate entries."""
+        address = generate_bitcoin_keypair()[1]
+        message = 'test_message'
+        timestamp = int(time.time())
+        signature = 'test_signature'
+        
+        # Add signature first time
+        state.add_signature(address, timestamp, message, signature)
+        assert address in state.signatures
+        assert message in state.signatures[address]
+        assert signature in state.signatures[address][message]
+        assert state.signatures[address][message][signature] == timestamp
+        
+        # Get current size of signatures dict for comparison
+        initial_signatures_count = sum(len(msgs) for msgs in state.signatures.values())
+        
+        # Add exact same signature again - should return early without changes
+        state.add_signature(address, timestamp, message, signature)
+        
+        # Verify no new entries were added
+        final_signatures_count = sum(len(msgs) for msgs in state.signatures.values())
+        assert final_signatures_count == initial_signatures_count
+        assert state.signatures[address][message][signature] == timestamp
+
     def test_no_null_signatures(self, state: HivemindState, basic_issue: HivemindIssue) -> None:
         """Test that adding options without signatures doesn't create null entries.
         
