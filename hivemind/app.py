@@ -454,7 +454,6 @@ async def fetch_state(request: IPFSHashRequest):
                     score = question_results.get(cid, {}).get('score', 0)
                     if score is None:
                         score = 0
-                    logger.info(f"Option {option.cid()} - CID for lookup: {cid}, Score: {score}")
                     formatted_results.append({
                         'cid': option.cid(),
                         'value': option.value if hasattr(option, 'value') else None,
