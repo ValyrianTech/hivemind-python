@@ -246,16 +246,6 @@ class HivemindState(IPFSDictChain):
             if address not in self._issue.restrictions['addresses']:
                 raise Exception('Can not add opinion: there are address restrictions on this hivemind issue and address %s is not allowed to add opinions' % address)
 
-        # Log the opinion details for debugging
-        LOG.info(f"Opinion details - hivemind_id: {opinion.hivemind_id}, question_index: {opinion.question_index}")
-        LOG.info(f"Opinion ranking type: {type(opinion.ranking)}")
-        if hasattr(opinion.ranking, 'type'):
-            LOG.info(f"Ranking type: {opinion.ranking.type}")
-        if hasattr(opinion.ranking, 'fixed'):
-            LOG.info(f"Ranking fixed: {opinion.ranking.fixed}")
-        if hasattr(opinion.ranking, 'auto'):
-            LOG.info(f"Ranking auto: {opinion.ranking.auto}")
-
         # Get the ranking as a list of options
         try:
             # For auto rankings, we need to calculate the ranking based on the options
