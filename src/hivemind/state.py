@@ -493,24 +493,6 @@ class HivemindState(IPFSDictChain):
         """
         return [option.value for option in self.get_sorted_options(question_index=question_index)]
 
-    def get_consensus(self, question_index: int = 0, consensus_type: str = 'Single') -> Any:
-        """Get the consensus of the hivemind.
-
-        :param question_index: The index of the question (default=0)
-        :type question_index: int
-        :param consensus_type: The type of consensus (default='Single')
-        :type consensus_type: str
-        :return: The consensus value
-        :rtype: Any
-        :raises NotImplementedError: If consensus_type is unknown
-        """
-        if consensus_type == 'Single':
-            return self.consensus(question_index=question_index)
-        elif consensus_type == 'Ranked':
-            return self.ranked_consensus(question_index=question_index)
-        else:
-            raise NotImplementedError('Unknown consensus_type: %s' % consensus_type)
-
     def results_info(self, results: Dict[str, Dict[str, float]], question_index: int = 0) -> str:
         """Get the results information of the hivemind.
 

@@ -406,17 +406,6 @@ class TestHivemindStateConsensusEdgeCases:
         signature = sign_message(message, private_key)
         state.add_opinion(timestamp, opinion_hash, signature, address)
 
-        # Test consensus modes
-        consensus = state.get_consensus(consensus_type='Single')
-        assert consensus is not None
-
-        ranked = state.get_consensus(consensus_type='Ranked')
-        assert isinstance(ranked, list)
-        assert len(ranked) > 0
-
-        with pytest.raises(NotImplementedError):
-            state.get_consensus(consensus_type='Invalid')
-
 
 @pytest.mark.consensus
 class TestHivemindStateExcludeSelectionMode:
@@ -1248,3 +1237,52 @@ class TestHivemindStateIncomparableOptions:
         # The first option should have some wins but no unknowns
         assert results[options[0]]['win'] > 0
         assert results[options[0]]['unknown'] == 0
+
+
+@pytest.mark.consensus
+class TestHivemindStateConsensusWithClearWinner:
+    """Tests for consensus calculation when there is a clear winner."""
+
+    def test_consensus_with_clear_winner(self, state: HivemindState, basic_issue: HivemindIssue, test_keypair) -> None:
+        """Test consensus when there is a clear winner (no tie)."""
+        private_key, address = test_keypair
+        
+        # Set up the issue
+        issue_hash = basic_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Add two options
+        option1 = HivemindOption()
+        option1.set_issue(issue_hash)
+        option1.set("Option 1")
+        option1_hash = option1.save()
+        
+        option2 = HivemindOption()
+        option2.set_issue(issue_hash)
+        option2.set("Option 2")
+        option2_hash = option2.save()
+        
+        # Add options to state
+        timestamp = int(time.time())
+        state.add_option(timestamp, option1_hash)
+        state.add_option(timestamp, option2_hash)
+        
+        # Create an opinion that clearly prefers option1 over option2
+        opinion = HivemindOpinion()
+        opinion.hivemind_id = issue_hash
+        opinion.question_index = 0
+        opinion.ranking.set_fixed([option1_hash, option2_hash])
+        opinion_hash = opinion.save()
+        
+        # Add the opinion
+        message = f"{timestamp}{opinion_hash}"
+        signature = sign_message(message, private_key)
+        state.add_opinion(timestamp, opinion_hash, signature, address)
+        
+        # Test consensus method - this will hit line 482
+        consensus_value = state.consensus()
+        assert consensus_value == "Option 1"
+        
+        # Test ranked_consensus method - this will hit line 494
+        ranked_values = state.ranked_consensus()
+        assert ranked_values == ["Option 1", "Option 2"]
