@@ -8,29 +8,9 @@ import logging
 from .issue import HivemindIssue
 from .option import HivemindOption
 from .opinion import HivemindOpinion
-from bitcoin.signmessage import VerifyMessage, BitcoinMessage
+from .utils import verify_message
 
 LOG = logging.getLogger(__name__)
-
-
-def verify_message(message: str, address: str, signature: str) -> bool:
-    """
-    Verify a signed message using Bitcoin's message verification.
-
-    :param message: The message that was signed
-    :type message: str
-    :param address: The Bitcoin address that signed the message
-    :type address: str
-    :param signature: The base64-encoded signature
-    :type signature: str
-    :return: Whether the signature is valid
-    :rtype: bool
-    """
-    try:
-        return VerifyMessage(address, BitcoinMessage(message), signature)
-    except Exception as ex:
-        LOG.error('Error verifying message: %s' % ex)
-        return False
 
 
 class HivemindState(IPFSDictChain):

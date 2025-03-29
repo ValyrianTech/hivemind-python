@@ -8,6 +8,7 @@ from .test_state_common import (
     state, basic_issue, color_choice_issue, test_keypair,
     sign_message, generate_bitcoin_keypair
 )
+from hivemind.utils import verify_message  # Import verify_message from hivemind.utils
 
 
 @pytest.mark.author
@@ -222,7 +223,6 @@ class TestHivemindStateAuthor:
         logging.info(f"State hivemind_issue author: {state._hivemind_issue.author}")
         
         # Log the verification result directly
-        from hivemind.state import verify_message
         verification_result = verify_message(message=message, address=author_address, signature=signature)
         logging.info(f"Verification result: {verification_result}")
         

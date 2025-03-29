@@ -3,8 +3,10 @@
 import random
 from typing import Tuple
 from bitcoin.wallet import CBitcoinSecret, P2PKHBitcoinAddress
-from bitcoin.signmessage import BitcoinMessage, SignMessage
+from bitcoin.signmessage import BitcoinMessage, SignMessage, VerifyMessage
+import logging
 
+LOG = logging.getLogger(__name__)
 
 def get_bitcoin_address(private_key: CBitcoinSecret) -> str:
     """Get the Bitcoin address corresponding to a private key.
@@ -44,3 +46,23 @@ def sign_message(message: str, private_key: CBitcoinSecret) -> str:
     :rtype: str
     """
     return SignMessage(key=private_key, message=BitcoinMessage(message)).decode()
+
+
+def verify_message(message: str, address: str, signature: str) -> bool:
+    """
+    Verify a signed message using Bitcoin's message verification.
+
+    :param message: The message that was signed
+    :type message: str
+    :param address: The Bitcoin address that signed the message
+    :type address: str
+    :param signature: The base64-encoded signature
+    :type signature: str
+    :return: Whether the signature is valid
+    :rtype: bool
+    """
+    try:
+        return VerifyMessage(address, BitcoinMessage(message), signature)
+    except Exception as ex:
+        LOG.error('Error verifying message: %s' % ex)
+        return False
