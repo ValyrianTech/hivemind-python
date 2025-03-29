@@ -406,7 +406,11 @@ class HivemindState(IPFSDictChain):
         """
         # if selection mode is 'Exclude', we must exclude previously selected options from the results
         if self._issue.on_selection == 'Exclude':
-            selected_options = [selection[question_index] for selection in self.selected]
+            # Handle case where inner lists might be empty or not have enough elements
+            selected_options = []
+            for selection in self.selected:
+                if question_index < len(selection):
+                    selected_options.append(selection[question_index])
             available_options = [option_hash for option_hash in self.option_cids if option_hash not in selected_options]
         else:
             available_options = self.option_cids
@@ -510,7 +514,11 @@ class HivemindState(IPFSDictChain):
 
         # if selection mode is 'Exclude', we must exclude previously selected options from the results
         if self._issue.on_selection == 'Exclude':
-            selected_options = [selection[question_index] for selection in self.selected]
+            # Handle case where inner lists might be empty or not have enough elements
+            selected_options = []
+            for selection in self.selected:
+                if question_index < len(selection):
+                    selected_options.append(selection[question_index])
             available_options = [option_hash for option_hash in self.option_cids if option_hash not in selected_options]
         else:
             available_options = self.option_cids
