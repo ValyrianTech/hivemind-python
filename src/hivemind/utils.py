@@ -8,6 +8,7 @@ import logging
 
 LOG = logging.getLogger(__name__)
 
+
 def get_bitcoin_address(private_key: CBitcoinSecret) -> str:
     """Get the Bitcoin address corresponding to a private key.
     
