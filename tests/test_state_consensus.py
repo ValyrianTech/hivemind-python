@@ -1290,3 +1290,72 @@ class TestHivemindStateConsensusWithClearWinner:
         # Test ranked_consensus method - this will hit line 494
         ranked_values = state.ranked_consensus()
         assert ranked_values == ["Option 1", "Option 2"]
+
+
+@pytest.mark.consensus
+class TestHivemindStateMultiQuestionConsensus:
+    """Tests for consensus calculation with multiple questions."""
+
+    def test_select_consensus_multi_question(self, state: HivemindState, basic_issue: HivemindIssue, test_keypair) -> None:
+        """Test that select_consensus properly initializes self.selected for multiple questions."""
+        private_key, address = test_keypair
+        
+        # Modify the issue to have multiple questions
+        basic_issue.add_question("Second Test Question")
+        basic_issue.add_question("Third Test Question")
+        assert len(basic_issue.questions) == 3  # Verify we have 3 questions
+        
+        # Set the issue author to our test address
+        basic_issue.author = address
+        issue_hash = basic_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Add options for each question
+        options = []
+        for q_idx in range(len(basic_issue.questions)):
+            for i in range(3):  # Add 3 options per question
+                option = HivemindOption()
+                option.set_issue(issue_hash)
+                option.set(f"option{q_idx}_{i}")
+                option.text = f"Option {q_idx}_{i}"
+                option.question_index = q_idx
+                option_hash = option.save()
+                options.append(option_hash)
+                
+                # Sign and add option
+                timestamp = int(time.time()) + i  # Ensure unique timestamps
+                message = f"{timestamp}{option_hash}"
+                signature = sign_message(message, private_key)
+                state.add_option(timestamp, option_hash, address, signature)
+        
+        # Add opinions for each question
+        for q_idx in range(len(basic_issue.questions)):
+            # Get options for this question
+            q_options = [opt for i, opt in enumerate(options) if i // 3 == q_idx]
+            
+            opinion = HivemindOpinion()
+            opinion.hivemind_id = issue_hash
+            opinion.question_index = q_idx
+            opinion.ranking.set_fixed(q_options)
+            opinion_hash = opinion.save()
+            
+            # Add the opinion
+            timestamp = int(time.time()) + q_idx  # Ensure unique timestamps
+            state.participants[address] = {'name': f'Test User {q_idx}', 'timestamp': timestamp}
+            message = f"{timestamp}{opinion_hash}"
+            signature = sign_message(message, private_key)
+            state.add_opinion(timestamp, opinion_hash, signature, address)
+        
+        # Reset selected to be smaller than the number of questions
+        state.selected = [[]]
+        assert len(state.selected) < len(basic_issue.questions)
+        
+        # Call select_consensus which should initialize self.selected
+        timestamp = int(time.time())
+        message = f"{timestamp}:select_consensus:{issue_hash}"
+        signature = sign_message(message, private_key)
+        selection = state.select_consensus(timestamp, address, signature)
+        
+        # Verify self.selected has been properly initialized
+        assert len(state.selected) == len(basic_issue.questions)
+        assert all(isinstance(selected_list, list) for selected_list in state.selected)
