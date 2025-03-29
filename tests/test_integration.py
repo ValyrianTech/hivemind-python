@@ -240,7 +240,6 @@ def test_full_hivemind_workflow() -> None:
         ranked_choice = hivemind_state.option_cids.copy()
         random.shuffle(ranked_choice)
         unauthorized_opinion.ranking.set_fixed(ranked_choice)
-        unauthorized_opinion.ranking = unauthorized_opinion.ranking.get()
         unauthorized_opinion_hash = unauthorized_opinion.save()
 
         timestamp = int(time.time())
@@ -273,7 +272,6 @@ def test_full_hivemind_workflow() -> None:
             ranked_choice = hivemind_state.option_cids.copy()
             random.shuffle(ranked_choice)
             opinion.ranking.set_fixed(ranked_choice)
-            opinion.ranking = opinion.ranking.get()
             opinion_hash = opinion.save()
 
             print(f'\nProcessing opinion {i + 1}/{n_opinions}:')

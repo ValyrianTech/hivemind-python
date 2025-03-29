@@ -115,7 +115,6 @@ class TestHivemindStateErrors:
         opinion.hivemind_id = issue_hash
         opinion.question_index = 0
         opinion.ranking.set_fixed([])  # Empty ranking is allowed
-        opinion.ranking = opinion.ranking.get()
         opinion_hash = opinion.save()
 
         message = f"{timestamp}{opinion_hash}"

@@ -122,7 +122,6 @@ class TestHelper:
         opinion.hivemind_id = issue_hash
         opinion.question_index = 0
         opinion.ranking.set_fixed(ranking)  # First address prefers red > blue > green
-        opinion.ranking = opinion.ranking.get()  # Get serializable representation
         opinion_hash = opinion.save()  # Save will use the data we just set
 
         message = f"{timestamp}{opinion_hash}"

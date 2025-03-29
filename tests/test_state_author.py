@@ -61,7 +61,6 @@ class TestHivemindStateAuthor:
         opinion.hivemind_id = issue_hash
         opinion.question_index = 0
         opinion.ranking.set_fixed(options)
-        opinion.ranking = opinion.ranking.get()
         opinion_hash = opinion.save()
         
         # Initialize participants dictionary and add participant
@@ -123,7 +122,6 @@ class TestHivemindStateAuthor:
         opinion.hivemind_id = issue_hash
         opinion.question_index = 0
         opinion.ranking.set_fixed(options)
-        opinion.ranking = opinion.ranking.get()
         opinion_hash = opinion.save()
         
         # Initialize participants dictionary and add participant
@@ -201,7 +199,6 @@ class TestHivemindStateAuthor:
         opinion.hivemind_id = issue_hash
         opinion.question_index = 0
         opinion.ranking.set_fixed(options)
-        opinion.ranking = opinion.ranking.get()
         opinion_hash = opinion.save()
         
         # Initialize participants dictionary and add participant
@@ -298,7 +295,6 @@ class TestHivemindStateAuthor:
         opinion.hivemind_id = issue_hash
         opinion.question_index = 0
         opinion.ranking.set_fixed(options)
-        opinion.ranking = opinion.ranking.get()
         opinion_hash = opinion.save()
         
         # Initialize participants dictionary and add participant

@@ -35,8 +35,6 @@ class HivemindOpinion(IPFSDict):
     def to_dict(self) -> Dict[str, Any]:
         """Get a JSON-serializable representation of this opinion.
 
-        Overrides the get method because it contains a non-JSON-serializable object.
-
         :return: Dictionary containing the opinion data
         :rtype: Dict[str, Any]
         """
@@ -82,13 +80,6 @@ class HivemindOpinion(IPFSDict):
             self.ranking = Ranking()
             return
 
-        # Handle the case where ranking is a list (legacy format)
-        if isinstance(self.ranking, list):
-            ranked_choice = self.ranking
-            self.ranking = Ranking()
-            self.ranking.set_fixed(ranked_choice=ranked_choice)
-            return
-
         # ipfs will store ranking as a dict, but we need to convert it back to a Ranking() object
         if isinstance(self.ranking, dict):
             ranking_dict = self.ranking  # Store the dict temporarily
@@ -108,3 +99,22 @@ class HivemindOpinion(IPFSDict):
         :rtype: str
         """
         return self._cid.replace('/ipfs/', '')
+
+    def save(self) -> str:
+        """Save the opinion to IPFS.
+
+        This method handles the conversion of the Ranking object into a JSON-serializable
+        dictionary before saving the opinion to IPFS.
+
+        :return: The IPFS hash of the saved opinion
+        :rtype: str
+        """
+        # Convert the ranking object to a dict before saving
+        tmp_ranking = self.ranking if self.ranking is not None else Ranking()
+        if isinstance(self.ranking, Ranking):
+            self.ranking = self.ranking.to_dict()
+        opinion_cid = super(HivemindOpinion, self).save()
+        # Restore the ranking object
+        self.ranking = tmp_ranking
+
+        return opinion_cid

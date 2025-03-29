@@ -160,7 +160,7 @@ class TestHivemindStateOpinionTimestampValidation:
         opinion1 = HivemindOpinion()
         opinion1.hivemind_id = issue_hash
         opinion1.question_index = 0
-        opinion1.ranking = []
+        opinion1.ranking.set_fixed([])
         opinion1_hash = opinion1.save()
 
         message1 = f"{timestamp1}{opinion1_hash}"
@@ -172,7 +172,7 @@ class TestHivemindStateOpinionTimestampValidation:
         opinion2 = HivemindOpinion()
         opinion2.hivemind_id = issue_hash
         opinion2.question_index = 0
-        opinion2.ranking = []
+        opinion2.ranking.set_fixed([])
         opinion2_hash = opinion2.save()
 
         old_timestamp = timestamp1 - 10
@@ -223,7 +223,6 @@ class TestHivemindStateVerification:
         opinion.hivemind_id = issue_hash
         opinion.question_index = 0
         opinion.ranking.set_fixed([option_hash])
-        opinion.ranking = opinion.ranking.get()
         opinion_hash = opinion.save()
 
         # Add participant

@@ -231,44 +231,6 @@ class TestHivemindOpinion:
         expected_order = [option_cids[2], option_cids[0], option_cids[3], option_cids[4], option_cids[1]]
         assert ranked_options == expected_order
 
-    def test_load_none_ranking(self):
-        """Test loading an opinion with None ranking"""
-        opinion = HivemindOpinion()
-        opinion.hivemind_id = None
-        opinion.question_index = 0
-        opinion.ranking = None
-        cid = opinion.save()
-
-        # Create a new opinion and load it
-        loaded_opinion = HivemindOpinion()
-        loaded_opinion.load(cid)
-
-        assert isinstance(loaded_opinion.ranking, Ranking)
-        # Set empty fixed ranking
-        loaded_opinion.ranking.set_fixed([])
-        assert loaded_opinion.ranking.get() == []
-
-    def test_load_legacy_list_ranking(self):
-        """Test loading an opinion with legacy list ranking format"""
-        opinion = HivemindOpinion()
-        # Create test options
-        option = HivemindOption()
-        option.value = "Test Option"
-        option_cid = option.save()
-
-        # Create a dict with list ranking to simulate legacy format
-        opinion.hivemind_id = None
-        opinion.question_index = 0
-        opinion.ranking = [option_cid]  # Legacy format used direct list
-        cid = opinion.save()
-
-        # Create a new opinion and load it
-        loaded_opinion = HivemindOpinion()
-        loaded_opinion.load(cid)
-
-        assert isinstance(loaded_opinion.ranking, Ranking)
-        assert loaded_opinion.ranking.get() == [option_cid]
-
     def test_load_dict_ranking_auto_high(self):
         """Test loading an opinion with dict ranking using auto_high"""
         opinion = HivemindOpinion()

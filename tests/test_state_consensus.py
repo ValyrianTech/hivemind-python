@@ -47,7 +47,6 @@ class TestHivemindStateConsensus:
             opinion.hivemind_id = issue_hash
             opinion.question_index = 0
             opinion.ranking.set_fixed(options)  # First address prefers red > blue > green
-            opinion.ranking = opinion.ranking.get()
             opinion_hash = opinion.save()
 
             # Initialize participants dictionary and add participant
@@ -102,7 +101,6 @@ class TestHivemindStateConsensus:
         opinion.hivemind_id = issue_hash
         opinion.question_index = 0
         opinion.ranking.set_fixed(options)
-        opinion.ranking = opinion.ranking.get()
         opinion_hash = opinion.save()
 
         # Add the opinion to the state
@@ -171,7 +169,6 @@ class TestHivemindStateRankedConsensus:
             opinion.hivemind_id = issue_hash
             opinion.question_index = 0
             opinion.ranking.set_fixed(ranking)
-            opinion.ranking = opinion.ranking.get()
             opinion_hash = opinion.save()
 
             # Initialize participants dictionary and add participant
@@ -297,7 +294,6 @@ class TestHivemindStateConsensusMethods:
         opinion1.hivemind_id = issue_hash
         opinion1.question_index = 0
         opinion1.ranking.set_fixed(option_hashes)  # First address prefers red > blue > green
-        opinion1.ranking = opinion1.ranking.get()
         opinion1_hash = opinion1.save()
 
         message1 = f"{timestamp}{opinion1_hash}"
@@ -309,7 +305,6 @@ class TestHivemindStateConsensusMethods:
         opinion2.hivemind_id = issue_hash
         opinion2.question_index = 0
         opinion2.ranking.set_fixed([option_hashes[1], option_hashes[0], option_hashes[2]])  # blue > red > green
-        opinion2.ranking = opinion2.ranking.get()
         opinion2_hash = opinion2.save()
 
         message2 = f"{timestamp}{opinion2_hash}"
@@ -321,7 +316,6 @@ class TestHivemindStateConsensusMethods:
         opinion3.hivemind_id = issue_hash
         opinion3.question_index = 0
         opinion3.ranking.set_fixed([option_hashes[0], option_hashes[2], option_hashes[1]])  # red > green > blue
-        opinion3.ranking = opinion3.ranking.get()
         opinion3_hash = opinion3.save()
 
         message3 = f"{timestamp}{opinion3_hash}"
@@ -406,7 +400,6 @@ class TestHivemindStateConsensusEdgeCases:
         opinion.hivemind_id = issue_hash
         opinion.question_index = 0
         opinion.ranking.set_fixed(options)
-        opinion.ranking = opinion.ranking.get()
         opinion_hash = opinion.save()
 
         message = f"{timestamp}{opinion_hash}"
@@ -449,7 +442,7 @@ class TestHivemindStateExcludeSelectionMode:
         opinion = HivemindOpinion()
         opinion.hivemind_id = issue_hash
         opinion.question_index = 0
-        opinion.ranking = options
+        opinion.ranking.set_fixed(options)
         opinion_hash = opinion.save()
         message = f"{timestamp}{opinion_hash}"
         signature = sign_message(message, private_key)
@@ -569,7 +562,6 @@ class TestHivemindStateFinalizeSelectionMode:
         opinion.hivemind_id = issue_hash
         opinion.question_index = 0
         opinion.ranking.set_fixed(options)
-        opinion.ranking = opinion.ranking.get()
         opinion_hash = opinion.save()
 
         # Initialize participants dictionary and add participant
@@ -644,7 +636,6 @@ class TestHivemindStateFinalizeSelectionMode:
         opinion.hivemind_id = issue_hash
         opinion.question_index = 0
         opinion.ranking.set_fixed(options)
-        opinion.ranking = opinion.ranking.get()
         opinion_hash = opinion.save()
 
         # Initialize participants dictionary and add participant
@@ -721,7 +712,6 @@ class TestHivemindStateResetSelectionMode:
         opinion.hivemind_id = issue_hash
         opinion.question_index = 0
         opinion.ranking.set_fixed(options)
-        opinion.ranking = opinion.ranking.get()
         opinion_hash = opinion.save()
 
         # Add participant and opinion
@@ -783,7 +773,6 @@ class TestHivemindStateResetSelectionMode:
         opinion.hivemind_id = issue_hash
         opinion.question_index = 0
         opinion.ranking.set_fixed(options)
-        opinion.ranking = opinion.ranking.get()
         opinion_hash = opinion.save()
 
         # Add participant and opinion
@@ -850,7 +839,6 @@ class TestHivemindStateUnknownSelectionMode:
         opinion.hivemind_id = issue_hash
         opinion.question_index = 0
         opinion.ranking.set_fixed(options)
-        opinion.ranking = opinion.ranking.get()
         opinion_hash = opinion.save()
 
         # Add participant and opinion
@@ -906,7 +894,6 @@ class TestHivemindStateUnknownSelectionMode:
         opinion.hivemind_id = issue_hash
         opinion.question_index = 0
         opinion.ranking.set_fixed(options)
-        opinion.ranking = opinion.ranking.get()
         opinion_hash = opinion.save()
 
         # Add participant and opinion
@@ -967,7 +954,6 @@ class TestHivemindStateNullSelectionMode:
         opinion.hivemind_id = issue_hash
         opinion.question_index = 0
         opinion.ranking.set_fixed([option_hash])
-        opinion.ranking = opinion.ranking.get()
         opinion_hash = opinion.save()
 
         # Sign and add opinion
@@ -1016,7 +1002,6 @@ class TestHivemindStateNullSelectionMode:
         opinion.hivemind_id = issue_hash
         opinion.question_index = 0
         opinion.ranking.set_fixed([option_hash])
-        opinion.ranking = opinion.ranking.get()
         opinion_hash = opinion.save()
 
         # Sign and add opinion
@@ -1127,7 +1112,6 @@ class TestHivemindStateConsensusTie:
             opinion.hivemind_id = issue_hash
             opinion.question_index = 0
             opinion.ranking.set_fixed(ranking)
-            opinion.ranking = opinion.ranking.get()
             opinion_hash = opinion.save()
 
             # Initialize participants dictionary and add participant
@@ -1244,7 +1228,6 @@ class TestHivemindStateIncomparableOptions:
         opinion.question_index = 0
         # Only include the first option in the ranking
         opinion.ranking.set_fixed([options[0]])
-        opinion.ranking = opinion.ranking.get()
         opinion_hash = opinion.save()
 
         # Add the opinion
