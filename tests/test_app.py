@@ -1024,8 +1024,8 @@ class TestEndpoints:
         }
         mock_state.get_participants.return_value = ["participant1"]
 
-        # Configure calculate_results to raise an exception
-        mock_state.calculate_results.side_effect = Exception("Error calculating results")
+        # Configure results to raise an exception
+        mock_state.results.side_effect = Exception("Error calculating results")
 
         # Setup mock issue instance
         mock_issue = MagicMock()
