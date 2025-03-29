@@ -69,6 +69,8 @@ class HivemindState(IPFSDictChain):
             self._opinions.append(opinions)
             self._rankings.append(rankings)
 
+        self._results = None
+
     def hivemind_issue(self) -> HivemindIssue:
         """Get the associated hivemind issue.
 
@@ -202,6 +204,7 @@ class HivemindState(IPFSDictChain):
             if address is not None and signature is not None:
                 self.add_signature(address=address, timestamp=timestamp, message=option_hash, signature=signature)
             self.option_cids.append(option_hash)
+            self._results = None  # Invalidate cached results
 
     def options_by_participant(self, address: str) -> List[str]:
         """Get the options added by a participant.
@@ -289,6 +292,7 @@ class HivemindState(IPFSDictChain):
                 self._rankings.append({})
 
             self._rankings[opinion.question_index][opinion_hash] = ranking_options
+            self._results = None  # Invalidate cached results
 
     def get_weight(self, opinionator: str) -> float:
         """Get the weight of an opinion.
@@ -340,7 +344,7 @@ class HivemindState(IPFSDictChain):
         for i, question in enumerate(self._issue.questions):
             ret += '\nHivemind question %s: %s' % (i, self._issue.questions[i])
             ret += '\n' + self.opinions_info(question_index=i)
-            results = self.calculate_results(question_index=i)
+            results = self.results()[i]
             ret += '\n' + self.results_info(results=results, question_index=i)
 
         return ret
@@ -379,6 +383,17 @@ class HivemindState(IPFSDictChain):
             ret += '\n'
 
         return ret
+
+    def results(self) -> List[Dict[str, Dict[str, float]]]:
+        """Get the results of the hivemind.
+
+        :return: The results of the hivemind
+        :rtype: Any
+        """
+        if self._results is None:
+            self._results = [self.calculate_results(question_index=i) for i in range(len(self._issue.questions))]
+
+        return self._results
 
     def calculate_results(self, question_index: int = 0) -> Dict[str, Dict[str, float]]:
         """Calculate the results of the hivemind.
@@ -433,7 +448,7 @@ class HivemindState(IPFSDictChain):
         :return: The score of the option
         :rtype: float
         """
-        results = self.calculate_results(question_index=question_index)
+        results = self.results()[question_index]
         return results[option_hash]['score']
 
     def get_sorted_options(self, question_index: int = 0) -> List[HivemindOption]:
@@ -444,7 +459,7 @@ class HivemindState(IPFSDictChain):
         :return: List of HivemindOption objects sorted by highest score
         :rtype: List[HivemindOption]
         """
-        results = self.calculate_results(question_index=question_index)
+        results = self.results()[question_index]
         return [self.get_option(cid=option[0]) for option in sorted(results.items(), key=lambda x: x[1]['score'], reverse=True)]
 
     def consensus(self, question_index: int = 0) -> Any:
@@ -455,7 +470,7 @@ class HivemindState(IPFSDictChain):
         :return: The consensus value
         :rtype: Any
         """
-        results = self.calculate_results(question_index=question_index)
+        results = self.results()[question_index]
 
         sorted_options = self.get_sorted_options(question_index=question_index)
         if len(sorted_options) == 0:
@@ -643,6 +658,7 @@ class HivemindState(IPFSDictChain):
             self.opinion_cids = [{}]
         else:
             raise NotImplementedError('Unknown selection mode: %s' % self._issue.on_selection)
+        self._results = None  # Invalidate cached results
 
         return selection
 
