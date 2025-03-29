@@ -624,8 +624,7 @@ class HivemindState(IPFSDictChain):
             LOG.debug("Hivemind issue has no author specified")
         
         # Get the option hash with highest consensus for each question
-        selection = [self.get_sorted_options(question_index=question_index)[0].cid() for question_index in range(len(self._issue.questions))]
-        self.selected.append(selection)
+        selection = [self.get_sorted_options(question_index=question_index)[0].cid().replace('/ipfs/', '') for question_index in range(len(self._issue.questions))]        
 
         if self._issue.on_selection is None:
             return selection
@@ -634,10 +633,11 @@ class HivemindState(IPFSDictChain):
             self.final = True
         elif self._issue.on_selection == 'Exclude':
             # The selected option is excluded from future results
-            pass
+            for i, winner in enumerate(selection):
+                self.selected[i].append(winner)
         elif self._issue.on_selection == 'Reset':
             # All opinions are reset
-            self.opinion_cids = [{}]
+            self.opinion_cids = [{} for _ in range(len(self._issue.questions))]
         else:
             raise NotImplementedError('Unknown selection mode: %s' % self._issue.on_selection)
         self._results = None  # Invalidate cached results
@@ -658,6 +658,10 @@ class HivemindState(IPFSDictChain):
         :raises Exception: If the signature is invalid
         :return: None
         """
+        if address in self.signatures and message in self.signatures[address]:
+            if signature in self.signatures[address][message] and timestamp == self.signatures[address][message][signature]:
+                return
+
         LOG.debug(f"Adding signature: address={address}, timestamp={timestamp}, message={message}, signature={signature[:10]}...")
         
         if address not in self.signatures:
