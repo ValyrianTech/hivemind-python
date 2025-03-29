@@ -116,7 +116,7 @@ class Ranking:
                 elif self.type == 'auto_low':
                     ranking = [option.cid().replace('/ipfs/', '') for option in sorted(options, key=lambda x: (abs(x.value - choice.value), x.value))]
 
-                LOG.info(f"Final auto ranking: {ranking}")
+                LOG.info(f"Calculated ranking {self.type}: {ranking}")
             except Exception as e:
                 LOG.error(f"Error during auto ranking calculation: {str(e)}")
                 raise Exception(f"Error during auto ranking calculation: {str(e)}")
