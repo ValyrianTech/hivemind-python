@@ -17,7 +17,7 @@ class TestHivemindStateInit:
         assert state.opinion_cids == [{}]
         assert state.signatures == {}
         assert state.participants == {}
-        assert state.selected == [[]]
+        assert state.selected == []
         assert state.final is False
 
     def test_set_hivemind_issue(self, state: HivemindState, color_choice_issue: HivemindIssue) -> None:

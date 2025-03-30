@@ -421,8 +421,7 @@ class TestHivemindStateExcludeSelectionMode:
         issue_hash = color_choice_issue.save()
         state.set_hivemind_issue(issue_hash)
         
-        # Initialize selected list properly
-        state.selected = [[] for _ in range(len(state._issue.questions))]
+        # No need to initialize selected list anymore as it's a flat list now
 
         # Create options
         options = []
@@ -445,9 +444,8 @@ class TestHivemindStateExcludeSelectionMode:
         assert selection[0].replace('/ipfs/', '') == options[0]  # Red is selected
         
         # Verify the selection was added to state.selected
-        assert len(state.selected) == 1  # One question
-        assert len(state.selected[0]) == 1  # One option selected
-        assert state.selected[0][0] == options[0].replace('/ipfs/', '')  # Red is in selected list
+        assert len(state.selected) == 1  # One option selected
+        assert state.selected[0] == options[0].replace('/ipfs/', '')  # Red is in selected list
 
     def test_results_info_excluded_options(self, state: HivemindState, color_choice_issue: HivemindIssue, test_keypair) -> None:
         """Test results_info method when some options are excluded."""
@@ -477,7 +475,7 @@ class TestHivemindStateExcludeSelectionMode:
             state.add_option(timestamp, option_hash, address, signature)
 
         # Mark first option as selected to exclude it
-        state.selected = [[options[0]]]
+        state.selected = [options[0]]
 
         # Create results dict that includes the excluded option
         results = {
@@ -1346,16 +1344,19 @@ class TestHivemindStateMultiQuestionConsensus:
             signature = sign_message(message, private_key)
             state.add_opinion(timestamp, opinion_hash, signature, address)
         
-        # Reset selected to be smaller than the number of questions
-        state.selected = [[]]
-        assert len(state.selected) < len(basic_issue.questions)
+        # Set the selection mode to 'Exclude'
+        basic_issue.on_selection = 'Exclude'
+        basic_issue.save()
         
-        # Call select_consensus which should initialize self.selected
+        # Clear selected list
+        state.selected = []
+        
+        # Call select_consensus which should add the winner of the first question to self.selected
         timestamp = int(time.time())
         message = f"{timestamp}:select_consensus:{issue_hash}"
         signature = sign_message(message, private_key)
         selection = state.select_consensus(timestamp, address, signature)
         
-        # Verify self.selected has been properly initialized
-        assert len(state.selected) == len(basic_issue.questions)
-        assert all(isinstance(selected_list, list) for selected_list in state.selected)
+        # Verify self.selected contains only the winner of the first question
+        assert len(state.selected) == 1
+        assert state.selected[0] == selection[0]

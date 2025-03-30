@@ -33,7 +33,7 @@ class HivemindState(IPFSDictChain):
     :ivar participants: Dictionary mapping addresses to their participation data
     :vartype participants: Dict[str, Any]
     :ivar selected: List of options that have been selected
-    :vartype selected: List[List[str]]
+    :vartype selected: List[str]
     :ivar final: Whether the hivemind is finalized
     :vartype final: bool
     """
@@ -50,7 +50,7 @@ class HivemindState(IPFSDictChain):
         self.opinion_cids: List[Dict[str, Any]] = [{}]
         self.signatures: Dict[str, Dict[str, Dict[str, int]]] = {}
         self.participants: Dict[str, Any] = {}
-        self.selected: List[List[str]] = [[]]
+        self.selected: List[str] = []
         self.final: bool = False
 
         super(HivemindState, self).__init__(cid=cid)
@@ -406,11 +406,8 @@ class HivemindState(IPFSDictChain):
         """
         # if selection mode is 'Exclude', we must exclude previously selected options from the results
         if self._issue.on_selection == 'Exclude':
-            # Handle case where inner lists might be empty or not have enough elements
-            selected_options = []
-            for selection in self.selected:
-                if question_index < len(selection):
-                    selected_options.append(selection[question_index])
+            # Use self.selected directly as a list of options to exclude
+            selected_options = self.selected
             available_options = [option_hash for option_hash in self.option_cids if option_hash not in selected_options]
         else:
             available_options = self.option_cids
@@ -634,19 +631,17 @@ class HivemindState(IPFSDictChain):
         # Get the option hash with highest consensus for each question
         selection = [self.get_sorted_options(question_index=question_index)[0].cid().replace('/ipfs/', '') for question_index in range(len(self._issue.questions))]        
 
-        # Initialize self.selected if needed
-        if len(self.selected) < len(self._issue.questions):
-            self.selected = [[] for _ in range(len(self._issue.questions))]
-
         if self._issue.on_selection is None:
             return selection
         elif self._issue.on_selection == 'Finalize':
             # The hivemind is final, no more options or opinions can be added
             self.final = True
         elif self._issue.on_selection == 'Exclude':
-            # The selected option is excluded from future results
-            for i, winner in enumerate(selection):
-                self.selected[i].append(winner)
+            # Only add the winner of the first question to self.selected
+            if len(selection) > 0:
+                winner = selection[0]
+                if winner not in self.selected:
+                    self.selected.append(winner)
         elif self._issue.on_selection == 'Reset':
             # All opinions are reset
             self.opinion_cids = [{} for _ in range(len(self._issue.questions))]
