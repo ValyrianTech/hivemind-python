@@ -82,11 +82,11 @@ classDiagram
         +List[Dict[str, Any]] opinion_cids
         +Dict[str, Dict[str, Dict[str, int]]] signatures
         +Dict[str, Any] participants
-        +List[str] selected
+        +List[List[str]] selected
         +bool final
         +List[HivemindOption] _options
-        +List _opinions
-        +List _rankings
+        +List[List[HivemindOpinion]] _opinions
+        +List[Dict[str, List[str]]] _rankings
         +Dict[str, Dict[str, float]] | None _results
         +hivemind_issue() HivemindIssue
         +get_options() List[HivemindOption]
