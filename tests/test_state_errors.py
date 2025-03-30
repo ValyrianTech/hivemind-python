@@ -81,7 +81,7 @@ class TestHivemindStateErrors:
 
         # Test adding option to finalized issue
         state.final = True
-        with pytest.raises(Exception, match='Can not add option: hivemind issue is finalized'):
+        with pytest.raises(Exception, match='Can not add option: hivemind state is finalized'):
             state.add_option(timestamp, valid_option_hash, address, signature)
 
     def test_add_opinion_error_handling(self, state: HivemindState, color_choice_issue: HivemindIssue, test_keypair) -> None:

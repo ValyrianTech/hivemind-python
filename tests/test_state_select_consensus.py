@@ -70,7 +70,7 @@ class TestHivemindStateSelectConsensus:
         assert len(selection) > 0
         
         # Second call should raise ValueError because the hivemind is already finalized
-        with pytest.raises(ValueError, match="Hivemind is already finalized"):
+        with pytest.raises(Exception, match="Can not add option: hivemind issue is finalized"):
             state.select_consensus(timestamp=timestamp, address=address, signature=signature)
 
     def test_select_consensus_wrong_author(self, state: HivemindState, color_choice_issue: HivemindIssue) -> None:
@@ -247,5 +247,5 @@ class TestHivemindStateSelectConsensus:
         signature = sign_message(message, private_key)
         
         # Should raise Exception because the hivemind is finalized
-        with pytest.raises(Exception, match="Can not update participant name: hivemind issue is finalized"):
+        with pytest.raises(Exception, match="Can not update participant name: hivemind state is finalized"):
             state.update_participant_name(timestamp, new_name, address, signature, message)

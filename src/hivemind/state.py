@@ -170,7 +170,7 @@ class HivemindState(IPFSDictChain):
         :raises Exception: If the option is invalid or restrictions are not met
         """
         if self.final is True:
-            raise Exception('Can not add option: hivemind issue is finalized')
+            raise Exception('Can not add option: hivemind state is finalized')
 
         if not isinstance(self._issue, HivemindIssue):
             return
@@ -234,7 +234,7 @@ class HivemindState(IPFSDictChain):
         :return: None
         """
         if self.final is True:
-            raise Exception('Can not add opinion: hivemind issue is finalized')
+            raise Exception('Can not add opinion: hivemind state is finalized')
 
         opinion = self.get_opinion(cid=opinion_hash)
         if not verify_message(address=address, message='%s%s' % (timestamp, opinion_hash), signature=signature):
@@ -582,8 +582,7 @@ class HivemindState(IPFSDictChain):
         :raises ValueError: If the address is not the author of the hivemind
         """
         if self.final:
-            LOG.error("Hivemind is already finalized")
-            raise ValueError("Hivemind is already finalized")
+            raise Exception('Can not add option: hivemind issue is finalized')
 
         author = self._issue.author
         if author is not None:
@@ -608,10 +607,10 @@ class HivemindState(IPFSDictChain):
                 )
         else:
             LOG.debug("Hivemind issue has no author specified")
-        
+
         # Get the option hash with highest consensus for each question
-        selection = [self.get_sorted_options(question_index=question_index)[0].cid().replace('/ipfs/', '') for question_index in range(len(self._issue.questions))]        
-        
+        selection = [self.get_sorted_options(question_index=question_index)[0].cid().replace('/ipfs/', '') for question_index in range(len(self._issue.questions))]
+
         if self._issue.on_selection is None:
             return selection
         elif self._issue.on_selection == 'Finalize':
@@ -663,7 +662,7 @@ class HivemindState(IPFSDictChain):
                 self.signatures[address][message][signature] = timestamp
             else:
                 raise Exception('Invalid timestamp: must be more recent than any previous signature timestamp')
-        
+
     def update_participant_name(self, timestamp: int, name: str, address: str, signature: str, message: str) -> None:
         """Update the name of a participant.
 
@@ -681,13 +680,13 @@ class HivemindState(IPFSDictChain):
         :return: None
         """
         if self.final is True:
-            raise Exception('Can not update participant name: hivemind issue is finalized')
+            raise Exception('Can not update participant name: hivemind state is finalized')
 
         # Check if name exceeds maximum length
         max_name_length = 50
         if len(name) > max_name_length:
             raise Exception(f'Name exceeds maximum length of {max_name_length} characters')
-            
+
         # Only need to update name if it is not known yet or if it has changed
         if address not in self.participants or name != self.participants[address]['name']:
             if verify_message(address=address, message=message, signature=signature) is True:

@@ -77,7 +77,7 @@ class TestHivemindStateOpinions:
         signature = sign_message(message, private_key)
         
         # Expect an exception when trying to add opinion to a finalized state
-        with pytest.raises(Exception, match='Can not add opinion: hivemind issue is finalized'):
+        with pytest.raises(Exception, match='Can not add opinion: hivemind state is finalized'):
             state.add_opinion(new_timestamp, new_opinion_hash, signature, address)
 
         # Verify the opinion was not added (state remained unchanged)
