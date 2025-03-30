@@ -670,8 +670,6 @@ class HivemindState(IPFSDictChain):
             else:
                 raise Exception('Invalid timestamp: must be more recent than any previous signature timestamp')
         
-        LOG.debug(f"Signature added successfully. Current signatures: {self.signatures}")
-
     def update_participant_name(self, timestamp: int, name: str, address: str, signature: str, message: str) -> None:
         """Update the name of a participant.
 
