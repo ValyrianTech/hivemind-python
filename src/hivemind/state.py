@@ -664,23 +664,16 @@ class HivemindState(IPFSDictChain):
             if signature in self.signatures[address][message] and timestamp == self.signatures[address][message][signature]:
                 return
 
-        LOG.debug(f"Adding signature: address={address}, timestamp={timestamp}, message={message}, signature={signature[:10]}...")
-        
         if address not in self.signatures:
-            LOG.debug(f"Creating new signature entry for address: {address}")
             self.signatures[address] = {message: {signature: timestamp}}
         elif message not in self.signatures[address]:
-            LOG.debug(f"Adding new message for address: {address}")
             self.signatures[address].update({message: {signature: timestamp}})
         else:
-            LOG.debug(f"Message already exists for address: {address}, checking timestamp")
             timestamps = [int(key) for key in self.signatures[address][message].values()]
 
             if timestamp > max(timestamps):
-                LOG.debug(f"Updating signature with newer timestamp: {timestamp}")
                 self.signatures[address][message][signature] = timestamp
             else:
-                LOG.debug(f"Timestamp too old: {timestamp}, max={max(timestamps)}")
                 raise Exception('Invalid timestamp: must be more recent than any previous signature timestamp')
         
         LOG.debug(f"Signature added successfully. Current signatures: {self.signatures}")
