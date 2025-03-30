@@ -148,12 +148,6 @@ winner = consensus.get_winner()
 
 Detailed examples can be found in the [`examples/`](examples/) directory:
 
-1. [`basic_voting.py`](examples/basic_voting.py) - Simple voting example
-2. [`advanced_features.py`](examples/advanced_features.py) - Advanced protocol features
-3. [`protocol_upgrade.py`](examples/protocol_upgrade.py) - Governance decision example
-
-Each example is thoroughly documented and can be run independently. See the [examples README](examples/README.md) for more details.
-
 ## Installation
 
 ```bash
@@ -216,23 +210,6 @@ state.set_consensus_config({
     'min_consensus': 0.66  # 66% agreement required
 })
 ```
-
-## Use Cases
-
-1. **Governance Decisions**
-   - Protocol upgrades
-   - Parameter adjustments
-   - Resource allocation
-
-2. **Community Polling**
-   - Feature prioritization
-   - Community preferences
-   - Strategic decisions
-
-3. **Multi-stakeholder Decisions**
-   - Investment decisions
-   - Project prioritization
-   - Resource allocation
 
 ## Documentation
 
