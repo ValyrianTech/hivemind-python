@@ -224,12 +224,6 @@ opinion.ranking.set_auto_high(option1.cid)  # Will rank options by proximity to 
 
 Full documentation is available at [https://valyriantech.github.io/hivemind-python/](https://valyriantech.github.io/hivemind-python/)
 
-The system architecture is documented through comprehensive diagrams in the `diagrams/` directory:
-- `class_diagram.md`: Core components and their relationships
-- `component_diagram.md`: System-level architecture
-- `state_diagram.md`: State transitions and validation
-- `voting_sequence.md`: Detailed process flow
-
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
