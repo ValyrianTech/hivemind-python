@@ -627,7 +627,7 @@ class HivemindState(IPFSDictChain):
         
         # Get the option hash with highest consensus for each question
         selection = [self.get_sorted_options(question_index=question_index)[0].cid().replace('/ipfs/', '') for question_index in range(len(self._issue.questions))]        
-
+        
         if self._issue.on_selection is None:
             return selection
         elif self._issue.on_selection == 'Finalize':

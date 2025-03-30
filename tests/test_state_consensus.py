@@ -1303,8 +1303,9 @@ class TestHivemindStateMultiQuestionConsensus:
         basic_issue.add_question("Third Test Question")
         assert len(basic_issue.questions) == 3  # Verify we have 3 questions
         
-        # Set the issue author to our test address
+        # Set the issue author to our test address and set selection mode to 'Exclude'
         basic_issue.author = address
+        basic_issue.on_selection = 'Exclude'  # Set this before saving the issue
         issue_hash = basic_issue.save()
         state.set_hivemind_issue(issue_hash)
         
@@ -1343,10 +1344,6 @@ class TestHivemindStateMultiQuestionConsensus:
             message = f"{timestamp}{opinion_hash}"
             signature = sign_message(message, private_key)
             state.add_opinion(timestamp, opinion_hash, signature, address)
-        
-        # Set the selection mode to 'Exclude'
-        basic_issue.on_selection = 'Exclude'
-        basic_issue.save()
         
         # Clear selected list
         state.selected = []
