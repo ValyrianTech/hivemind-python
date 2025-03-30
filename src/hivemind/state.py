@@ -175,12 +175,8 @@ class HivemindState(IPFSDictChain):
         if not isinstance(self._issue, HivemindIssue):
             return
 
-        # Check for address restrictions
-        has_address_restrictions = (self._issue.restrictions is not None and
-                                    'addresses' in self._issue.restrictions)
-
         # If we have address restrictions, require address and signature
-        if has_address_restrictions:
+        if self._issue.restrictions is not None and 'addresses' in self._issue.restrictions:
             if address is None or signature is None:
                 raise Exception('Can not add option: no address or signature given')
             elif address not in self._issue.restrictions['addresses']:
