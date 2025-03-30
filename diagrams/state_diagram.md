@@ -23,11 +23,13 @@ stateDiagram-v2
             CheckingErrorType --> InvalidConstraints: Constraint Error
             CheckingErrorType --> InvalidRestrictions: Restriction Error
             CheckingErrorType --> InvalidQuestions: Questions Error
+            CheckingErrorType --> InvalidAuthor: Author Error
             
             InvalidFormat --> ValidatingIssue: Fix Format
             InvalidConstraints --> ValidatingIssue: Fix Constraints
             InvalidRestrictions --> ValidatingIssue: Fix Restrictions
             InvalidQuestions --> ValidatingIssue: Fix Questions
+            InvalidAuthor --> ValidatingIssue: Fix Author
         }
     }
     
@@ -55,7 +57,8 @@ stateDiagram-v2
             VerifyingSignature --> SignatureError: Invalid Signature
             ValidatingOption --> OptionError: Invalid
             SavingOption --> OptionAdded: Save to IPFS
-            OptionAdded --> [*]
+            OptionAdded --> InvalidateCache: Option Added
+            InvalidateCache --> [*]
             
             state OptionError {
                 [*] --> CheckingOptionError
@@ -63,11 +66,17 @@ stateDiagram-v2
                 CheckingOptionError --> InvalidType: Type Error
                 CheckingOptionError --> InvalidReference: Reference Error
                 CheckingOptionError --> InvalidComplex: Complex Type Error
+                CheckingOptionError --> InvalidText: Text Error
+                CheckingOptionError --> InvalidFile: File Error
+                CheckingOptionError --> InvalidAddress: Address Error
                 
                 InvalidValue --> ValidatingOption: Fix Value
                 InvalidType --> ValidatingOption: Fix Type
                 InvalidReference --> ValidatingOption: Fix Reference
                 InvalidComplex --> ValidatingOption: Fix Complex
+                InvalidText --> ValidatingOption: Fix Text
+                InvalidFile --> ValidatingOption: Fix File
+                InvalidAddress --> ValidatingOption: Fix Address
             }
             
             state SignatureError {
@@ -92,10 +101,19 @@ stateDiagram-v2
         
         state OpinionsAdding {
             [*] --> ValidatingOpinion
-            ValidatingOpinion --> SavingOpinion: Valid
+            ValidatingOpinion --> ProcessingRanking: Valid
+            ProcessingRanking --> FixedRanking: Fixed Ranking
+            ProcessingRanking --> AutoHighRanking: Auto High Ranking
+            ProcessingRanking --> AutoLowRanking: Auto Low Ranking
+            
+            FixedRanking --> SavingOpinion
+            AutoHighRanking --> SavingOpinion
+            AutoLowRanking --> SavingOpinion
+            
             ValidatingOpinion --> OpinionError: Invalid
             SavingOpinion --> OpinionAdded: Save to IPFS
-            OpinionAdded --> [*]
+            OpinionAdded --> InvalidateCache: Opinion Added
+            InvalidateCache --> [*]
             
             state OpinionError {
                 [*] --> CheckingOpinionError
@@ -103,11 +121,13 @@ stateDiagram-v2
                 CheckingOpinionError --> InvalidWeight: Weight Error
                 CheckingOpinionError --> InvalidSignature: Signature Error
                 CheckingOpinionError --> InvalidQuestion: Question Error
+                CheckingOpinionError --> InvalidOptions: Invalid Options
                 
                 InvalidRanking --> ValidatingOpinion: Fix Ranking
                 InvalidWeight --> ValidatingOpinion: Fix Weight
                 InvalidSignature --> ValidatingOpinion: Fix Signature
                 InvalidQuestion --> ValidatingOpinion: Fix Question
+                InvalidOptions --> ValidatingOpinion: Fix Options
             }
         }
         
@@ -117,7 +137,12 @@ stateDiagram-v2
     OpinionsPhase --> ResultCalculation: Calculate Results
     
     state ResultCalculation {
-        [*] --> WeightCalculation
+        [*] --> CheckingCache
+        CheckingCache --> CachedResults: Cache Valid
+        CheckingCache --> WeightCalculation: Cache Invalid
+        
+        CachedResults --> [*]
+        
         WeightCalculation --> ContributionCalculation
         ContributionCalculation --> RankingAggregation
         RankingAggregation --> ConsensusCalculation
@@ -143,22 +168,36 @@ stateDiagram-v2
             Deadlock --> [*]
         }
         
-        WinnerDetermination --> [*]
+        WinnerDetermination --> StoreInCache: Results Calculated
+        StoreInCache --> [*]
     }
     
     ResultCalculation --> FinalState: Results Ready
     
     state FinalState {
         [*] --> CheckingFinalization
-        CheckingFinalization --> Finalized: on_selection = Finalize
-        CheckingFinalization --> ExcludeState: on_selection = Exclude
-        CheckingFinalization --> ResetState: on_selection = Reset
-        CheckingFinalization --> UpdatePending: on_selection = None
+        CheckingFinalization --> AuthorVerification: Author Specified
+        CheckingFinalization --> NoAuthorCheck: No Author
         
-        ExcludeState --> ResultCalculation: Recalculate
+        AuthorVerification --> AuthorVerified: Valid Author
+        AuthorVerification --> AuthorRejected: Invalid Author
+        
+        AuthorVerified --> SelectionProcessing
+        NoAuthorCheck --> SelectionProcessing
+        
+        SelectionProcessing --> Finalized: on_selection = Finalize
+        SelectionProcessing --> ExcludeState: on_selection = Exclude
+        SelectionProcessing --> ResetState: on_selection = Reset
+        SelectionProcessing --> UpdatePending: on_selection = None
+        
+        ExcludeState --> InvalidateCache: Selection Changed
+        InvalidateCache --> ResultCalculation: Recalculate
+        
         ResetState --> OpinionsPhase: Clear Opinions
         UpdatePending --> OpinionsPhase: Allow Updates
         Finalized --> [*]
+        
+        AuthorRejected --> OpinionsPhase: Continue Voting
     }
     
     FinalState --> [*]: Complete
