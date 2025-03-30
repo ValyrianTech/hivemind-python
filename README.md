@@ -125,17 +125,18 @@ The protocol maintains state through:
 
 ```python
 state = HivemindState()
-state.set_issue(issue.cid)
-state.add_option(timestamp, option.cid, voter_address, signature)
-state.add_opinion(timestamp, opinion.cid, signature, voter_address)
+state.set_hivemind_issue(issue_cid=issue.cid())
+state.add_option(timestamp, option.cid(), voter_address, signature)
+state.add_opinion(timestamp, opinion.cid(), signature, voter_address)
 
 # State transitions
-state.finalize()  # Lock the state
-state.reset()  # Clear opinions
-state.exclude()  # Exclude options and recalculate
+# Finalize the state with author verification
+state.select_consensus(timestamp, author_address, signature)  # on_selection = Finalize
 
 # Results with caching
 results = state.results()  # Uses cache if available
+consensus = state.consensus()  # Gets highest scoring option
+ranked_results = state.ranked_consensus()  # Gets all options in score order
 ```
 
 ### 5. Result Calculation
@@ -198,10 +199,8 @@ issue.set_constraints({
 ### Voting Restrictions
 ```python
 issue.set_restrictions({
-    'min_participants': 5,
-    'allowed_addresses': ['addr1', 'addr2'],
-    'min_weight': 10,
-    'min_contribution': 5
+    'addresses': ['1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', '1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2'],
+    'options_per_address': 5  # Maximum number of options each address can submit
 })
 ```
 
@@ -209,6 +208,9 @@ issue.set_restrictions({
 ```python
 # Only this address can finalize the issue
 issue.author = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
+
+# Later, when finalizing:
+state.select_consensus(timestamp, issue.author, signature)
 ```
 
 ### Auto-Ranking with Values
@@ -216,15 +218,6 @@ issue.author = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
 option1.set(75)  # Integer value
 option2.set(25)  # Integer value
 opinion.ranking.set_auto_high(option1.cid)  # Will rank options by proximity to 75
-```
-
-### Consensus Configuration
-```python
-state.set_consensus_config({
-    'type': 'ranked',  # or 'single'
-    'tie_breaker': 'timestamp',  # or 'random'
-    'min_consensus': 0.66  # 66% agreement required
-})
 ```
 
 ## Documentation
