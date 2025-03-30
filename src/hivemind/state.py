@@ -261,16 +261,10 @@ class HivemindState(IPFSDictChain):
 
         # Check if all options in the ranking exist in the state
         # Strip '/ipfs/' prefix from option hashes if present for comparison
-        normalized_ranking_options = [option_hash.replace('/ipfs/', '') if option_hash.startswith('/ipfs/') else option_hash
-                                      for option_hash in ranking_options]
-        normalized_state_options = [option_hash.replace('/ipfs/', '') if option_hash.startswith('/ipfs/') else option_hash
-                                    for option_hash in self.option_cids]
+        normalized_ranking_options = [option_hash.replace('/ipfs/', '') for option_hash in ranking_options]
+        normalized_state_options = [option_hash.replace('/ipfs/', '') for option_hash in self.option_cids]
 
-        LOG.info(f"Normalized ranking options: {normalized_ranking_options}")
-        LOG.info(f"Normalized state options: {normalized_state_options}")
-
-        invalid_options = [option_hash for option_hash in normalized_ranking_options
-                           if option_hash not in normalized_state_options]
+        invalid_options = [option_hash for option_hash in normalized_ranking_options if option_hash not in normalized_state_options]
         if invalid_options:
             LOG.error(f"Invalid options found: {invalid_options}")
             LOG.error(f"Available options: {normalized_state_options}")
