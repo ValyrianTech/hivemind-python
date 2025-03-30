@@ -582,13 +582,11 @@ class HivemindState(IPFSDictChain):
         :raises ValueError: If the address is not the author of the hivemind
         """
         if self.final:
-            LOG.debug("Hivemind is already finalized")
+            LOG.error("Hivemind is already finalized")
             raise ValueError("Hivemind is already finalized")
 
         author = self._issue.author
-        has_author = bool(author)
-
-        if has_author:
+        if author is not None:
             # If author is specified, verify that the address matches
             if not address or address != author:
                 raise ValueError(f"Only the author ({author}) can select consensus")
