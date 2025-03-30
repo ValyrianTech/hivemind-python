@@ -637,6 +637,8 @@ class HivemindState(IPFSDictChain):
             # Only add the winner of the first question to self.selected
             if len(selection) > 0:
                 winner = selection[0]
+                # Make sure we normalize the CID by removing the '/ipfs/' prefix if present
+                winner = winner.replace('/ipfs/', '')
                 if winner not in self.selected:
                     self.selected.append(winner)
         elif self._issue.on_selection == 'Reset':
