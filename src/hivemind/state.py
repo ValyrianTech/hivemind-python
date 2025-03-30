@@ -406,9 +406,7 @@ class HivemindState(IPFSDictChain):
         """
         # if selection mode is 'Exclude', we must exclude previously selected options from the results
         if self._issue.on_selection == 'Exclude':
-            # Use self.selected directly as a list of options to exclude
-            selected_options = self.selected
-            available_options = [option_hash for option_hash in self.option_cids if option_hash not in selected_options]
+            available_options = [option_hash for option_hash in self.option_cids if option_hash not in self.selected]
         else:
             available_options = self.option_cids
 
@@ -511,9 +509,7 @@ class HivemindState(IPFSDictChain):
 
         # if selection mode is 'Exclude', we must exclude previously selected options from the results
         if self._issue.on_selection == 'Exclude':
-            # Use self.selected directly as a list of options to exclude
-            selected_options = self.selected
-            available_options = [option_hash for option_hash in self.option_cids if option_hash not in selected_options]
+            available_options = [option_hash for option_hash in self.option_cids if option_hash not in self.selected]
         else:
             available_options = self.option_cids
 
