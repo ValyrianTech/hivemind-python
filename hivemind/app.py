@@ -1556,17 +1556,17 @@ async def select_consensus(request: Request):
                     }
                 
                 for q_index in range(num_questions):
-                    results = await asyncio.to_thread(lambda: state.calculate_results(question_index=q_index))
+                    results = state.calculate_results(question_index=q_index)
                     logger.info(f"Results for question {q_index}: {results}")
                     
-                    # Now select consensus
-                    selected_options = state.select_consensus(
-                            timestamp=timestamp,
-                            address=address,
-                            signature=signature
-                        )
+                # Now select consensus
+                selected_options = state.select_consensus(
+                        timestamp=timestamp,
+                        address=address,
+                        signature=signature
+                    )
 
-                    logger.info(f"Successfully selected consensus: {selected_options}")
+                logger.info(f"Successfully selected consensus: {selected_options}")
                 
                 # Save the state
                 new_cid = await asyncio.to_thread(lambda: state.save())
