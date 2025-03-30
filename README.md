@@ -47,12 +47,17 @@ The Hivemind Protocol is a revolutionary approach to decentralized decision-maki
 
 ## System Architecture
 
-The protocol's architecture is documented through four comprehensive diagrams in the `diagrams/` directory:
+The protocol's architecture is documented through comprehensive diagrams in the `diagrams/` directory:
 
 1. **Class Diagram** (`class_diagram.md`): Core components and their relationships
 2. **Component Diagram** (`component_diagram.md`): System-level architecture and interactions
 3. **State Diagram** (`state_diagram.md`): State transitions and validation flows
 4. **Voting Sequence** (`voting_sequence.md`): Detailed voting process flow
+5. **Data Flow Diagram** (`data_flow_diagram.md`): How data moves through the system
+6. **Cache Invalidation Diagram** (`cache_invalidation_diagram.md`): Result caching mechanism
+7. **Selection Mode Diagram** (`selection_mode_diagram.md`): Different selection behaviors
+8. **Verification Process Diagram** (`verification_process_diagram.md`): Message signing and verification
+9. **Ranking Algorithm Diagram** (`ranking_algorithm_diagram.md`): Ranking strategies visualization
 
 ## How It Works
 
@@ -115,6 +120,8 @@ The protocol maintains state through:
 - Comprehensive validation
 - Contribution calculation
 - Multiple state transitions
+- Result caching for performance optimization
+- Author verification for finalization
 
 ```python
 state = HivemindState()
@@ -126,6 +133,9 @@ state.add_opinion(timestamp, opinion.cid, signature, voter_address)
 state.finalize()  # Lock the state
 state.reset()  # Clear opinions
 state.exclude()  # Exclude options and recalculate
+
+# Results with caching
+results = state.results()  # Uses cache if available
 ```
 
 ### 5. Result Calculation
@@ -193,6 +203,12 @@ issue.set_restrictions({
     'min_weight': 10,
     'min_contribution': 5
 })
+```
+
+### Author Specification
+```python
+# Only this address can finalize the issue
+issue.author = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
 ```
 
 ### Auto-Ranking with Values
