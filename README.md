@@ -155,6 +155,115 @@ consensus = state.calculate_consensus()
 winner = consensus.get_winner()
 ```
 
+## HivemindIssue Class
+
+The `HivemindIssue` class is the foundation of the Hivemind Protocol, representing a voting issue to be decided by participants.
+
+### Class Structure
+
+```python
+from hivemind import HivemindIssue
+
+# Create a new issue
+issue = HivemindIssue()
+issue.name = "Team Laptop Selection"
+issue.description = "We need to select a new standard laptop model for the development team"
+issue.tags = ["equipment", "technology", "procurement"]
+issue.answer_type = "String"
+```
+
+### Key Properties
+
+- **questions**: List of questions for ranking the same set of options by different criteria
+  ```python
+  # All questions will use the same set of options (laptop models)
+  # but participants can rank them differently for each question
+  issue.add_question("Which laptop model is best overall?")
+  issue.add_question("Which laptop model is most reliable based on past experience?")
+  issue.add_question("Which laptop model has the best support options?")
+  ```
+
+- **answer_type**: Defines the expected answer format
+  ```python
+  # Supported types: String, Integer, Float, Bool, Hivemind, File, Complex, Address
+  issue.answer_type = "String"  # For laptop model names
+  ```
+
+- **constraints**: Validation rules for answers
+  ```python
+  # For numeric answers
+  issue.set_constraints({
+      "min_value": 0,
+      "max_value": 100
+  })
+  
+  # For boolean answers
+  issue.set_constraints({
+      "true_value": "Approve",
+      "false_value": "Reject"
+  })
+  
+  # For string answers
+  issue.set_constraints({
+      "min_length": 5,
+      "max_length": 500,
+      "regex": "^[a-zA-Z0-9 ]+$"
+  })
+  
+  # For predefined choices
+  issue.set_constraints({
+      "choices": ["Option A", "Option B", "Option C"]
+  })
+  ```
+
+- **restrictions**: Controls who can participate
+  ```python
+  issue.set_restrictions({
+      # Only these addresses can vote
+      "addresses": ["1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa", "..."],
+      
+      # Limit options per address
+      "options_per_address": 3
+  })
+  ```
+
+- **on_selection**: Action when consensus is reached
+  ```python
+  # Valid values: None, Finalize, Exclude, Reset
+  issue.on_selection = "Finalize"  # Locks the issue after consensus
+  ```
+
+### Validation System
+
+The `HivemindIssue` class enforces strict validation rules:
+
+- **Name**: Non-empty string ≤ 50 characters
+- **Description**: String ≤ 5000 characters
+- **Tags**: Unique strings without spaces, each ≤ 20 characters
+- **Questions**: Non-empty, unique strings, each ≤ 255 characters
+- **Answer Type**: Must be one of the allowed types
+- **Constraints**: Must match the answer type
+- **Restrictions**: Must follow the defined format
+
+### IPFS Integration
+
+All issue data is stored on IPFS:
+
+```python
+# Save to IPFS
+issue_cid = issue.save()  # Returns the IPFS CID
+
+# Load from IPFS
+loaded_issue = HivemindIssue(cid=issue_cid)
+```
+
+### Participant Identification
+
+```python
+# Generate an identification CID for a participant
+identification_cid = issue.get_identification_cid("Participant Name")
+```
+
 ## Examples
 
 Detailed examples can be found in the [`examples/`](examples/) directory:
