@@ -563,7 +563,7 @@ async def create_issue(issue: HivemindIssueCreate):
             new_issue.tags = issue.tags
             new_issue.answer_type = issue.answer_type
             new_issue.on_selection = issue.on_selection
-            
+
             # Set author if provided and on_selection is not None
             if issue.author and issue.on_selection:
                 new_issue.author = issue.author
@@ -702,40 +702,40 @@ async def create_option(option: OptionCreate):
     """
     try:
         logger.info(f"Creating option: {option.model_dump()}")
-        
+
         # Create the new option
         new_option = HivemindOption()
         new_option.set_issue(hivemind_issue_cid=option.hivemind_id)
-        
+
         # Set text and value based on option type
         new_option.text = option.text
-        
+
         # Handle different answer types
         if option.value is not None:
             logger.info(f"Setting option value: {option.value} (type: {type(option.value).__name__})")
             new_option.value = option.value
-            logger.info(f"Option value set successfully, answer_type: {new_option._answer_type}")
-        
+            logger.info(f"Option value set successfully, answer_type: {new_option.get_answer_type()}")
+
         # Save the option to IPFS
         option_cid = await asyncio.to_thread(lambda: new_option.save())
         logger.info(f"Option saved with CID: {option_cid}")
-        
+
         # Get the latest state hash from hivemind_states.json
         state_data = load_state_mapping().get(option.hivemind_id)
         if not state_data:
             raise HTTPException(status_code=404, detail="No state data found for hivemind ID")
-        
+
         latest_state_hash = state_data["state_hash"]
         logger.info(f"Using latest state hash: {latest_state_hash}")
-        
+
         # Load the state
         state = await asyncio.to_thread(lambda: HivemindState(cid=latest_state_hash))
         logger.info(f"Loaded state with CID: {latest_state_hash}")
-        
+
         # Check if this hivemind has address restrictions for options
         issue = state.hivemind_issue()
         has_address_restrictions = False
-        
+
         if hasattr(issue, 'restrictions') and issue.restrictions:
             if 'addresses' in issue.restrictions:
                 has_address_restrictions = True
@@ -744,18 +744,18 @@ async def create_option(option: OptionCreate):
         # If there are address restrictions, we'll need a signature
         needs_signature = has_address_restrictions
         logger.info(f"Needs signature: {needs_signature}")
-        
+
         if not needs_signature:
             # If no signature needed, add the option directly
             try:
                 current_time = int(time.time())
                 await asyncio.to_thread(lambda: state.add_option(timestamp=current_time, option_hash=option_cid))
                 logger.info(f"Option added to state")
-                
+
                 # Save the updated state
                 new_state_cid = await asyncio.to_thread(lambda: state.save())
                 logger.info(f"Updated state saved with CID: {new_state_cid}")
-                
+
                 # Update the state mapping
                 await update_state(StateHashUpdate(
                     hivemind_id=option.hivemind_id,
@@ -769,7 +769,7 @@ async def create_option(option: OptionCreate):
                     tags=issue.tags
                 ))
                 logger.info(f"State mapping updated")
-                
+
                 return {
                     "option_cid": option_cid,
                     "state_cid": new_state_cid,
@@ -785,7 +785,7 @@ async def create_option(option: OptionCreate):
                 "state_cid": latest_state_hash,
                 "needsSignature": True
             }
-        
+
     except Exception as e:
         logger.error(f"Failed to create option: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
@@ -1126,7 +1126,7 @@ async def sign_option(request: Request):
         try:
             # First load the option to get its hivemind_id
             option = await asyncio.to_thread(lambda: HivemindOption(cid=option_hash))
-            logger.info(f"Loaded option with value: {option.value} (type: {type(option.value).__name__}), answer_type: {option._answer_type}")
+            logger.info(f"Loaded option with value: {option.value} (type: {type(option.value).__name__}), answer_type: {option.get_answer_type()}")
 
             if not option.hivemind_id:
                 raise HTTPException(status_code=400, detail="Option does not have an associated hivemind state")
@@ -1474,7 +1474,7 @@ async def select_consensus(request: Request):
         # Log the raw request body for debugging
         body = await request.body()
         logger.info(f"Raw request body: {body.decode('utf-8')}")
-        
+
         data = await request.json()
         logger.info(f"Parsed request data: {data}")
 
@@ -1486,7 +1486,7 @@ async def select_consensus(request: Request):
             message = data.get('data')
             logger.info(f"Using 'data' field as message: {message}")
         signature = data.get('signature')
-        
+
         logger.info(f"Extracted fields - address: {address}, message: {message}, signature: {signature}")
 
         if not all([address, message, signature]):
@@ -1497,14 +1497,14 @@ async def select_consensus(request: Request):
             detail = f"Missing required fields: {', '.join(missing)}"
             logger.error(detail)
             raise HTTPException(status_code=400, detail=detail)
-        
+
         # Parse timestamp and hivemind_id from message format: "timestamp:select_consensus:hivemind_id"
         try:
             # First 10 chars are timestamp, rest is hivemind_id
             parts = message.split(':')
             if len(parts) != 3 or parts[1] != 'select_consensus':
                 raise ValueError("Invalid message format")
-                
+
             timestamp = int(parts[0])
             hivemind_id = parts[2]
             logger.info(f"Parsed timestamp: {timestamp}, hivemind_id: {hivemind_id}")
@@ -1517,71 +1517,71 @@ async def select_consensus(request: Request):
             state_mapping = load_state_mapping()
             if hivemind_id not in state_mapping:
                 raise HTTPException(status_code=404, detail=f"No state data found for hivemind ID: {hivemind_id}")
-            
+
             latest_state_hash = state_mapping[hivemind_id]["state_hash"]
             logger.info(f"Using latest state hash: {latest_state_hash}")
-            
+
             # Load the state with the correct CID
             state = await asyncio.to_thread(lambda: HivemindState(cid=latest_state_hash))
             logger.info(f"Successfully loaded state for hivemind_id: {hivemind_id}")
-            
+
             # Load the hivemind issue
             issue = state.hivemind_issue()
             logger.info(f"Loaded hivemind issue: {issue}")
             logger.info(f"Questions: {issue.questions}")
-            
+
             # Set the hivemind issue on the state
             state._issue = issue
             state.hivemind_id = hivemind_id
-            
+
             # Select consensus
             try:
                 logger.info(f"Attempting to select consensus with timestamp: {timestamp}, address: {address}")
-                
+
                 # First calculate results for each question
                 num_questions = len(issue.questions)
                 logger.info(f"Calculating results for {num_questions} questions")
-                
+
                 # Check if there are any options
                 options = state.option_cids
                 logger.info(f"Options: {options}")
-                
+
                 if not options:
                     logger.warning("No options found for this hivemind issue")
                     return {
                         'success': False,
                         'error': "No options found for this hivemind issue"
                     }
-                
+
                 for q_index in range(num_questions):
                     results = state.calculate_results(question_index=q_index)
                     logger.info(f"Results for question {q_index}: {results}")
-                    
+
                 # Now select consensus
                 selected_options = state.select_consensus(
-                        timestamp=timestamp,
-                        address=address,
-                        signature=signature
-                    )
+                    timestamp=timestamp,
+                    address=address,
+                    signature=signature
+                )
 
                 logger.info(f"Successfully selected consensus: {selected_options}")
-                
+
                 # Save the state
                 new_cid = await asyncio.to_thread(lambda: state.save())
                 logger.info(f"Saved state with new CID: {new_cid}")
-                
+
                 # Update the state mapping with the new CID
                 state_mapping[hivemind_id]["state_hash"] = new_cid
                 save_state_mapping(state_mapping)
                 logger.info(f"Updated state mapping for {hivemind_id} with new CID: {new_cid}")
-                
+
                 # Notify WebSocket clients
                 await notify_author_signature(hivemind_id, {
                     'success': True,
                     'state_cid': new_cid,
                     'selected_options': selected_options
                 })
-                
+
                 return {
                     'success': True,
                     'state_cid': new_cid,

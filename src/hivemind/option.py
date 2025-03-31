@@ -351,3 +351,11 @@ class HivemindOption(IPFSDict):
         :rtype: str
         """
         return self._cid.replace('/ipfs/', '')
+
+    def get_answer_type(self) -> str:
+        """Get the answer type of the option.
+
+        :return: The answer type
+        :rtype: str
+        """
+        return self._answer_type
