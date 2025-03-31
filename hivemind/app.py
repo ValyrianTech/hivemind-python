@@ -537,7 +537,7 @@ def process_winning_option(sorted_options, question_results):
     """
     if sorted_options:
         winning_option = sorted_options[0]
-        cid = winning_option.cid().replace('/ipfs:/', '')
+        cid = winning_option.cid().replace('/ipfs/', '')
         score = question_results.get(cid, {}).get('score', 0)
         if score is None:
             score = 0
