@@ -59,6 +59,11 @@ The protocol's architecture is documented through comprehensive diagrams in the 
 8. **Verification Process Diagram** (`verification_process_diagram.md`): Message signing and verification
 9. **Ranking Algorithm Diagram** (`ranking_algorithm_diagram.md`): Ranking strategies visualization
 
+## Installation
+
+```bash
+pip install hivemind-python
+```
 ## How It Works
 
 ### 1. Issue Creation
@@ -543,26 +548,226 @@ opinion2.ranking.set_auto_low(option3_cid)  # Prefer the ThinkPad's value
 opinion2_cid = opinion2.save()
 ```
 
+## HivemindState Class
+
+The `HivemindState` class is the central component of the Hivemind Protocol, managing the entire voting process, including options, opinions, and result calculations.
+
+### Class Structure
+
+```python
+from hivemind import HivemindState
+
+# Create a new state
+state = HivemindState()
+
+# Associate with an issue
+state.set_hivemind_issue(issue_cid)
+
+# Add predefined options (for Bool or choices)
+predefined_options = state.add_predefined_options()
+```
+
+### Key Properties
+
+- **hivemind_id**: The IPFS hash of the associated hivemind issue
+  ```python
+  state.hivemind_id = issue.cid()
+  ```
+
+- **option_cids**: List of option CIDs in the state
+  ```python
+  # Access the list of options
+  for option_cid in state.option_cids:
+      option = state.get_option(option_cid)
+      print(option.text)
+  ```
+
+- **opinion_cids**: List of dictionaries containing opinions for each question
+  ```python
+  # Access opinions for a specific question
+  for participant, opinion_data in state.opinion_cids[0].items():
+      print(f"Participant: {participant}")
+      print(f"Opinion CID: {opinion_data['opinion_cid']}")
+  ```
+
+- **selected**: List of options that have been selected
+  ```python
+  # Check which options have been selected
+  for selected_option_cid in state.selected:
+      option = state.get_option(selected_option_cid)
+      print(f"Selected: {option.text}")
+  ```
+
+- **final**: Whether the hivemind is finalized
+  ```python
+  if state.final:
+      print("This hivemind is finalized - no more changes allowed")
+  ```
+
+### Adding Options and Opinions
+
+```python
+# Add an option with signature verification
+state.add_option(
+    timestamp=int(time.time()),
+    option_hash=option.cid(),
+    address="1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+    signature="IHh9BMpylbu1DsJiMu+dmLHzoR3HHC0/skxNW/LaJi1K3agNb7mTRTNEfXRGHcLr8V0mSGv8c3XyGWU7bCEdhEE="
+)
+
+# Add an opinion with signature verification
+state.add_opinion(
+    timestamp=int(time.time()),
+    opinion_hash=opinion.cid(),
+    signature="IHh9BMpylbu1DsJiMu+dmLHzoR3HHC0/skxNW/LaJi1K3agNb7mTRTNEfXRGHcLr8V0mSGv8c3XyGWU7bCEdhEE=",
+    address="1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
+)
+```
+
+### Result Calculation
+
+The HivemindState implements the Condorcet method for calculating results:
+
+```python
+# Get cached results for all questions
+all_results = state.results()
+
+# Calculate results for a specific question
+results = state.calculate_results(question_index=0)
+
+# Get the score of a specific option
+score = state.get_score(option_hash=option.cid(), question_index=0)
+
+# Get options sorted by score
+sorted_options = state.get_sorted_options(question_index=0)
+
+# Get the consensus (winning option value)
+consensus_value = state.consensus(question_index=0)
+
+# Get all options in ranked order
+ranked_values = state.ranked_consensus(question_index=0)
+```
+
+### Selection Modes
+
+The HivemindState supports different selection behaviors based on the issue's `on_selection` property:
+
+```python
+# Select the consensus (requires author signature for issues with an author)
+selected_options = state.select_consensus(
+    timestamp=int(time.time()),
+    address=issue.author,
+    signature="IHh9BMpylbu1DsJiMu+dmLHzoR3HHC0/skxNW/LaJi1K3agNb7mTRTNEfXRGHcLr8V0mSGv8c3XyGWU7bCEdhEE="
+)
+
+# Selection modes:
+# - None: No special action
+# - Finalize: Locks the hivemind (state.final = True)
+# - Exclude: Excludes the selected option of the first question from future results
+# - Reset: Clears all opinions
+```
+
+### Participant Management
+
+```python
+# Update a participant's name
+state.update_participant_name(
+    timestamp=int(time.time()),
+    name="Alice",
+    address="1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+    signature="IHh9BMpylbu1DsJiMu+dmLHzoR3HHC0/skxNW/LaJi1K3agNb7mTRTNEfXRGHcLr8V0mSGv8c3XyGWU7bCEdhEE=",
+    message="1627184000Alice"
+)
+
+# Get the weight of a participant's opinion
+weight = state.get_weight(opinionator="1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa")
+
+# Get participant contributions to the consensus
+contributions = state.contributions(results=results, question_index=0)
+```
+
+### IPFS Integration
+
+```python
+# Save state to IPFS
+state_cid = state.save()
+
+# Load state from IPFS
+loaded_state = HivemindState(cid=state_cid)
+```
+
+### Practical Example
+
+```python
+from hivemind import HivemindIssue, HivemindOption, HivemindOpinion, HivemindState
+import time
+
+# Create an issue for laptop selection
+issue = HivemindIssue()
+issue.name = "Team Laptop Selection"
+issue.add_question("Which laptop model is best overall?")
+issue.add_question("Which laptop model has the best price-to-performance ratio?")
+issue.answer_type = "String"
+issue_cid = issue.save()
+
+# Create a state for this issue
+state = HivemindState()
+state.set_hivemind_issue(issue_cid)
+
+# Create options
+option1 = HivemindOption()
+option1.set_issue(issue_cid)
+option1.set("Dell XPS 15")
+option1.text = "High-end model with 32GB RAM"
+option1_cid = option1.save()
+
+option2 = HivemindOption()
+option2.set_issue(issue_cid)
+option2.set("MacBook Pro 14")
+option2.text = "Mid-range model with 16GB RAM"
+option2_cid = option2.save()
+
+option3 = HivemindOption()
+option3.set_issue(issue_cid)
+option3.set("Lenovo ThinkPad T14")
+option3.text = "Budget model with good value"
+option3_cid = option3.save()
+
+# Add options to state (in a real scenario, these would include signatures)
+timestamp = int(time.time())
+state.add_option(timestamp, option1_cid)
+state.add_option(timestamp, option2_cid)
+state.add_option(timestamp, option3_cid)
+
+# Create and add opinions (in a real scenario, these would include signatures)
+opinion1 = HivemindOpinion()
+opinion1.hivemind_id = issue_cid
+opinion1.question_index = 0  # First question
+opinion1.ranking.set_fixed([option1_cid, option2_cid, option3_cid])
+opinion1_cid = opinion1.save()
+
+opinion2 = HivemindOpinion()
+opinion2.hivemind_id = issue_cid
+opinion2.question_index = 1  # Second question
+opinion2.ranking.set_fixed([option3_cid, option2_cid, option1_cid])  # Different ranking for price-performance
+opinion2_cid = opinion2.save()
+
+# In a real scenario, add_opinion would include address and signature
+state.add_opinion(timestamp, opinion1_cid, "signature", "address")
+state.add_opinion(timestamp, opinion2_cid, "signature", "address")
+
+# Calculate results
+results = state.results()
+print(f"Best overall: {state.consensus(question_index=0)}")
+print(f"Best price-performance: {state.consensus(question_index=1)}")
+
+# Save the state
+state_cid = state.save()
+```
+
 ## Examples
 
 Detailed examples can be found in the [`examples/`](examples/) directory:
-
-## Installation
-
-```bash
-pip install hivemind-python
-```
-
-## Usage
-
-Import the package:
-
-```python
-import hivemind  # Note: Import as 'hivemind', not 'hivemind_python'
-
-# Create a new voting issue
-issue = hivemind.HivemindIssue("My voting issue")
-```
 
 ## Requirements
 
@@ -571,42 +776,6 @@ issue = hivemind.HivemindIssue("My voting issue")
 - A running IPFS node (see [IPFS Installation Guide](https://docs.ipfs.tech/install/))
   - The IPFS daemon must be running and accessible via the default API endpoint
   - Default endpoint: http://127.0.0.1:5001
-
-## Advanced Features
-
-### Custom Constraints
-```python
-issue.set_constraints({
-    'min_value': 0,
-    'max_value': 100,
-    'specs': {'type': 'Integer'},
-    'complex_validation': {'custom_rule': 'value % 2 == 0'}  # Even numbers only
-})
-```
-
-### Voting Restrictions
-```python
-issue.set_restrictions({
-    'addresses': ['1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', '1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2'],
-    'options_per_address': 5  # Maximum number of options each address can submit
-})
-```
-
-### Author Specification
-```python
-# Only this address can finalize the issue
-issue.author = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
-
-# Later, when finalizing:
-state.select_consensus(timestamp, issue.author, signature)
-```
-
-### Auto-Ranking with Values
-```python
-option1.set(75)  # Integer value
-option2.set(25)  # Integer value
-opinion.ranking.set_auto_high(option1.cid)  # Will rank options by proximity to 75
-```
 
 ## Documentation
 
