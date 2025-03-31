@@ -74,13 +74,6 @@ An issue represents a decision to be made. It can contain:
 - Custom validation rules
 - Predefined options for common types
 
-```python
-issue = HivemindIssue()
-issue.name = "Protocol Upgrade"
-issue.add_question("Should we implement EIP-1559?")
-issue.answer_type = "Boolean"  # Will auto-create Yes/No options
-```
-
 ### 2. Option Submission
 Options can be predefined or submitted dynamically:
 - Automatic options for Boolean types (Yes/No)
@@ -88,16 +81,6 @@ Options can be predefined or submitted dynamically:
 - Dynamic option submission with validation
 - Complex type validation support
 - Signature and timestamp verification
-
-```python
-# Dynamic option
-option = HivemindOption()
-option.set_issue(issue.cid)
-option.set("Custom implementation approach")
-
-# With signature
-option.sign(private_key)
-```
 
 ### 3. Opinion Formation
 Participants express preferences through three ranking methods:
@@ -127,38 +110,6 @@ The protocol maintains state through:
 - Multiple state transitions
 - Result caching for performance optimization
 - Author verification for finalization
-
-```python
-state = HivemindState()
-state.set_hivemind_issue(issue_cid=issue.cid())
-state.add_option(timestamp, option.cid(), voter_address, signature)
-state.add_opinion(timestamp, opinion.cid(), voter_address, signature)
-
-# State transitions
-# Finalize the state with author verification
-state.select_consensus(timestamp, author_address, signature)  # on_selection = Finalize
-
-# Results with caching
-results = state.results()  # Uses cache if available
-consensus = state.consensus()  # Gets highest scoring option
-ranked_results = state.ranked_consensus()  # Gets all options in score order
-```
-
-### 5. Result Calculation
-Results are calculated through multiple steps:
-1. Weight calculation for voters
-2. Contribution calculation
-3. Ranking aggregation
-4. Consensus determination
-   - Single consensus for clear winners
-   - Ranked consensus for preference order
-5. Tie resolution if needed
-
-```python
-results = state.calculate_results()
-consensus = state.calculate_consensus()
-winner = consensus.get_winner()
-```
 
 ## HivemindIssue Class
 
