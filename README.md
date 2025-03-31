@@ -132,7 +132,7 @@ The protocol maintains state through:
 state = HivemindState()
 state.set_hivemind_issue(issue_cid=issue.cid())
 state.add_option(timestamp, option.cid(), voter_address, signature)
-state.add_opinion(timestamp, opinion.cid(), signature, voter_address)
+state.add_opinion(timestamp, opinion.cid(), voter_address, signature)
 
 # State transitions
 # Finalize the state with author verification
@@ -619,8 +619,8 @@ state.add_option(
 state.add_opinion(
     timestamp=int(time.time()),
     opinion_hash=opinion.cid(),
-    signature="IHh9BMpylbu1DsJiMu+dmLHzoR3HHC0/skxNW/LaJi1K3agNb7mTRTNEfXRGHcLr8V0mSGv8c3XyGWU7bCEdhEE=",
-    address="1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
+    address="1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+    signature="IHh9BMpylbu1DsJiMu+dmLHzoR3HHC0/skxNW/LaJi1K3agNb7mTRTNEfXRGHcLr8V0mSGv8c3XyGWU7bCEdhEE="
 )
 ```
 
@@ -735,9 +735,9 @@ option3_cid = option3.save()
 
 # Add options to state (in a real scenario, these would include signatures)
 timestamp = int(time.time())
-state.add_option(timestamp, option1_cid)
-state.add_option(timestamp, option2_cid)
-state.add_option(timestamp, option3_cid)
+state.add_option(timestamp, option1_cid, "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa", "signature")
+state.add_option(timestamp, option2_cid, "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa", "signature")
+state.add_option(timestamp, option3_cid, "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa", "signature")
 
 # Create and add opinions (in a real scenario, these would include signatures)
 opinion1 = HivemindOpinion()
@@ -753,8 +753,8 @@ opinion2.ranking.set_fixed([option3_cid, option2_cid, option1_cid])  # Different
 opinion2_cid = opinion2.save()
 
 # In a real scenario, add_opinion would include address and signature
-state.add_opinion(timestamp, opinion1_cid, "signature", "address")
-state.add_opinion(timestamp, opinion2_cid, "signature", "address")
+state.add_opinion(timestamp, opinion1_cid, "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa", "signature")
+state.add_opinion(timestamp, opinion2_cid, "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa", "signature")
 
 # Calculate results
 results = state.results()

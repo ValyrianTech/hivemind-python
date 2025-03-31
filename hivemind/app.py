@@ -1005,8 +1005,8 @@ async def sign_opinion(request: Request):
                 lambda: state.add_opinion(
                     timestamp=timestamp,
                     opinion_hash=opinion_hash,
-                    signature=signature,
-                    address=address
+                    address=address,
+                    signature=signature
                 )
             )
 
@@ -1154,8 +1154,8 @@ async def sign_option(request: Request):
                 lambda: state.add_option(
                     timestamp=timestamp,
                     option_hash=option_hash,
-                    signature=signature,
-                    address=address
+                    address=address,
+                    signature=signature
                 )
             )
 
