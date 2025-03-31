@@ -181,6 +181,7 @@ issue.answer_type = "String"
       # Limit options per address
       "options_per_address": 3
   })
+  ```
 
   **Weighted Voting**: You can assign different weights to addresses using the `@weight` syntax:
   ```python
