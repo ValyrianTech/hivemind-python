@@ -126,5 +126,5 @@ class TestHelper:
 
         message = f"{timestamp}{opinion_hash}"
         signature = sign_message(message, private_key)
-        state.add_opinion(timestamp, opinion_hash, signature, address)
+        state.add_opinion(timestamp, opinion_hash, address, signature)
         return opinion_hash

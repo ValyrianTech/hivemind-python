@@ -71,7 +71,7 @@ class TestHivemindStateAuthor:
         # Add opinion with valid signature
         message = f"{timestamp}{opinion_hash}"
         signature = sign_message(message, private_key)
-        state.add_opinion(timestamp, opinion_hash, signature, address)
+        state.add_opinion(timestamp, opinion_hash, address, signature)
         
         # Verify state is not final before selecting consensus
         assert not state.final
@@ -132,7 +132,7 @@ class TestHivemindStateAuthor:
         # Add opinion with valid signature
         message = f"{timestamp}{opinion_hash}"
         signature = sign_message(message, private_key)
-        state.add_opinion(timestamp, opinion_hash, signature, address)
+        state.add_opinion(timestamp, opinion_hash, address, signature)
         
         # Verify state is not final before selecting consensus
         assert not state.final
@@ -209,7 +209,7 @@ class TestHivemindStateAuthor:
         # Add opinion with valid signature
         message = f"{timestamp}{opinion_hash}"
         signature = sign_message(message, user_private_key)
-        state.add_opinion(timestamp, opinion_hash, signature, user_address)
+        state.add_opinion(timestamp, opinion_hash, user_address, signature)
         
         # Generate timestamp and signature with the wrong private key
         timestamp = int(time.time())
@@ -304,7 +304,7 @@ class TestHivemindStateAuthor:
         # Add opinion with valid signature
         message = f"{timestamp}{opinion_hash}"
         signature = sign_message(message, user_private_key)
-        state.add_opinion(timestamp, opinion_hash, signature, user_address)
+        state.add_opinion(timestamp, opinion_hash, user_address, signature)
         
         # Generate timestamp and signature with the user's key
         timestamp = int(time.time())

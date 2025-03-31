@@ -165,7 +165,7 @@ class TestHivemindStateOpinionTimestampValidation:
 
         message1 = f"{timestamp1}{opinion1_hash}"
         signature1 = sign_message(message1, private_key)
-        state.add_opinion(timestamp1, opinion1_hash, signature1, address)
+        state.add_opinion(timestamp1, opinion1_hash, address, signature1)
 
         # Try to add opinion with older timestamp
         time.sleep(1)  # Ensure we have a different timestamp
@@ -180,13 +180,13 @@ class TestHivemindStateOpinionTimestampValidation:
         signature2 = sign_message(message2, private_key)
 
         with pytest.raises(Exception, match='Invalid timestamp'):
-            state.add_opinion(old_timestamp, opinion2_hash, signature2, address)
+            state.add_opinion(old_timestamp, opinion2_hash, address, signature2)
 
         # Add opinion with newer timestamp should succeed
         new_timestamp = int(time.time())
         message3 = f"{new_timestamp}{opinion2_hash}"
         signature3 = sign_message(message3, private_key)
-        state.add_opinion(new_timestamp, opinion2_hash, signature3, address)
+        state.add_opinion(new_timestamp, opinion2_hash, address, signature3)
 
         # Verify the opinion was updated
         assert state.opinion_cids[0][address]['opinion_cid'] == opinion2_hash
@@ -232,7 +232,7 @@ class TestHivemindStateVerification:
         signature = sign_message(message, private_key)
 
         # Valid opinion should be added
-        state.add_opinion(timestamp, opinion_hash, signature, address)
+        state.add_opinion(timestamp, opinion_hash, address, signature)
         assert state.opinion_cids[0][address]['opinion_cid'] == opinion_hash
 
         # 3. Test participant verification

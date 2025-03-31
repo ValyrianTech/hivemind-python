@@ -51,7 +51,7 @@ class TestHivemindStateCompare:
         # Add the opinion to the state
         timestamp = int(time.time())
         signature = sign_message(f"{timestamp}{opinion_hash}", private_key)
-        state.add_opinion(timestamp, opinion_hash, signature, address)
+        state.add_opinion(timestamp, opinion_hash, address, signature)
 
         # Compare options using this opinion
         # This should use the auto_high branch (line 687)

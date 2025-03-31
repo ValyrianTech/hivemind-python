@@ -219,19 +219,18 @@ class HivemindState(IPFSDictChain):
                     participant_options.append(option_hash)
         return participant_options
 
-    def add_opinion(self, timestamp: int, opinion_hash: str, signature: str, address: str) -> None:
+    def add_opinion(self, timestamp: int, opinion_hash: str, address: str, signature: str) -> None:
         """Add an opinion to the hivemind state.
 
         :param timestamp: Unix timestamp
         :type timestamp: int
         :param opinion_hash: The IPFS multihash of the opinion
         :type opinion_hash: str
-        :param signature: The signature of the message
-        :type signature: str
         :param address: The address of the opinionator
         :type address: str
+        :param signature: The signature of the message
+        :type signature: str
         :raises Exception: If the opinion is invalid or restrictions are not met
-        :return: None
         """
         if self.final is True:
             raise Exception('Can not add opinion: hivemind state is finalized')
@@ -698,6 +697,7 @@ class HivemindState(IPFSDictChain):
                     raise Exception('%s' % ex)
 
                 self.participants[address] = {'name': name}
+
             else:
                 raise Exception('Invalid signature')
 

@@ -52,12 +52,12 @@ class TestHivemindStateOpinions:
 
         # Test with invalid signature
         with pytest.raises(Exception, match='invalid'):
-            state.add_opinion(timestamp, opinion_hash, 'invalid_sig', address)
+            state.add_opinion(timestamp, opinion_hash, address, 'invalid_sig')
 
         # Test with valid signature
         message = f"{timestamp}{opinion_hash}"
         signature = sign_message(message, private_key)
-        state.add_opinion(timestamp, opinion_hash, signature, address)
+        state.add_opinion(timestamp, opinion_hash, address, signature)
 
         # Verify opinion was added
         assert state.opinion_cids[0][address]['opinion_cid'] == opinion_hash  # First question's opinions
@@ -78,7 +78,7 @@ class TestHivemindStateOpinions:
         
         # Expect an exception when trying to add opinion to a finalized state
         with pytest.raises(Exception, match='Can not add opinion: hivemind state is finalized'):
-            state.add_opinion(new_timestamp, new_opinion_hash, signature, address)
+            state.add_opinion(new_timestamp, new_opinion_hash, address, signature)
 
         # Verify the opinion was not added (state remained unchanged)
         assert state.opinion_cids[0][address]['opinion_cid'] == opinion_hash  # Original opinion still there
@@ -98,7 +98,7 @@ class TestHivemindStateOpinions:
         message = f"{new_timestamp}{higher_index_hash}"
         signature = sign_message(message, private_key)
 
-        state.add_opinion(new_timestamp, higher_index_hash, signature, address)
+        state.add_opinion(new_timestamp, higher_index_hash, address, signature)
 
         # Verify opinions list was extended and opinion was added
         assert len(state.opinion_cids) == 3  # Should have lists for indices 0, 1, and 2
@@ -118,7 +118,7 @@ class TestHivemindStateOpinions:
         signature = sign_message(message, private_key)
 
         with pytest.raises(Exception, match='Opinion is invalid: contains options that do not exist in the hivemind state'):
-            state.add_opinion(new_timestamp, invalid_opinion_hash, signature, address)
+            state.add_opinion(new_timestamp, invalid_opinion_hash, address, signature)
 
     def test_opinions_info(self, state: HivemindState, basic_issue: HivemindIssue, test_keypair) -> None:
         """Test the opinions_info method."""
@@ -148,7 +148,7 @@ class TestHivemindStateOpinions:
         # Add the opinion to the state
         message = f"{timestamp}{opinion_hash}"
         signature = sign_message(message, private_key)
-        state.add_opinion(timestamp, opinion_hash, signature, address)
+        state.add_opinion(timestamp, opinion_hash, address, signature)
 
         # Get the opinions info
         info = state.opinions_info()
@@ -237,7 +237,7 @@ class TestHivemindStateOpinions:
         timestamp = int(time.time())
         message = f"{timestamp}{opinion_auto_high_hash}"
         signature = sign_message(message, private_key)
-        state.add_opinion(timestamp, opinion_auto_high_hash, signature, address)
+        state.add_opinion(timestamp, opinion_auto_high_hash, address, signature)
 
         # Verify opinion was added
         assert state.opinion_cids[0][address]['opinion_cid'] == opinion_auto_high_hash
@@ -254,7 +254,7 @@ class TestHivemindStateOpinions:
         timestamp = int(time.time())
         message = f"{timestamp}{opinion_auto_low_hash}"
         signature = sign_message(message, private_key)
-        state.add_opinion(timestamp, opinion_auto_low_hash, signature, address)
+        state.add_opinion(timestamp, opinion_auto_low_hash, address, signature)
 
         # Verify opinion was added
         assert state.opinion_cids[0][address]['opinion_cid'] == opinion_auto_low_hash
@@ -271,7 +271,7 @@ class TestHivemindStateOpinions:
         timestamp = int(time.time())
         message = f"{timestamp}{opinion_fixed_hash}"
         signature = sign_message(message, private_key)
-        state.add_opinion(timestamp, opinion_fixed_hash, signature, address)
+        state.add_opinion(timestamp, opinion_fixed_hash, address, signature)
 
         # Verify opinion was added
         assert state.opinion_cids[0][address]['opinion_cid'] == opinion_fixed_hash
@@ -304,7 +304,7 @@ class TestHivemindStateOpinions:
         # Add the opinion to the state
         message = f"{timestamp}{opinion_hash}"
         signature = sign_message(message, private_key)
-        state.add_opinion(timestamp, opinion_hash, signature, address)
+        state.add_opinion(timestamp, opinion_hash, address, signature)
 
         # Create a new state instance and load the saved state
         state_hash = state.save()

@@ -56,7 +56,7 @@ class TestHivemindStateConsensus:
             # Test with valid signature
             message = f"{current_timestamp}{opinion_hash}"
             signature = sign_message(message, private_key)
-            state.add_opinion(current_timestamp, opinion_hash, signature, address)
+            state.add_opinion(current_timestamp, opinion_hash, address, signature)
 
         # Calculate results
         results = state.calculate_results()
@@ -108,7 +108,7 @@ class TestHivemindStateConsensus:
         state.participants[address] = {'name': 'Test User', 'timestamp': timestamp}
         message = f"{timestamp}{opinion_hash}"
         signature = sign_message(message, private_key)
-        state.add_opinion(timestamp, opinion_hash, signature, address)
+        state.add_opinion(timestamp, opinion_hash, address, signature)
 
         # Get score for each option and verify they are valid
         for option_hash in options:
@@ -178,7 +178,7 @@ class TestHivemindStateRankedConsensus:
             # Add opinion with valid signature
             message = f"{timestamp}{opinion_hash}"
             signature = sign_message(message, voter_key)
-            state.add_opinion(timestamp, opinion_hash, signature, voter_address)
+            state.add_opinion(timestamp, opinion_hash, voter_address, signature)
 
         # Calculate ranked consensus
         sorted_options = state.get_sorted_options()
@@ -298,7 +298,7 @@ class TestHivemindStateConsensusMethods:
 
         message1 = f"{timestamp}{opinion1_hash}"
         signature1 = sign_message(message1, private_key1)
-        state.add_opinion(timestamp, opinion1_hash, signature1, address1)
+        state.add_opinion(timestamp, opinion1_hash, address1, signature1)
 
         # Second participant prefers blue > red > green
         opinion2 = HivemindOpinion()
@@ -309,7 +309,7 @@ class TestHivemindStateConsensusMethods:
 
         message2 = f"{timestamp}{opinion2_hash}"
         signature2 = sign_message(message2, private_key2)
-        state.add_opinion(timestamp, opinion2_hash, signature2, address2)
+        state.add_opinion(timestamp, opinion2_hash, address2, signature2)
 
         # Third participant prefers red > green > blue
         opinion3 = HivemindOpinion()
@@ -320,7 +320,7 @@ class TestHivemindStateConsensusMethods:
 
         message3 = f"{timestamp}{opinion3_hash}"
         signature3 = sign_message(message3, private_key3)
-        state.add_opinion(timestamp, opinion3_hash, signature3, address3)
+        state.add_opinion(timestamp, opinion3_hash, address3, signature3)
 
         # Test consensus method
         sorted_options = state.get_sorted_options()
@@ -404,7 +404,7 @@ class TestHivemindStateConsensusEdgeCases:
 
         message = f"{timestamp}{opinion_hash}"
         signature = sign_message(message, private_key)
-        state.add_opinion(timestamp, opinion_hash, signature, address)
+        state.add_opinion(timestamp, opinion_hash, address, signature)
 
 
 @pytest.mark.consensus
@@ -437,7 +437,7 @@ class TestHivemindStateExcludeSelectionMode:
         opinion_hash = opinion.save()
         message = f"{timestamp}{opinion_hash}"
         signature = sign_message(message, private_key)
-        state.add_opinion(timestamp, opinion_hash, signature, address)
+        state.add_opinion(timestamp, opinion_hash, address, signature)
 
         # First selection should be red
         selection = state.select_consensus()
@@ -566,7 +566,7 @@ class TestHivemindStateFinalizeSelectionMode:
         # Add opinion with valid signature
         message = f"{timestamp}{opinion_hash}"
         signature = sign_message(message, private_key)
-        state.add_opinion(timestamp, opinion_hash, signature, address)
+        state.add_opinion(timestamp, opinion_hash, address, signature)
 
         # Verify state is not final before selecting consensus
         assert not state.final
@@ -640,7 +640,7 @@ class TestHivemindStateFinalizeSelectionMode:
         # Add opinion with valid signature
         message = f"{timestamp}{opinion_hash}"
         signature = sign_message(message, private_key)
-        state.add_opinion(timestamp, opinion_hash, signature, address)
+        state.add_opinion(timestamp, opinion_hash, address, signature)
 
         # Verify state is not final before selecting consensus
         assert not state.final
@@ -714,7 +714,7 @@ class TestHivemindStateResetSelectionMode:
         state.participants[address] = {'name': 'Test User', 'timestamp': timestamp}
         message = f"{timestamp}{opinion_hash}"
         signature = sign_message(message, private_key)
-        state.add_opinion(timestamp, opinion_hash, signature, address)
+        state.add_opinion(timestamp, opinion_hash, address, signature)
 
         # Verify opinion was added
         assert len(state.opinion_cids) > 0
@@ -775,7 +775,7 @@ class TestHivemindStateResetSelectionMode:
         state.participants[address] = {'name': 'Test User', 'timestamp': timestamp}
         message = f"{timestamp}{opinion_hash}"
         signature = sign_message(message, private_key)
-        state.add_opinion(timestamp, opinion_hash, signature, address)
+        state.add_opinion(timestamp, opinion_hash, address, signature)
 
         # Verify opinion was added
         assert len(state.opinion_cids) > 0
@@ -841,7 +841,7 @@ class TestHivemindStateUnknownSelectionMode:
         state.participants[address] = {'name': 'Test User', 'timestamp': timestamp}
         message = f"{timestamp}{opinion_hash}"
         signature = sign_message(message, private_key)
-        state.add_opinion(timestamp, opinion_hash, signature, address)
+        state.add_opinion(timestamp, opinion_hash, address, signature)
 
         # Set an invalid selection mode
         color_choice_issue.on_selection = 'InvalidMode'
@@ -896,7 +896,7 @@ class TestHivemindStateUnknownSelectionMode:
         state.participants[address] = {'name': 'Test User', 'timestamp': timestamp}
         message = f"{timestamp}{opinion_hash}"
         signature = sign_message(message, private_key)
-        state.add_opinion(timestamp, opinion_hash, signature, address)
+        state.add_opinion(timestamp, opinion_hash, address, signature)
 
         # Set an invalid selection mode
         color_choice_issue.on_selection = 'InvalidMode'
@@ -955,7 +955,7 @@ class TestHivemindStateNullSelectionMode:
         timestamp = int(time.time())
         message = f"{timestamp}{opinion_hash}"
         signature = sign_message(message, private_key)
-        state.add_opinion(timestamp, opinion_hash, signature, address)
+        state.add_opinion(timestamp, opinion_hash, address, signature)
 
         # Select consensus
         selection = state.select_consensus()
@@ -1001,7 +1001,7 @@ class TestHivemindStateNullSelectionMode:
         timestamp = int(time.time())
         message = f"{timestamp}{opinion_hash}"
         signature = sign_message(message, private_key)
-        state.add_opinion(timestamp, opinion_hash, signature, address)
+        state.add_opinion(timestamp, opinion_hash, address, signature)
 
         # Select consensus
         selection = state.select_consensus()
@@ -1050,7 +1050,7 @@ class TestHivemindStateContributions:
         timestamp = int(time.time())
         message = f"{timestamp}{opinion_hash}"
         signature = sign_message(message, private_key)
-        state.add_opinion(timestamp, opinion_hash, signature, address)
+        state.add_opinion(timestamp, opinion_hash, address, signature)
 
         # Calculate results and contributions
         results = state.calculate_results()
@@ -1112,7 +1112,7 @@ class TestHivemindStateConsensusTie:
             # Add opinion with valid signature
             message = f"{timestamp}{opinion_hash}"
             signature = sign_message(message, voter_key)
-            state.add_opinion(timestamp, opinion_hash, signature, voter_address)
+            state.add_opinion(timestamp, opinion_hash, voter_address, signature)
 
         # Get consensus - should be None since there's a tie
         consensus = state.consensus()
@@ -1226,7 +1226,7 @@ class TestHivemindStateIncomparableOptions:
         state.participants[address] = {'name': 'Test User', 'timestamp': timestamp}
         message = f"{timestamp}{opinion_hash}"
         signature = sign_message(message, private_key)
-        state.add_opinion(timestamp, opinion_hash, signature, address)
+        state.add_opinion(timestamp, opinion_hash, address, signature)
 
         # Calculate results
         results = state.calculate_results()
@@ -1279,7 +1279,7 @@ class TestHivemindStateConsensusWithClearWinner:
         # Add the opinion
         message = f"{timestamp}{opinion_hash}"
         signature = sign_message(message, private_key)
-        state.add_opinion(timestamp, opinion_hash, signature, address)
+        state.add_opinion(timestamp, opinion_hash, address, signature)
         
         # Test consensus method - this will hit line 482
         consensus_value = state.consensus()
@@ -1343,7 +1343,7 @@ class TestHivemindStateMultiQuestionConsensus:
             state.participants[address] = {'name': f'Test User {q_idx}', 'timestamp': timestamp}
             message = f"{timestamp}{opinion_hash}"
             signature = sign_message(message, private_key)
-            state.add_opinion(timestamp, opinion_hash, signature, address)
+            state.add_opinion(timestamp, opinion_hash, address, signature)
         
         # Clear selected list
         state.selected = []

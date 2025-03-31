@@ -55,7 +55,7 @@ class TestHivemindStateSelectConsensus:
         # Add opinion with valid signature
         message = f"{timestamp}{opinion_hash}"
         signature = sign_message(message, private_key)
-        state.add_opinion(timestamp, opinion_hash, signature, address)
+        state.add_opinion(timestamp, opinion_hash, address, signature)
         
         # Generate timestamp and signature for consensus selection
         timestamp = int(time.time())
@@ -122,7 +122,7 @@ class TestHivemindStateSelectConsensus:
         # Add opinion with valid signature
         message = f"{timestamp}{opinion_hash}"
         signature = sign_message(message, user_private_key)
-        state.add_opinion(timestamp, opinion_hash, signature, user_address)
+        state.add_opinion(timestamp, opinion_hash, user_address, signature)
         
         # Try to select consensus with wrong address (user instead of author)
         timestamp = int(time.time())
@@ -183,7 +183,7 @@ class TestHivemindStateSelectConsensus:
         # Add opinion with valid signature
         message = f"{timestamp}{opinion_hash}"
         signature = sign_message(message, author_private_key)
-        state.add_opinion(timestamp, opinion_hash, signature, author_address)
+        state.add_opinion(timestamp, opinion_hash, author_address, signature)
         
         # Generate timestamp and create a message for consensus selection
         timestamp = int(time.time())
@@ -235,7 +235,7 @@ class TestHivemindStateSelectConsensus:
         # Add opinion with valid signature
         message = f"{timestamp}{opinion_hash}"
         signature = sign_message(message, private_key)
-        state.add_opinion(timestamp, opinion_hash, signature, address)
+        state.add_opinion(timestamp, opinion_hash, address, signature)
         
         # Finalize the hivemind
         state.final = True

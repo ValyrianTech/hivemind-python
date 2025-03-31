@@ -108,7 +108,7 @@ class TestHivemindStateErrors:
         signature = sign_message(message, private_key)
 
         with pytest.raises(Exception):
-            state.add_opinion(timestamp, invalid_opinion_hash, signature, address)
+            state.add_opinion(timestamp, invalid_opinion_hash, address, signature)
 
         # Create an opinion with empty ranking (this should be valid)
         opinion = HivemindOpinion()
@@ -121,7 +121,7 @@ class TestHivemindStateErrors:
         signature = sign_message(message, private_key)
 
         # Empty rankings should be allowed
-        state.add_opinion(timestamp, opinion_hash, signature, address)
+        state.add_opinion(timestamp, opinion_hash, address, signature)
 
         # Test with invalid signature
         valid_opinion = HivemindOpinion()
@@ -133,7 +133,7 @@ class TestHivemindStateErrors:
 
         invalid_signature = "invalid_signature"
         with pytest.raises(Exception):
-            state.add_opinion(timestamp, valid_opinion_hash, invalid_signature, address)
+            state.add_opinion(timestamp, valid_opinion_hash, address, invalid_signature)
 
     def test_ranking_options_error_handling(self, state: HivemindState, basic_issue: HivemindIssue, test_keypair, monkeypatch) -> None:
         """Test error handling when getting ranking options in add_opinion."""
@@ -177,7 +177,7 @@ class TestHivemindStateErrors:
 
         # Test that the error in ranking.get() is properly handled
         with pytest.raises(Exception, match="Error validating opinion: Mock error in ranking.get()"):
-            state.add_opinion(timestamp, opinion_hash, signature, address)
+            state.add_opinion(timestamp, opinion_hash, address, signature)
 
         # Restore the original method
         monkeypatch.setattr(Ranking, 'get', original_get)
