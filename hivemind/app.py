@@ -733,7 +733,7 @@ async def create_option(option: OptionCreate):
         logger.info(f"Loaded state with CID: {latest_state_hash}")
         
         # Check if this hivemind has address restrictions for options
-        issue = await asyncio.to_thread(lambda: state.hivemind_issue())
+        issue = state.hivemind_issue()
         has_address_restrictions = False
         
         if hasattr(issue, 'restrictions') and issue.restrictions:
