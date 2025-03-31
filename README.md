@@ -264,6 +264,132 @@ loaded_issue = HivemindIssue(cid=issue_cid)
 identification_cid = issue.get_identification_cid("Participant Name")
 ```
 
+## HivemindOption Class
+
+The `HivemindOption` class represents a voting option in the Hivemind protocol, allowing participants to create and validate options for different answer types.
+
+### Class Structure
+
+```python
+from hivemind import HivemindOption, HivemindIssue
+
+# Create a new option
+option = HivemindOption()
+
+# Associate with an issue
+option.set_issue(issue_cid)
+
+# Set the option value (type depends on issue.answer_type)
+option.set("Dell XPS 13")  # For String answer type
+option.text = "Latest model with 32GB RAM"  # Optional descriptive text
+```
+
+### Key Properties
+
+- **value**: The actual value of the option (type varies based on answer_type)
+  ```python
+  # Different value types based on answer_type
+  option.set("Dell XPS 13")  # String
+  option.set(True)           # Bool
+  option.set(1500)           # Integer
+  option.set(4.5)            # Float
+  option.set({"cpu": "i7", "ram": 32, "ssd": 1})  # Complex
+  ```
+
+- **text**: Additional descriptive text for the option
+  ```python
+  option.text = "Detailed description of this option"
+  ```
+
+- **hivemind_id**: The IPFS hash of the associated hivemind issue
+  ```python
+  option.hivemind_id = issue.cid()
+  ```
+
+### Type-Specific Validation
+
+The class validates options based on the issue's answer_type and constraints:
+
+1. **String Validation**
+   ```python
+   # Validates against min_length, max_length, and regex constraints
+   issue.set_constraints({"min_length": 5, "max_length": 100})
+   option.set("Valid string value")  # Will be validated
+   ```
+
+2. **Boolean Validation**
+   ```python
+   # Validates boolean values and ensures text matches constraints
+   issue.set_constraints({"true_value": "Yes", "false_value": "No"})
+   option.set(True)
+   option.text = "Yes"  # Must match the true_value constraint
+   ```
+
+3. **Numeric Validation**
+   ```python
+   # Validates against min_value and max_value constraints
+   issue.set_constraints({"min_value": 0, "max_value": 100})
+   option.set(75)  # Will be validated
+   
+   # Float validation also checks decimals
+   issue.set_constraints({"decimals": 2})
+   option.set(75.25)  # Valid: has 2 decimal places
+   ```
+
+4. **Complex Validation**
+   ```python
+   # Validates complex objects against specs
+   issue.set_constraints({
+       "specs": {
+           "cpu": "String",
+           "ram": "Integer",
+           "ssd": "Integer"
+       }
+   })
+   option.set({
+       "cpu": "i7",
+       "ram": 32,
+       "ssd": 1
+   })  # Will validate all fields against their types
+   ```
+
+5. **File Validation**
+   ```python
+   # Validates IPFS hashes for file options
+   option.set("QmZ9nfyBfBJMZVqQPiTtEGcBXHAKZ4qMtQ5vwNJNrxQZBb")
+   ```
+
+6. **Address Validation**
+   ```python
+   # Validates Bitcoin addresses
+   option.set("1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa")
+   ```
+
+### IPFS Integration
+
+Options are stored on IPFS for immutability and decentralization:
+
+```python
+# Save to IPFS
+option_cid = option.save()  # Returns the IPFS CID
+
+# Load from IPFS
+loaded_option = HivemindOption(cid=option_cid)
+```
+
+### Utility Methods
+
+```python
+# Get information about the option
+info_str = option.info()
+
+# Get the answer type
+answer_type = option.get_answer_type()
+
+# Get the CID
+cid = option.cid()
+```
+
 ## Examples
 
 Detailed examples can be found in the [`examples/`](examples/) directory:
