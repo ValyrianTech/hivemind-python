@@ -390,6 +390,159 @@ answer_type = option.get_answer_type()
 cid = option.cid()
 ```
 
+## HivemindOpinion and Ranking Classes
+
+The `HivemindOpinion` and `Ranking` classes work together to represent a voter's preferences in the Hivemind protocol, providing flexible ways to express opinions on options.
+
+### HivemindOpinion Class
+
+```python
+from hivemind import HivemindOpinion
+
+# Create a new opinion
+opinion = HivemindOpinion()
+opinion.hivemind_id = issue_cid
+opinion.question_index = 0  # First question in the issue
+```
+
+#### Key Properties
+
+- **hivemind_id**: The IPFS hash of the associated hivemind issue
+  ```python
+  opinion.hivemind_id = issue.cid()
+  ```
+
+- **question_index**: The index of the question this opinion is for
+  ```python
+  # For multi-question issues, specify which question this opinion addresses
+  opinion.set_question_index(2)  # Third question (zero-indexed)
+  ```
+
+- **ranking**: The ranking of options for this opinion
+  ```python
+  # The ranking object handles the preference ordering
+  # (See Ranking class below for details)
+  opinion.ranking.set_fixed(["option1_cid", "option2_cid", "option3_cid"])
+  ```
+
+#### IPFS Integration
+
+```python
+# Save to IPFS
+opinion_cid = opinion.save()  # Returns the IPFS CID
+
+# Load from IPFS
+loaded_opinion = HivemindOpinion(cid=opinion_cid)
+```
+
+#### Utility Methods
+
+```python
+# Get a JSON-serializable representation
+opinion_dict = opinion.to_dict()
+
+# Get formatted information
+info_str = opinion.info()
+```
+
+### Ranking Class
+
+The `Ranking` class provides three different ways to express preferences:
+
+#### 1. Fixed Ranking
+
+Explicitly specifies the order of preference for options:
+
+```python
+# Create an opinion with fixed ranking
+opinion = HivemindOpinion()
+opinion.ranking.set_fixed([
+    "QmOption1Cid",  # First choice
+    "QmOption2Cid",  # Second choice
+    "QmOption3Cid"   # Third choice
+])
+```
+
+#### 2. Auto-High Ranking
+
+Automatically ranks options based on proximity to a preferred value, with higher values preferred in case of ties:
+
+```python
+# For laptop selection with numeric performance scores
+# Assuming options have numeric values (e.g., benchmark scores)
+opinion = HivemindOpinion()
+opinion.ranking.set_auto_high("QmPreferredOptionCid")
+
+# When get() is called with a list of options, they will be ranked by:
+# 1. Proximity to the preferred option's value
+# 2. Higher values preferred in case of equal distance
+ranked_options = opinion.ranking.get(available_options)
+```
+
+#### 3. Auto-Low Ranking
+
+Similar to auto-high, but prefers lower values in case of ties:
+
+```python
+# For laptop selection with price values
+# Assuming options have numeric values (e.g., prices)
+opinion = HivemindOpinion()
+opinion.ranking.set_auto_low("QmPreferredOptionCid")
+
+# When get() is called with a list of options, they will be ranked by:
+# 1. Proximity to the preferred option's value
+# 2. Lower values preferred in case of equal distance
+ranked_options = opinion.ranking.get(available_options)
+```
+
+#### Practical Example
+
+```python
+from hivemind import HivemindIssue, HivemindOption, HivemindOpinion
+
+# Create an issue for laptop selection
+issue = HivemindIssue()
+issue.name = "Team Laptop Selection"
+issue.add_question("Which laptop model is best overall?")
+issue.add_question("Which laptop model has the best price-to-performance ratio?")
+issue.answer_type = "Integer"  # For benchmark scores or prices
+issue_cid = issue.save()
+
+# Create options with benchmark scores
+option1 = HivemindOption()
+option1.set_issue(issue_cid)
+option1.set(9500)  # High-end model benchmark score
+option1.text = "Dell XPS 15"
+option1_cid = option1.save()
+
+option2 = HivemindOption()
+option2.set_issue(issue_cid)
+option2.set(8200)  # Mid-range model benchmark score
+option2.text = "MacBook Pro 14"
+option2_cid = option2.save()
+
+option3 = HivemindOption()
+option3.set_issue(issue_cid)
+option3.set(7000)  # Budget model benchmark score
+option3.text = "Lenovo ThinkPad T14"
+option3_cid = option3.save()
+
+# Create an opinion for the first question (best overall)
+opinion1 = HivemindOpinion()
+opinion1.hivemind_id = issue_cid
+opinion1.question_index = 0
+opinion1.ranking.set_fixed([option1_cid, option2_cid, option3_cid])
+opinion1_cid = opinion1.save()
+
+# Create an opinion for the second question (price-to-performance)
+# Using auto-low to prefer options with better value
+opinion2 = HivemindOpinion()
+opinion2.hivemind_id = issue_cid
+opinion2.question_index = 1
+opinion2.ranking.set_auto_low(option3_cid)  # Prefer the ThinkPad's value
+opinion2_cid = opinion2.save()
+```
+
 ## Examples
 
 Detailed examples can be found in the [`examples/`](examples/) directory:
