@@ -643,3 +643,20 @@ class TestHivemindOption:
         # Test with wrong type
         option.value = 123
         assert option.valid() is False
+
+    def test_get_answer_type(self, issue: HivemindIssue, option: HivemindOption) -> None:
+        """Test the get_answer_type method."""
+        # Test default answer type
+        assert option.get_answer_type() == 'String'
+        
+        # Test with different answer types
+        for answer_type in ['Integer', 'Float', 'Bool', 'Complex', 'Hivemind', 'File', 'Address']:
+            option._answer_type = answer_type
+            assert option.get_answer_type() == answer_type
+            
+        # Test when answer type is set via issue
+        new_option = HivemindOption()
+        issue.answer_type = 'Integer'
+        new_option._hivemind_issue = issue
+        new_option._answer_type = issue.answer_type
+        assert new_option.get_answer_type() == 'Integer'
