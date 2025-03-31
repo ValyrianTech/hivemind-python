@@ -181,7 +181,20 @@ issue.answer_type = "String"
       # Limit options per address
       "options_per_address": 3
   })
+
+  **Weighted Voting**: You can assign different weights to addresses using the `@weight` syntax:
+  ```python
+  issue.set_restrictions({
+      # Addresses with weights (format: "address@weight")
+      "addresses": [
+          "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa@2.5",  # This address has 2.5x voting power
+          "1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2",      # Default weight of 1.0
+          "1MzQwSR3s7RqxJPuQzF7Y4iybjhHNV4bZq@0.5"   # This address has 0.5x voting power
+      ],
+      "options_per_address": 3
+  })
   ```
+  Weights affect the influence of each participant's opinion in the final consensus calculation. Higher weights give more influence to certain participants, which can be useful for stakeholder voting or expertise-weighted decisions.
 
 - **on_selection**: Action when consensus is reached
   ```python
