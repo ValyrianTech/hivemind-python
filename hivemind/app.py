@@ -630,8 +630,34 @@ async def create_issue(issue: HivemindIssueCreate):
                 # Initialize options variable
                 options = []
 
-                # Add predefined options only for Bool type
-                if issue.answer_type == 'Bool':
+                # Add predefined options for Bool type and any type with 'choices' constraints
+                if issue.answer_type == 'Bool' or (issue.constraints and 'choices' in issue.constraints):
+                    # Log the constraints to debug
+                    logger.info(f"Constraints before adding predefined options: {issue.constraints}")
+                    
+                    # For non-Bool types, ensure choices are in the correct format (dict with text and value)
+                    if issue.answer_type != 'Bool' and issue.constraints and 'choices' in issue.constraints:
+                        choices = issue.constraints['choices']
+                        # If choices are not already in dict format, convert them
+                        if choices and not (isinstance(choices[0], dict) and 'text' in choices[0] and 'value' in choices[0]):
+                            logger.info("Converting choices to required format with text and value keys")
+                            formatted_choices = []
+                            for choice in choices:
+                                if isinstance(choice, dict):
+                                    # If it's a dict but missing required keys
+                                    if 'text' not in choice:
+                                        choice['text'] = str(choice.get('value', choice))
+                                    if 'value' not in choice:
+                                        choice['value'] = choice.get('text', choice)
+                                    formatted_choices.append(choice)
+                                else:
+                                    # If it's a simple value, create a dict with text and value
+                                    formatted_choices.append({'text': str(choice), 'value': choice})
+                            
+                            # Update the constraints with properly formatted choices
+                            initial_state._issue.constraints['choices'] = formatted_choices
+                            logger.info(f"Formatted choices: {formatted_choices}")
+                    
                     options = initial_state.add_predefined_options()
                     logger.info(f"Added predefined options: {options}")
 

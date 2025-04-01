@@ -341,6 +341,170 @@ class TestIssueCreationFunctionality:
 
             assert create_and_save_error_call, "Expected error log message not found"
 
+    @patch("app.HivemindIssue")
+    def test_create_issue_with_string_choices(self, mock_hivemind_issue):
+        """Test choices formatting for non-Bool answer types (lines 648-652).
+        
+        This test verifies that when a non-Bool issue type is created with simple string choices,
+        the choices are properly formatted to include both 'text' and 'value' keys before
+        calling add_predefined_options.
+        """
+        # Setup mock issue instance
+        mock_issue_instance = MagicMock()
+        mock_issue_instance.save.return_value = "test_issue_with_choices_cid"
+        mock_hivemind_issue.return_value = mock_issue_instance
+
+        # Setup test data with String answer_type and simple string choices
+        issue_data = {
+            "name": "String Issue With Choices",
+            "description": "Test Description for String Issue With Choices",
+            "questions": ["Select an option:"],
+            "tags": ["test", "string", "choices"],
+            "answer_type": "String",
+            "constraints": {
+                "choices": ["Option A", "Option B", "Option C"]  # Simple string choices
+            },
+            "restrictions": None,
+            "on_selection": None
+        }
+
+        # Test the endpoint
+        with patch("app.HivemindState") as mock_hivemind_state, patch("app.logger") as mock_logger:
+            # Configure mock state to return a successful save
+            mock_state_instance = MagicMock()
+            mock_state_instance.save.return_value = "test_state_cid"
+            mock_state_instance._issue = MagicMock()
+            mock_state_instance._issue.constraints = {'choices': issue_data["constraints"]["choices"]}
+            mock_state_instance.add_predefined_options.return_value = {
+                "option1_cid": {"text": "Option A", "value": "Option A"},
+                "option2_cid": {"text": "Option B", "value": "Option B"},
+                "option3_cid": {"text": "Option C", "value": "Option C"}
+            }
+            mock_hivemind_state.return_value = mock_state_instance
+
+            response = self.client.post(
+                "/api/create_issue",
+                json=issue_data
+            )
+
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["issue_cid"] == "test_issue_with_choices_cid"
+
+        # Verify the HivemindIssue was created with correct attributes
+        mock_hivemind_issue.assert_called_once()
+
+        # Verify attributes were set correctly
+        assert mock_issue_instance.name == issue_data["name"]
+        assert mock_issue_instance.description == issue_data["description"]
+        assert mock_issue_instance.tags == issue_data["tags"]
+        assert mock_issue_instance.answer_type == issue_data["answer_type"]
+
+        # Verify add_question was called for the question
+        mock_issue_instance.add_question.assert_called_once_with(issue_data["questions"][0])
+
+        # Verify set_constraints was called with the original constraints
+        mock_issue_instance.set_constraints.assert_called_once_with(issue_data["constraints"])
+
+        # Verify add_predefined_options was called
+        mock_state_instance.add_predefined_options.assert_called_once()
+
+        # Verify that the constraints were formatted correctly before calling add_predefined_options
+        # This specifically tests lines 648-652 where choices are formatted
+        # The formatted choices should have been logged
+        format_log_call = False
+        for call in mock_logger.info.call_args_list:
+            if "Formatted choices:" in call[0][0] and "text" in call[0][0] and "value" in call[0][0]:
+                format_log_call = True
+                break
+
+        assert format_log_call, "Expected log message for formatted choices not found"
+
+        # Verify save was called
+        mock_issue_instance.save.assert_called_once()
+
+    @patch("app.HivemindIssue")
+    def test_create_issue_with_mixed_choices(self, mock_hivemind_issue):
+        """Test choices formatting for mixed format choices (lines 648-652).
+        
+        This test verifies that when a non-Bool issue type is created with a mix of
+        simple values and incomplete dictionaries as choices, they are all properly
+        formatted to include both 'text' and 'value' keys.
+        """
+        # Setup mock issue instance
+        mock_issue_instance = MagicMock()
+        mock_issue_instance.save.return_value = "test_issue_with_mixed_choices_cid"
+        mock_hivemind_issue.return_value = mock_issue_instance
+
+        # Setup test data with Integer answer_type and mixed format choices
+        issue_data = {
+            "name": "Integer Issue With Mixed Choices",
+            "description": "Test Description for Integer Issue With Mixed Choices",
+            "questions": ["Select a number:"],
+            "tags": ["test", "integer", "choices", "mixed"],
+            "answer_type": "Integer",
+            "constraints": {
+                "choices": [
+                    10,  # Simple value
+                    {"value": 20},  # Dict with only value
+                    {"text": "Thirty"}  # Dict with only text
+                ]
+            },
+            "restrictions": None,
+            "on_selection": None
+        }
+
+        # Test the endpoint
+        with patch("app.HivemindState") as mock_hivemind_state, patch("app.logger") as mock_logger:
+            # Configure mock state to return a successful save
+            mock_state_instance = MagicMock()
+            mock_state_instance.save.return_value = "test_state_cid"
+            mock_state_instance._issue = MagicMock()
+            mock_state_instance._issue.constraints = {'choices': issue_data["constraints"]["choices"]}
+            mock_state_instance.add_predefined_options.return_value = {
+                "option1_cid": {"text": "10", "value": 10},
+                "option2_cid": {"text": "20", "value": 20},
+                "option3_cid": {"text": "Thirty", "value": "Thirty"}
+            }
+            mock_hivemind_state.return_value = mock_state_instance
+
+            response = self.client.post(
+                "/api/create_issue",
+                json=issue_data
+            )
+
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["issue_cid"] == "test_issue_with_mixed_choices_cid"
+
+        # Verify the HivemindIssue was created with correct attributes
+        mock_hivemind_issue.assert_called_once()
+
+        # Verify add_predefined_options was called
+        mock_state_instance.add_predefined_options.assert_called_once()
+
+        # Verify that the constraints were formatted correctly
+        # The formatted choices should have been logged
+        format_log_call = False
+        for call in mock_logger.info.call_args_list:
+            if "Formatted choices:" in call[0][0]:
+                log_message = call[0][0]
+                # Check that all choices have both text and value keys
+                assert "'text': '10'" in log_message and "'value': 10" in log_message
+                assert "'text': '20'" in log_message and "'value': 20" in log_message
+                assert "'text': 'Thirty'" in log_message and "'value': 'Thirty'" in log_message
+                format_log_call = True
+                break
+
+        assert format_log_call, "Expected log message for formatted choices not found"
+
+        # Verify save was called
+        mock_issue_instance.save.assert_called_once()
+
 
 if __name__ == "__main__":
     pytest.main(["-xvs", "test_app_issue_creation.py"])
