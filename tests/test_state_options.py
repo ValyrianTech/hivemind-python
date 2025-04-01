@@ -163,3 +163,49 @@ class TestHivemindStateOptions:
             option = HivemindOption(cid=option_hash)
             assert f'Option {i}:' in info
             assert option.info() in info
+
+    def test_prevent_duplicate_value_options(self, state: HivemindState, basic_issue: HivemindIssue) -> None:
+        """Test that options with the same value but different text cannot be added."""
+        # Setup
+        issue_hash = basic_issue.save()
+        state.set_hivemind_issue(issue_hash)
+        
+        # Generate test keypair
+        private_key, address = generate_bitcoin_keypair()
+        timestamp = int(time.time())
+        
+        # Create and add first option
+        option1 = HivemindOption()
+        option1.set_issue(issue_hash)
+        option1.set("test_value")
+        option1.text = "First option text"
+        option1_hash = option1.save()
+        
+        message = f"{timestamp}{option1_hash}"
+        signature = sign_message(message, private_key)
+        state.add_option(timestamp, option1_hash, address, signature)
+        
+        # Verify first option was added
+        assert option1_hash in state.option_cids
+        
+        # Create second option with same value but different text
+        timestamp = int(time.time())  # Update timestamp for new signature
+        option2 = HivemindOption()
+        option2.set_issue(issue_hash)
+        option2.set("test_value")  # Same value
+        option2.text = "Second option text"  # Different text
+        option2_hash = option2.save()
+        
+        # Verify it's a different option (different CID)
+        assert option1_hash != option2_hash
+        
+        # Try to add second option with same value
+        message = f"{timestamp}{option2_hash}"
+        signature = sign_message(message, private_key)
+        
+        # This should raise an exception
+        with pytest.raises(Exception, match="Option with value 'test_value' already exists with different text"):
+            state.add_option(timestamp, option2_hash, address, signature)
+            
+        # Verify second option was not added
+        assert option2_hash not in state.option_cids

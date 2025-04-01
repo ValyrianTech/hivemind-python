@@ -196,6 +196,13 @@ class HivemindState(IPFSDictChain):
         if isinstance(option, HivemindOption) and option.valid():
             if option_hash in self.option_cids:
                 raise Exception("Option already exists")
+                
+            # Check if an option with the same value already exists
+            for existing_option_cid in self.option_cids:
+                existing_option = self.get_option(cid=existing_option_cid)
+                if existing_option.value == option.value:
+                    raise Exception(f"Option with value '{option.value}' already exists with different text")
+                    
             # Only add signature if both address and signature are provided
             if address is not None and signature is not None:
                 self.add_signature(address=address, timestamp=timestamp, message=option_hash, signature=signature)
