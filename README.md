@@ -7,6 +7,8 @@ A decentralized decision-making protocol implementing Condorcet-style Ranked Cho
 [![Code Coverage](https://img.shields.io/codecov/c/github/ValyrianTech/hivemind-python)](https://codecov.io/gh/ValyrianTech/hivemind-python)
 [![License](https://img.shields.io/github/license/ValyrianTech/hivemind-python)](https://github.com/ValyrianTech/hivemind-python/blob/main/LICENSE)
 
+> **Note:** Looking for the web application implementation? Check out the [Web App README](hivemind/README.md) for details on the included web interface and mobile signing app.
+
 ## What is the Hivemind Protocol?
 
 The Hivemind Protocol is a revolutionary approach to decentralized decision-making that combines:
