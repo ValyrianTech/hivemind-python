@@ -117,6 +117,10 @@ The protocol maintains state through:
 
 This package relies on [IPFSDictChain](https://github.com/ValyrianTech/ipfs_dict_chain), a library that provides a dictionary-like data structure with IPFS-based storage and blockchain-like chaining capabilities. IPFSDictChain enables the Hivemind Protocol to store and retrieve data in a decentralized manner while maintaining data integrity and immutability.
 
+### BitcoinMessageSigner
+
+The Hivemind Protocol uses [BitcoinMessageSigner](https://github.com/ValyrianTech/BitcoinMessageSigner) for cryptographic verification of user actions. This mobile application allows users to scan QR codes to sign opinions, options, update participant names, and select consensus outcomes using Bitcoin's message signing capabilities. The app ensures that all actions in the Hivemind Protocol are properly authenticated and verified through cryptographic signatures.
+
 ## HivemindIssue Class
 
 The `HivemindIssue` class is the foundation of the Hivemind Protocol, representing a voting issue to be decided by participants.
