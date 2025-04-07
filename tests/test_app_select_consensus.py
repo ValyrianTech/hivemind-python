@@ -322,61 +322,6 @@ class TestSelectConsensus:
                     data = response.json()
                     assert "Error loading state" in data["detail"]
 
-    def test_select_consensus_message_in_data_field(self):
-        """Test select_consensus with message in the data field instead of message field."""
-        # Create test data
-        timestamp = int(time.time())
-        message_content = f"{timestamp}:select_consensus:{VALID_HIVEMIND_ID}"
-        signature = sign_message(message_content, self.private_key)
-
-        # Mock state mapping
-        mock_mapping = {VALID_HIVEMIND_ID: {"state_hash": VALID_STATE_CID}}
-        
-        # Mock HivemindIssue
-        mock_issue = MagicMock()
-        mock_issue.questions = ["Test Question"]
-        mock_issue.author = self.address
-        mock_issue.on_selection = "Finalize"
-
-        # Mock HivemindState
-        mock_state = MagicMock()
-        mock_state.option_cids = [VALID_OPTION_CID]
-        mock_state.calculate_results.return_value = {VALID_OPTION_CID: 1.0}
-        mock_state.select_consensus.return_value = [VALID_OPTION_CID]
-        mock_state.save.return_value = VALID_STATE_CID
-        mock_state.hivemind_issue.return_value = mock_issue
-        mock_state._hivemind_issue = mock_issue
-        mock_state.hivemind_id = VALID_HIVEMIND_ID
-
-        # Test request data with message in data field instead of message field
-        request_data = {
-            "address": self.address,
-            "data": message_content,  # Use data field instead of message field
-            "signature": signature
-        }
-
-        # Patch all necessary functions
-        with patch("app.verify_message", return_value=True):
-            with patch("app.load_state_mapping", return_value=mock_mapping):
-                with patch("app.save_state_mapping", return_value=None):
-                    with patch("app.HivemindState", return_value=mock_state):
-                        # Test the endpoint
-                        response = self.client.post("/api/select_consensus", json=request_data)
-
-                        # Verify response
-                        assert response.status_code == 200
-                        response_data = response.json()
-                        assert response_data["success"] is True
-                        assert response_data["state_cid"] == VALID_STATE_CID
-                        assert response_data["selected_options"] == [VALID_OPTION_CID]
-
-                        # Verify state methods were called correctly
-                        mock_state.select_consensus.assert_called_once_with(
-                            timestamp=timestamp,
-                            address=self.address,
-                            signature=signature
-                        )
-
     def test_select_consensus_unexpected_exception(self):
         """Test select_consensus with an unexpected exception during request processing."""
         # Create test data

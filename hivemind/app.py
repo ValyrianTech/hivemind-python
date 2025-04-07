@@ -969,7 +969,7 @@ async def sign_opinion(request: Request):
     """Add a signed opinion to the hivemind state.
     
     Args:
-        request: Raw request containing address, message, signature and data
+        request: Raw request containing address, message, signature
         
     Returns:
         Dict indicating success status and any error message
@@ -984,9 +984,8 @@ async def sign_opinion(request: Request):
         address = data.get('address')
         message = data.get('message')
         signature = data.get('signature')
-        opinion_data = data.get('data')
 
-        if not all([address, message, signature, opinion_data]):
+        if not all([address, message, signature]):
             raise HTTPException(status_code=400, detail="Missing required fields")
 
         # Parse timestamp and opinion_hash from message format: "timestampCID"
@@ -1117,7 +1116,7 @@ async def sign_option(request: Request):
     """Add a signed option to the hivemind state.
     
     Args:
-        request: Raw request containing address, message, signature and data
+        request: Raw request containing address, message, signature
         
     Returns:
         Dict indicating success status and any error message
@@ -1132,9 +1131,8 @@ async def sign_option(request: Request):
         address = data.get('address')
         message = data.get('message')
         signature = data.get('signature')
-        option_data = data.get('data')
 
-        if not all([address, message, signature, option_data]):
+        if not all([address, message, signature]):
             raise HTTPException(status_code=400, detail="Missing required fields")
 
         # Parse timestamp and option_hash from message format: "timestampCID"
@@ -1323,7 +1321,7 @@ async def sign_name_update(request: Request):
     """Update a participant's name with a signed message.
     
     Args:
-        request: Raw request containing address, message, signature, and data
+        request: Raw request containing address, message, signature
         
     Returns:
         Dict indicating success status and any error message
@@ -1339,9 +1337,8 @@ async def sign_name_update(request: Request):
         address = data.get('address')
         message = data.get('message')
         signature = data.get('signature')
-        name_data = data.get('data')
 
-        if not all([address, message, signature, name_data]):
+        if not all([address, message, signature]):
             raise HTTPException(status_code=400, detail="Missing required fields")
 
         # Parse timestamp and identification_cid from message format: "timestampCID"
@@ -1507,10 +1504,6 @@ async def select_consensus(request: Request):
         # Extract required fields
         address = data.get('address')
         message = data.get('message')
-        # If message is not present, try to get it from the data field
-        if not message and 'data' in data:
-            message = data.get('data')
-            logger.info(f"Using 'data' field as message: {message}")
         signature = data.get('signature')
 
         logger.info(f"Extracted fields - address: {address}, message: {message}, signature: {signature}")
