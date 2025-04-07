@@ -64,6 +64,12 @@
             </div>
             <div id="qrcode" class="mx-auto bg-white p-4 rounded-lg w-64 h-64 flex items-center justify-center"></div>
             <div class="mt-4 text-center">
+                <p class="text-sm font-mono bg-gray-700 p-3 rounded-lg overflow-x-auto whitespace-pre-wrap break-all" id="qrMessage"></p>
+            </div>
+            <div class="mt-4 text-center text-gray-300">
+                <p>Please scan this QR code with the <a href="https://github.com/ValyrianTech/BitcoinMessageSigner" target="_blank" class="text-blue-400 hover:underline">BitcoinMessageSigner</a> app</p>
+            </div>
+            <div class="mt-4 text-center">
                 <button onclick="document.getElementById('qrCodeContainer').classList.add('hidden')" 
                         class="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500">
                     Close
@@ -685,6 +691,9 @@
                 colorLight: "#ffffff",
                 correctLevel: QRCode.CorrectLevel.H
             });
+            
+            // Display the message content
+            document.getElementById('qrMessage').textContent = message;
             
             // Set up WebSocket connection to listen for signature confirmation
             setupWebSocket(stateData.hivemind_id);

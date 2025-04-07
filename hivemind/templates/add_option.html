@@ -126,6 +126,12 @@
                     <p class="text-gray-300 mt-2">Scan this QR code with your Bitcoin wallet to sign your option</p>
                 </div>
                 <div id="qrcode" class="mx-auto bg-white p-4 rounded-lg w-64 h-64 flex items-center justify-center"></div>
+                <div class="mt-4 text-center">
+                    <p class="text-sm font-mono bg-gray-700 p-3 rounded-lg overflow-x-auto whitespace-pre-wrap break-all" id="qrMessage"></p>
+                </div>
+                <div class="mt-4 text-center text-gray-300">
+                    <p>Please scan this QR code with the <a href="https://github.com/ValyrianTech/BitcoinMessageSigner" target="_blank" class="text-blue-400 hover:underline">BitcoinMessageSigner</a> app</p>
+                </div>
             </div>
         </div>
     </div>
@@ -230,6 +236,9 @@
                         width: 256,
                         height: 256
                     });
+                    
+                    // Display the message content
+                    document.getElementById('qrMessage').textContent = qrData.msg;
                     
                     // Connect to WebSocket for signature notification
                     const ws = new WebSocket(`ws://${window.location.hostname}:${window.location.port}/ws/option/${result.option_cid}`);
