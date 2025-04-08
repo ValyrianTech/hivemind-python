@@ -8,6 +8,7 @@ import time
 import asyncio
 import csv
 import logging
+import ast
 
 from logging.handlers import RotatingFileHandler
 from typing import Optional, List, Dict, Any, Union
@@ -602,6 +603,24 @@ async def create_issue(issue: HivemindIssueCreate):
 
                     if file_constraints:
                         new_issue.set_constraints(file_constraints)
+                # Special handling for Complex type
+                elif issue.answer_type == 'Complex' and 'choices' in issue.constraints:
+                    # Ensure the choices are in the correct format
+                    complex_constraints = issue.constraints.copy()
+                    
+                    # Handle choices if provided
+                    if isinstance(complex_constraints['choices'], list):
+                        # For Complex type, we need to ensure each choice is properly parsed
+                        for i, choice in enumerate(complex_constraints['choices']):
+                            try:
+                                # If it's a string representation of a dict, parse it
+                                if isinstance(choice, str):
+                                    complex_constraints['choices'][i] = ast.literal_eval(choice)
+                            except (ValueError, SyntaxError) as e:
+                                logger.error(f"Failed to parse Complex choice: {choice}, error: {str(e)}")
+                                raise ValueError(f"Invalid JSON in Complex choice: {choice}")
+                    
+                    new_issue.set_constraints(complex_constraints)
                 else:
                     new_issue.set_constraints(issue.constraints)
             elif issue.answer_type == 'Bool':
@@ -657,6 +676,18 @@ async def create_issue(issue: HivemindIssueCreate):
                             # Update the constraints with properly formatted choices
                             initial_state._issue.constraints['choices'] = formatted_choices
                             logger.info(f"Formatted choices: {formatted_choices}")
+                    
+                    # Special handling for Complex type after formatting
+                    if issue.answer_type == 'Complex' and issue.constraints and 'choices' in issue.constraints:
+                        for choice in initial_state._issue.constraints['choices']:
+                            # For Complex type, ensure the 'value' is a dictionary, not a string
+                            if isinstance(choice['value'], str):
+                                try:
+                                    # Convert string representation back to dictionary
+                                    choice['value'] = ast.literal_eval(choice['value'])
+                                except (ValueError, SyntaxError) as e:
+                                    logger.error(f"Failed to parse Complex choice value: {choice['value']}, error: {str(e)}")
+                                    raise ValueError(f"Invalid JSON in Complex choice: {choice['value']}")
                     
                     options = initial_state.add_predefined_options()
                     logger.info(f"Added predefined options: {options}")
