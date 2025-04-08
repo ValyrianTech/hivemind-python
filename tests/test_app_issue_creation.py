@@ -505,6 +505,307 @@ class TestIssueCreationFunctionality:
         # Verify save was called
         mock_issue_instance.save.assert_called_once()
 
+    @patch("app.HivemindIssue")
+    def test_create_issue_complex_constraints(self, mock_hivemind_issue):
+        """Test Complex answer type constraint handling in create_issue function.
+        
+        This test verifies that when a Complex issue type is created with choices
+        that are string representations of JSON objects, they are properly parsed
+        into actual dictionaries using ast.literal_eval.
+        """
+        # Setup mock issue instance
+        mock_issue_instance = MagicMock()
+        mock_issue_instance.save.return_value = "test_complex_issue_cid"
+        mock_hivemind_issue.return_value = mock_issue_instance
+
+        # Setup test data with Complex answer_type and string JSON choices
+        issue_data = {
+            "name": "Complex Test Issue",
+            "description": "Test Description for Complex Issue",
+            "questions": ["Which option do you prefer?"],
+            "tags": ["test", "complex"],
+            "answer_type": "Complex",
+            "constraints": {
+                "specs": {
+                    "field1": "String",
+                    "field2": "Integer"
+                },
+                "choices": [
+                    '{"field1": "value1", "field2": 123}',
+                    '{"field1": "value2", "field2": 456}'
+                ]
+            },
+            "restrictions": None,
+            "on_selection": None
+        }
+
+        # Test the endpoint
+        with patch("app.HivemindState") as mock_hivemind_state:
+            # Configure mock state to return a successful save
+            mock_state_instance = MagicMock()
+            mock_state_instance.save.return_value = "test_state_cid"
+            mock_hivemind_state.return_value = mock_state_instance
+
+            response = self.client.post(
+                "/api/create_issue",
+                json=issue_data
+            )
+
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["issue_cid"] == "test_complex_issue_cid"
+
+        # Verify the HivemindIssue was created with correct attributes
+        mock_hivemind_issue.assert_called_once()
+
+        # Verify attributes were set correctly
+        assert mock_issue_instance.name == issue_data["name"]
+        assert mock_issue_instance.description == issue_data["description"]
+        assert mock_issue_instance.tags == issue_data["tags"]
+        assert mock_issue_instance.answer_type == issue_data["answer_type"]
+
+        # Verify add_question was called for the question
+        mock_issue_instance.add_question.assert_called_once_with(issue_data["questions"][0])
+
+        # Most importantly, verify set_constraints was called with the parsed constraints
+        # The string JSON objects should be converted to actual dictionaries
+        expected_modified_constraints = {
+            "specs": {
+                "field1": "String",
+                "field2": "Integer"
+            },
+            "choices": [
+                {"field1": "value1", "field2": 123},
+                {"field1": "value2", "field2": 456}
+            ]
+        }
+        mock_issue_instance.set_constraints.assert_called_once()
+        # Get the actual call arguments
+        actual_constraints = mock_issue_instance.set_constraints.call_args[0][0]
+        assert actual_constraints["specs"] == expected_modified_constraints["specs"]
+        # Verify each choice was properly parsed from string to dict
+        for i, choice in enumerate(actual_constraints["choices"]):
+            assert isinstance(choice, dict)
+            assert choice["field1"] == expected_modified_constraints["choices"][i]["field1"]
+            assert choice["field2"] == expected_modified_constraints["choices"][i]["field2"]
+
+        # Verify save was called
+        mock_issue_instance.save.assert_called_once()
+
+    @patch("app.HivemindIssue")
+    def test_create_issue_complex_constraints_after_formatting(self, mock_hivemind_issue):
+        """Test Complex answer type constraint handling after formatting in create_issue function.
+        
+        This test verifies that when a Complex issue type is created with choices,
+        the formatted choices (with 'text' and 'value' keys) are properly handled,
+        ensuring the 'value' field is a dictionary, not a string representation.
+        """
+        # Setup mock issue instance
+        mock_issue_instance = MagicMock()
+        mock_issue_instance.save.return_value = "test_complex_issue_cid"
+        mock_hivemind_issue.return_value = mock_issue_instance
+
+        # Setup test data with Complex answer_type
+        issue_data = {
+            "name": "Complex Formatting Test",
+            "description": "Test Description for Complex Formatting",
+            "questions": ["Which option do you prefer?"],
+            "tags": ["test", "complex", "formatting"],
+            "answer_type": "Complex",
+            "constraints": {
+                "specs": {
+                    "field1": "String",
+                    "field2": "Integer"
+                },
+                "choices": [
+                    {"field1": "value1", "field2": 123},
+                    {"field1": "value2", "field2": 456}
+                ]
+            },
+            "restrictions": None,
+            "on_selection": None
+        }
+
+        # Test the endpoint
+        with patch("app.HivemindState") as mock_hivemind_state:
+            # Configure mock state instance
+            mock_state_instance = MagicMock()
+            mock_state_instance.save.return_value = "test_state_cid"
+            
+            # Mock the _issue attribute and its constraints
+            mock_state_instance._issue = MagicMock()
+            mock_state_instance._issue.constraints = {
+                "specs": {
+                    "field1": "String",
+                    "field2": "Integer"
+                },
+                "choices": [
+                    {"text": "{'field1': 'value1', 'field2': 123}", "value": "{'field1': 'value1', 'field2': 123}"},
+                    {"text": "{'field1': 'value2', 'field2': 456}", "value": "{'field1': 'value2', 'field2': 456}"}
+                ]
+            }
+            
+            # Mock add_predefined_options to return some options
+            mock_state_instance.add_predefined_options.return_value = ["option1", "option2"]
+            
+            mock_hivemind_state.return_value = mock_state_instance
+
+            response = self.client.post(
+                "/api/create_issue",
+                json=issue_data
+            )
+
+        # Verify response
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["issue_cid"] == "test_complex_issue_cid"
+
+        # Verify add_predefined_options was called
+        mock_state_instance.add_predefined_options.assert_called_once()
+        
+        # Verify that the choices in the state's issue constraints were properly processed
+        # The 'value' field should have been converted from string to dict
+        choices = mock_state_instance._issue.constraints["choices"]
+        for choice in choices:
+            # After our code runs, the 'value' should be a dict, not a string
+            assert isinstance(choice["value"], dict)
+            # Verify the dict has the expected structure
+            assert "field1" in choice["value"]
+            assert "field2" in choice["value"]
+
+    @patch("app.HivemindIssue")
+    def test_create_issue_complex_constraints_after_formatting_invalid_json(self, mock_hivemind_issue):
+        """Test Complex answer type constraint handling after formatting with invalid JSON.
+        
+        This test verifies that when a Complex issue type is created and the formatted choices
+        contain invalid JSON strings in the 'value' field, the appropriate error is raised and logged.
+        """
+        # Setup mock issue instance
+        mock_issue_instance = MagicMock()
+        mock_issue_instance.save.return_value = "test_complex_issue_cid"
+        mock_hivemind_issue.return_value = mock_issue_instance
+
+        # Setup test data with Complex answer_type
+        issue_data = {
+            "name": "Complex Formatting Invalid JSON Test",
+            "description": "Test Description for Complex Formatting with Invalid JSON",
+            "questions": ["Which option do you prefer?"],
+            "tags": ["test", "complex", "formatting", "invalid"],
+            "answer_type": "Complex",
+            "constraints": {
+                "specs": {
+                    "field1": "String",
+                    "field2": "Integer"
+                },
+                "choices": [
+                    {"field1": "value1", "field2": 123},
+                    {"field1": "value2", "field2": 456}
+                ]
+            },
+            "restrictions": None,
+            "on_selection": None
+        }
+
+        # Test the endpoint
+        with patch("app.HivemindState") as mock_hivemind_state:
+            # Configure mock state instance
+            mock_state_instance = MagicMock()
+            mock_state_instance.save.return_value = "test_state_cid"
+            
+            # Mock the _issue attribute and its constraints with invalid JSON in value
+            mock_state_instance._issue = MagicMock()
+            mock_state_instance._issue.constraints = {
+                "specs": {
+                    "field1": "String",
+                    "field2": "Integer"
+                },
+                "choices": [
+                    {"text": "{'field1': 'value1', 'field2': 123}", "value": "{'field1': 'value1', 'field2': 123}"},
+                    {"text": "Invalid JSON", "value": "{'field1': 'value2', field2: 456}"}  # Missing quotes around field2
+                ]
+            }
+            
+            # Mock add_predefined_options to return some options
+            mock_state_instance.add_predefined_options.return_value = ["option1", "option2"]
+            
+            # This will cause the ast.literal_eval to fail
+            mock_hivemind_state.return_value = mock_state_instance
+
+            # We need to patch ast.literal_eval to raise an exception for the second value
+            with patch("ast.literal_eval") as mock_literal_eval:
+                # Make the first call succeed and the second call fail
+                mock_literal_eval.side_effect = [
+                    {"field1": "value1", "field2": 123},  # First call succeeds
+                    SyntaxError("invalid syntax")         # Second call fails
+                ]
+                
+                # The request should fail with a 400 Bad Request
+                response = self.client.post(
+                    "/api/create_issue",
+                    json=issue_data
+                )
+
+        # Verify response indicates failure
+        assert response.status_code == 400
+        data = response.json()
+        assert "detail" in data
+        assert "Invalid JSON in Complex choice" in data["detail"]
+
+    @patch("app.HivemindIssue")
+    def test_create_issue_complex_constraints_invalid_json(self, mock_hivemind_issue):
+        """Test Complex answer type constraint handling with invalid JSON.
+        
+        This test verifies that when a Complex issue type is created with choices
+        that contain invalid JSON strings, the appropriate error is raised and logged.
+        """
+        # Setup mock issue instance
+        mock_issue_instance = MagicMock()
+        mock_issue_instance.save.return_value = "test_complex_issue_cid"
+        mock_hivemind_issue.return_value = mock_issue_instance
+
+        # Setup test data with Complex answer_type and invalid JSON choices
+        issue_data = {
+            "name": "Complex Invalid JSON Test",
+            "description": "Test Description for Complex Issue with Invalid JSON",
+            "questions": ["Which option do you prefer?"],
+            "tags": ["test", "complex", "invalid"],
+            "answer_type": "Complex",
+            "constraints": {
+                "specs": {
+                    "field1": "String",
+                    "field2": "Integer"
+                },
+                "choices": [
+                    '{"field1": "value1", "field2": 123',  # Missing closing brace
+                    '{"field1": "value2", field2: 456}'    # Missing quotes around field2
+                ]
+            },
+            "restrictions": None,
+            "on_selection": None
+        }
+
+        # Test the endpoint
+        with patch("app.HivemindState") as mock_hivemind_state:
+            # Configure mock state to return a successful save
+            mock_state_instance = MagicMock()
+            mock_state_instance.save.return_value = "test_state_cid"
+            mock_hivemind_state.return_value = mock_state_instance
+
+            # The request should fail with a 400 Bad Request
+            response = self.client.post(
+                "/api/create_issue",
+                json=issue_data
+            )
+
+        # Verify response indicates failure
+        assert response.status_code == 400
+        data = response.json()
+        assert "detail" in data
+        assert "Invalid JSON in Complex choice" in data["detail"]
+
 
 if __name__ == "__main__":
     pytest.main(["-xvs", "test_app_issue_creation.py"])
