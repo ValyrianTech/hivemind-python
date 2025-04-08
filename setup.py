@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="hivemind-python",
-    version="0.2.1",
+    version="1.0.0",
     author="ValyrianTech",
     description="A Condorcet-style Ranked Choice Voting System that stores all data on IPFS",
     long_description=long_description,
@@ -17,7 +17,7 @@ setup(
     py_modules=[],
     package_data={"hivemind": ["py.typed"]},  # Add py.typed marker file for type hints
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
