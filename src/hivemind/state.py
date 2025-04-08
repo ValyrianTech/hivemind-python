@@ -444,7 +444,7 @@ class HivemindState(IPFSDictChain):
         :rtype: float
         """
         results = self.results()[question_index]
-        return results[option_hash]['score']
+        return results[option_hash.replace('/ipfs/', '')]['score']
 
     def get_sorted_options(self, question_index: int = 0) -> List[HivemindOption]:
         """Get the sorted list of options.
