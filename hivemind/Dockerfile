@@ -15,8 +15,8 @@ ENV PATH="/root/.local/bin:${PATH}"
 WORKDIR /app
 
 # Copy the requirements files
-COPY ./hivemind/requirements.txt ./requirements.txt
-COPY ./requirements.txt ./project-requirements.txt
+COPY requirements.txt ./requirements.txt
+COPY ../requirements.txt ./project-requirements.txt
 
 # Install dependencies using --system flag
 RUN uv pip install --system -r requirements.txt -r project-requirements.txt
@@ -52,7 +52,7 @@ USER root
 # Create supervisor configuration
 RUN mkdir -p /etc/supervisor/conf.d
 # Copy supervisord configuration
-COPY --chown=root:root ./hivemind/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Create log directory for supervisor
 RUN mkdir -p /var/log/supervisor
@@ -66,13 +66,13 @@ WORKDIR /app
 RUN mkdir -p /app/logs /app/data
 
 # Copy application files
-COPY --chown=appuser:appuser ./hivemind/app.py ./
-COPY --chown=appuser:appuser ./hivemind/websocket_handlers.py ./
-COPY --chown=appuser:appuser ./hivemind/templates ./templates
-COPY --chown=appuser:appuser ./hivemind/static ./static
+COPY app.py ./
+COPY websocket_handlers.py ./
+COPY templates ./templates
+COPY static ./static
 
 # Copy the entire project structure to maintain the correct imports
-COPY --chown=appuser:appuser . /app/hivemind-python
+COPY .. /app/hivemind-python
 # Create a symlink to make the hivemind module accessible
 RUN ln -s /app/hivemind-python/src/hivemind /app/hivemind
 
