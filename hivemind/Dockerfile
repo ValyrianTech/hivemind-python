@@ -32,19 +32,22 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
         curl supervisor && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Create a user for the application
+RUN useradd --create-home appuser
+
 # Copy IPFS binary from IPFS stage
 COPY --from=ipfs /usr/local/bin/ipfs /usr/local/bin/ipfs
 
-# Set up IPFS directories
-RUN mkdir -p /data/ipfs && \
-    ipfs init && \
+# Set up IPFS directories with correct permissions
+RUN mkdir -p /home/appuser/.ipfs && \
+    chown -R appuser:appuser /home/appuser/.ipfs
+
+# Initialize IPFS with the appuser
+USER appuser
+RUN ipfs init && \
     ipfs config Addresses.API /ip4/0.0.0.0/tcp/5001 && \
     ipfs config Addresses.Gateway /ip4/0.0.0.0/tcp/8080
-
-# Create a user for the application
-RUN useradd --create-home appuser
-# Give ownership of IPFS data to appuser
-RUN chown -R appuser:appuser /data/ipfs
+USER root
 
 # Create supervisor configuration
 RUN mkdir -p /etc/supervisor/conf.d
