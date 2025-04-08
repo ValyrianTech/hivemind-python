@@ -337,14 +337,14 @@
             Hivemind: `
                 <div>
                     <label class="block text-sm font-medium text-gray-300">Allowed Hivemind CIDs (one per line, optional)</label>
-                    <textarea id="choices" rows="3" placeholder="Qm...&#10;Qm...&#10;Qm..."
+                    <textarea id="choices" rows="3" placeholder="Qm...\nQm...\nQm..."
                               class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white font-mono text-sm"></textarea>
                 </div>
             `,
             File: `
                 <div>
                     <label class="block text-sm font-medium text-gray-300">Allowed File CIDs (one per line, optional)</label>
-                    <textarea id="choices" rows="3" placeholder="Qm...&#10;Qm...&#10;Qm..."
+                    <textarea id="choices" rows="3" placeholder="Qm...\nQm...\nQm..."
                               class="mt-1 block w-full rounded-md border-gray-600 bg-gray-700 text-white font-mono text-sm"></textarea>
                 </div>
                 <div>
@@ -369,13 +369,13 @@
             if (choicesTextarea) {
                 switch (answerType) {
                     case 'Hivemind':
-                        choicesTextarea.placeholder = 'Qm...\\nQm...\\nQm...';
+                        choicesTextarea.placeholder = 'Qm...\nQm...\nQm...';
                         break;
                     case 'File':
-                        choicesTextarea.placeholder = 'Qm...\\nQm...\\nQm...';
+                        choicesTextarea.placeholder = 'Qm...\nQm...\nQm...';
                         break;
                     case 'Address':
-                        choicesTextarea.placeholder = 'bc1...\\n3...\\n1...';
+                        choicesTextarea.placeholder = 'bc1...\n3...\n1...';
                         break;
                 }
             }
