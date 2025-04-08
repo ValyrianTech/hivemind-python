@@ -48,31 +48,8 @@ RUN chown -R appuser:appuser /data/ipfs
 
 # Create supervisor configuration
 RUN mkdir -p /etc/supervisor/conf.d
-COPY --chown=root:root <<EOF /etc/supervisor/conf.d/supervisord.conf
-[supervisord]
-nodaemon=true
-user=root
-logfile=/var/log/supervisor/supervisord.log
-logfile_maxbytes=50MB
-logfile_backups=10
-
-[program:ipfs]
-command=ipfs daemon
-user=appuser
-autostart=true
-autorestart=true
-stdout_logfile=/var/log/supervisor/ipfs.log
-stderr_logfile=/var/log/supervisor/ipfs-error.log
-
-[program:hivemind]
-command=python -m uvicorn app:app --host 0.0.0.0 --port 8000
-directory=/app
-user=appuser
-autostart=true
-autorestart=true
-stdout_logfile=/var/log/supervisor/hivemind.log
-stderr_logfile=/var/log/supervisor/hivemind-error.log
-EOF
+# Copy supervisord configuration
+COPY --chown=root:root ./hivemind/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Create log directory for supervisor
 RUN mkdir -p /var/log/supervisor
