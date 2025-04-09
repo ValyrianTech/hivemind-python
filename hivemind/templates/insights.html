@@ -670,7 +670,7 @@
             
             const qrData = {
                 msg: message,
-                url: `${window.location.protocol}//${window.location.hostname}:${window.location.port}/api/select_consensus`
+                url: `${window.location.protocol}://${window.location.host}/api/select_consensus`
             };
             
             console.log("QR code data:", qrData);
@@ -707,7 +707,7 @@
             
             // Create new WebSocket connection
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}/ws/author_signature/${hivemindId}`;
+            const wsUrl = `${protocol}://${window.location.host}/ws/author_signature/${hivemindId}`;
             
             window.authorSignatureSocket = new WebSocket(wsUrl);
             

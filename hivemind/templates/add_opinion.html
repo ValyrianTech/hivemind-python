@@ -290,7 +290,7 @@
                         const timestamp = Math.floor(Date.now() / 1000);  // Convert to Unix timestamp
                         const qrData = {
                             msg: `${timestamp}${data.cid}`,
-                            url: `${window.location.protocol}//${window.location.hostname}:8000/api/sign_opinion`
+                            url: `${window.location.protocol}//${window.location.host}/api/sign_opinion`
                         };
                         
                         // Show QR code container for this question
@@ -312,7 +312,7 @@
                         document.getElementById(`qrMessage-${questionIndex}`).textContent = qrData.msg;
 
                         // Connect to WebSocket for signature notification
-                        const ws = new WebSocket(`ws://${window.location.hostname}:8000/ws/opinion/${data.cid}`);
+                        const ws = new WebSocket(`ws://${window.location.host}/ws/opinion/${data.cid}`);
                         
                         ws.onmessage = function(event) {
                             const notification = JSON.parse(event.data);
@@ -382,7 +382,7 @@
                         const timestamp = Math.floor(Date.now() / 1000);  // Convert to Unix timestamp
                         const qrData = {
                             msg: `${timestamp}${data.cid}`,
-                            url: `${window.location.protocol}//${window.location.hostname}:8000/api/sign_opinion`
+                            url: `${window.location.protocol}//${window.location.host}/api/sign_opinion`
                         };
                         
                         // Show QR code container for this question
@@ -404,7 +404,7 @@
                         document.getElementById(`qrMessage-${questionIndex}`).textContent = qrData.msg;
 
                         // Connect to WebSocket for signature notification
-                        const ws = new WebSocket(`ws://${window.location.hostname}:8000/ws/opinion/${data.cid}`);
+                        const ws = new WebSocket(`ws://${window.location.host}/ws/opinion/${data.cid}`);
                         
                         ws.onmessage = function(event) {
                             const notification = JSON.parse(event.data);
