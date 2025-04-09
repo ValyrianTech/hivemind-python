@@ -73,14 +73,15 @@ COPY static ./static
 
 # Copy the entire project structure to maintain the correct imports
 COPY .. /app/hivemind-python
-# Create a symlink to make the hivemind module accessible
+
+# Set up the correct Python path for the hivemind module
+ENV PYTHONPATH="/app:/app/hivemind-python:/app/hivemind-python/src:${PYTHONPATH}"
+
+# Create a symlink to make the hivemind module accessible from the app directory
 RUN ln -s /app/hivemind-python/src/hivemind /app/hivemind
 
 # Copy dependencies from builder stage
 COPY --from=builder --chown=appuser:appuser /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
-
-# Add the project directory to PYTHONPATH
-ENV PYTHONPATH="/app:/app/hivemind-python:${PYTHONPATH}"
 
 # Expose ports for FastAPI and IPFS
 EXPOSE 8000 5001 8080
