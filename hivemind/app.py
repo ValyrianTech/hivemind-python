@@ -26,9 +26,6 @@ from ipfs_dict_chain.IPFS import connect
 
 from websocket_handlers import active_connections, register_websocket_routes, name_update_connections, notify_author_signature
 
-# Add parent directory to Python path to find hivemind package
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from hivemind import HivemindState, HivemindIssue, HivemindOption, HivemindOpinion, Ranking
 from hivemind.utils import verify_message
 
