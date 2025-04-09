@@ -57,31 +57,35 @@ COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 # Create log directory for supervisor
 RUN mkdir -p /var/log/supervisor
 
+# Create app directory with proper permissions
+RUN mkdir -p /app && chown -R appuser:appuser /app
+
+# Copy application files
+COPY app.py /app/
+COPY websocket_handlers.py /app/
+COPY templates /app/templates
+COPY static /app/static
+
+# Create proper directory structure for the hivemind package
+USER root
+RUN mkdir -p /app/src/hivemind && \
+    mkdir -p /app/hivemind-python/src
+
+# Copy the entire project structure
+COPY .. /app/hivemind-python
+
+# Set proper permissions for the application directories
+RUN chown -R appuser:appuser /app
+
 # Switch to appuser for application setup
 USER appuser
-
 WORKDIR /app
 
 # Create necessary directories
 RUN mkdir -p /app/logs /app/data
 
-# Copy application files
-COPY app.py ./
-COPY websocket_handlers.py ./
-COPY templates ./templates
-COPY static ./static
-
-# Create proper directory structure for the hivemind package
-RUN mkdir -p /app/src/hivemind
-
-# Copy the entire project structure
-COPY .. /app/hivemind-python
-
-# Create src directory structure if it doesn't exist
-RUN mkdir -p /app/hivemind-python/src
-
 # Create a symlink to make the hivemind module accessible
-RUN ln -s /app/hivemind-python/src/hivemind /app/hivemind
+RUN ln -sf /app/hivemind-python/src/hivemind /app/hivemind
 
 # Set up the correct Python path for the hivemind module
 ENV PYTHONPATH="/app:/app/hivemind-python:/app/hivemind-python/src:${PYTHONPATH}"
