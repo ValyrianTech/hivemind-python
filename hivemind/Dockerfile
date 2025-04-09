@@ -21,6 +21,9 @@ COPY ../requirements.txt ./project-requirements.txt
 # Install dependencies using --system flag
 RUN uv pip install --system -r requirements.txt -r project-requirements.txt
 
+# Install the hivemind-python package from PyPI
+RUN uv pip install --system hivemind-python
+
 ## ------------------------------- IPFS Stage ------------------------------ ##
 FROM ipfs/kubo:latest AS ipfs
 
