@@ -21,6 +21,9 @@ COPY ../requirements.txt ./project-requirements.txt
 # Install dependencies using --system flag
 RUN uv pip install --system -r hivemind-requirements.txt -r project-requirements.txt
 
+# Install the websockets library for Uvicorn WebSocket support
+RUN uv pip install --system websockets
+
 # Install the hivemind-python package
 RUN uv pip install --system hivemind-python
 
@@ -94,5 +97,20 @@ EXPOSE 8000 5001 8080
 # Switch back to root to run supervisor
 USER root
 
-# Start supervisor which will manage both IPFS and the hivemind app
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+# Create an entrypoint script to run both supervisord and the FastAPI app
+RUN echo '#!/bin/bash\n\
+# Start supervisord in the background to manage IPFS\n\
+/usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf &\n\
+\n\
+# Wait for IPFS to be ready\n\
+echo "Waiting for IPFS to start..."\n\
+sleep 5\n\
+\n\
+# Change to the app directory and run the FastAPI app directly\n\
+cd /app\n\
+echo "Starting FastAPI application..."\n\
+exec python -m uvicorn app:app --host 0.0.0.0 --port 8000 --log-level debug\n\
+' > /entrypoint.sh && chmod +x /entrypoint.sh
+
+# Start supervisor which will manage IPFS, and then run the FastAPI app directly
+CMD ["/entrypoint.sh"]
