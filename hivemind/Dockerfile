@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 
 # Download the latest installer, install it and then remove it
 ADD https://astral.sh/uv/install.sh /install.sh
-RUN chmod -R 655 /install.sh && /install.sh && rm /install.sh
+RUN chmod +x /install.sh && /install.sh && rm /install.sh
 
 # Set up the UV environment path correctly
 ENV PATH="/root/.local/bin:${PATH}"
@@ -15,13 +15,13 @@ ENV PATH="/root/.local/bin:${PATH}"
 WORKDIR /app
 
 # Copy the requirements files
-COPY requirements.txt ./requirements.txt
+COPY requirements.txt ./hivemind-requirements.txt
 COPY ../requirements.txt ./project-requirements.txt
 
 # Install dependencies using --system flag
-RUN uv pip install --system -r requirements.txt -r project-requirements.txt
+RUN uv pip install --system -r hivemind-requirements.txt -r project-requirements.txt
 
-# Install the hivemind-python package from PyPI
+# Install the hivemind-python package
 RUN uv pip install --system hivemind-python
 
 ## ------------------------------- IPFS Stage ------------------------------ ##
@@ -69,7 +69,7 @@ COPY websocket_handlers.py /app/
 COPY templates /app/templates
 COPY static /app/static
 
-# Copy the entire project structure for the web app
+# Copy the project source code
 COPY .. /app/hivemind-python
 
 # Set proper permissions for the application directories
@@ -84,6 +84,9 @@ RUN mkdir -p /app/logs /app/data
 
 # Copy dependencies from builder stage
 COPY --from=builder --chown=appuser:appuser /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
+
+# Set Python path to include the src directory
+ENV PYTHONPATH="/app/hivemind-python:/app/hivemind-python/src:${PYTHONPATH}"
 
 # Expose ports for FastAPI and IPFS
 EXPOSE 8000 5001 8080
