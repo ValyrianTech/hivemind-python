@@ -217,6 +217,9 @@ class SignOpinionRequest(BaseModel):
 # Initialize FastAPI app
 app = FastAPI(title="Hivemind Insights")
 
+# Register WebSocket routes immediately after app initialization
+register_websocket_routes(app)
+
 # Mount static files and templates
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 templates_dir = os.path.join(os.path.dirname(__file__), "templates")
@@ -1646,6 +1649,3 @@ async def select_consensus(request: Request):
         error_msg = f"Error processing select_consensus request: {str(e)}"
         logger.error(error_msg)
         raise HTTPException(status_code=500, detail=error_msg)
-
-
-register_websocket_routes(app)
