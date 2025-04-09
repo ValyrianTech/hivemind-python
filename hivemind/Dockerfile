@@ -69,14 +69,6 @@ COPY websocket_handlers.py /app/
 COPY templates /app/templates
 COPY static /app/static
 
-# Create proper directory structure for the hivemind package
-USER root
-RUN mkdir -p /app/src/hivemind
-
-# Copy the hivemind package from the local filesystem
-# Note: This assumes the build script is run from the root directory
-COPY ../src /app/src
-
 # Copy the entire project structure for the web app
 COPY .. /app/hivemind-python
 
@@ -89,12 +81,6 @@ WORKDIR /app
 
 # Create necessary directories
 RUN mkdir -p /app/logs /app/data
-
-# Create a symlink to make the hivemind module accessible
-RUN ln -sf /app/src/hivemind /app/hivemind
-
-# Set up the correct Python path for the hivemind module
-ENV PYTHONPATH="/app:/app/src:${PYTHONPATH}"
 
 # Copy dependencies from builder stage
 COPY --from=builder --chown=appuser:appuser /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
