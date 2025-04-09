@@ -29,10 +29,7 @@ from websocket_handlers import active_connections, register_websocket_routes, na
 # Add parent directory to Python path to find hivemind package
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from hivemind.state import HivemindOpinion, HivemindState
-from hivemind.issue import HivemindIssue
-from hivemind.option import HivemindOption
-from hivemind.ranking import Ranking
+from hivemind import HivemindState, HivemindIssue, HivemindOption, HivemindOpinion, Ranking
 from hivemind.utils import verify_message
 
 
