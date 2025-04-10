@@ -11,6 +11,34 @@ The Hivemind web application allows users to:
 - View real-time results and consensus
 - Participate in a fully decentralized decision-making process
 
+## Quick Start
+
+### Docker (Recommended)
+
+The Hivemind Protocol web application is available as a Docker image:
+
+```bash
+# Pull the Docker image
+docker pull valyriantech/hivemind:latest
+
+# Run the container with required ports
+docker run -p 5001:5001 -p 8000:8000 -p 8080:8080 valyriantech/hivemind:latest
+```
+
+The web application will be accessible at http://localhost:8000
+
+### Manual Setup
+
+To run the web application without Docker:
+
+```bash
+cd hivemind
+pip install -r requirements.txt
+python app.py
+```
+
+The application will be available at http://localhost:8000 by default.
+
 ## Screenshots
 
 ### Landing Page
@@ -66,18 +94,6 @@ The web application requires [BitcoinMessageSigner](https://github.com/ValyrianT
 - Sign when selecting consensus outcomes
 
 All actions in the Hivemind Protocol are authenticated and verified through these cryptographic signatures, ensuring the integrity and security of the decision-making process.
-
-## Running the Application
-
-To run the web application:
-
-```bash
-cd hivemind
-pip install -r requirements.txt
-python app.py
-```
-
-The application will be available at http://localhost:8000 by default.
 
 ## Directory Structure
 

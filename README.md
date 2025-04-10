@@ -9,6 +9,20 @@ A decentralized decision-making protocol implementing Condorcet-style Ranked Cho
 
 > **Note:** Looking for the web application implementation? Check out the [Web App README](https://github.com/ValyrianTech/hivemind-python/blob/main/hivemind/README.md) for details on the included web interface and mobile signing app.
 
+## Docker (Recommended)
+
+The Hivemind Protocol web application is available as a Docker image:
+
+```bash
+# Pull the Docker image
+docker pull valyriantech/hivemind:latest
+
+# Run the container with required ports
+docker run -p 5001:5001 -p 8000:8000 -p 8080:8080 valyriantech/hivemind:latest
+```
+
+The web application will be accessible at http://localhost:8000
+
 ## What is the Hivemind Protocol?
 
 The Hivemind Protocol is a revolutionary approach to decentralized decision-making that combines:
