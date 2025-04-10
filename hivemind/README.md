@@ -2,6 +2,8 @@
 
 This directory contains a web application implementation of the Hivemind Protocol, providing a user-friendly interface for creating and participating in decentralized decision-making processes.
 
+![Hivemind Protocol Landing Page](static/LandingPage.png)
+
 ## Overview
 
 The Hivemind web application allows users to:
@@ -11,6 +13,28 @@ The Hivemind web application allows users to:
 - View real-time results and consensus
 - Participate in a fully decentralized decision-making process
 
+## Screenshots
+
+### Landing Page
+![Hivemind Protocol Landing Page](static/LandingPage.png)
+*The landing page showcases the key features of the Hivemind Protocol: Decentralized Storage, Bitcoin-Signed Messages, and Condorcet Voting.*
+
+### Create Issue Page
+![Create Issue Page](static/CreateIssuePage.png)
+*Users can create new issues with customizable parameters including name, description, questions, tags, answer type, and various constraints.*
+
+### Insights Page
+![Insights Page](static/InsightsPage.png)
+*The insights page displays comprehensive results and statistics for a hivemind issue, including rankings, scores, and participant information.*
+
+### Add Opinion Page
+![Add Opinion Page](static/AddOpinionPage.png)
+*Participants can submit their opinions by ranking available options and signing their submissions cryptographically.*
+
+### States Page
+![States Page](static/StatesPage.png)
+*The states page shows all active hivemind issues with their current status and results.*
+
 ## Architecture
 
 The application is built with:
@@ -19,6 +43,17 @@ The application is built with:
 - JavaScript for interactive frontend features
 - IPFS for decentralized data storage
 - Bitcoin message signing for cryptographic verification
+
+## Key Features
+
+### Decentralized Storage
+All voting data is stored securely on IPFS, ensuring transparency and immutability.
+
+### Bitcoin-Signed Messages
+Secure verification through cryptographic signatures using Bitcoin's proven security.
+
+### Condorcet Voting
+Advanced ranked choice voting system that finds the true consensus winner.
 
 ## Dependencies
 
@@ -64,3 +99,23 @@ The application will be available at http://localhost:8000 by default.
 4. Scan QR codes to sign your actions
 5. Participate in the decision-making process
 6. View real-time results and consensus
+
+## Example Use Cases
+
+- Team decision-making for project names, features, or priorities
+- Community governance and voting
+- Decentralized autonomous organizations (DAOs)
+- Consensus-building for complex decisions
+- Preference aggregation for group choices
+
+## Technical Implementation
+
+The Hivemind Protocol implements the Condorcet method for determining consensus, which:
+- Compares options in pairwise matchups
+- Identifies the option that would win against all others in head-to-head comparisons
+- Handles cycles and edge cases through sophisticated ranking algorithms
+- Provides fair and representative results even with diverse preferences
+
+## Contributing
+
+Contributions to the Hivemind Protocol are welcome. Please feel free to submit issues and pull requests to improve the application.
