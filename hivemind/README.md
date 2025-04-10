@@ -2,8 +2,6 @@
 
 This directory contains a web application implementation of the Hivemind Protocol, providing a user-friendly interface for creating and participating in decentralized decision-making processes.
 
-![Hivemind Protocol Landing Page](static/LandingPage.png)
-
 ## Overview
 
 The Hivemind web application allows users to:
@@ -119,3 +117,6 @@ The Hivemind Protocol implements the Condorcet method for determining consensus,
 ## Contributing
 
 Contributions to the Hivemind Protocol are welcome. Please feel free to submit issues and pull requests to improve the application.
+
+## Brought to you by
+[Valyrian Tech](https://linktr.ee/ValyrianTech)
