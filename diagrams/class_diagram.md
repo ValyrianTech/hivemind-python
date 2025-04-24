@@ -5,13 +5,13 @@ classDiagram
         +load(cid: str) Dict
         +save() str
     }
-    
+
     class IPFSDictChain {
         +str cid
         +load(cid: str) Dict
         +save() str
     }
-    
+
     class HivemindIssue {
         +List[str] questions
         +str | None name
@@ -30,7 +30,7 @@ classDiagram
         +info() str
         +save() str
     }
-    
+
     class HivemindOption {
         +str | bool | int | float | Dict[str, Any] | None value
         +str text
@@ -51,8 +51,9 @@ classDiagram
         +valid() bool
         +cid() str | None
         +load(cid: str) None
+        +save() str
     }
-    
+
     class HivemindOpinion {
         +str | None hivemind_id
         +int question_index
@@ -63,7 +64,7 @@ classDiagram
         +load(cid: str) None
         +save() str
     }
-    
+
     class Ranking {
         +List[str] | None fixed
         +str | None auto
@@ -74,7 +75,7 @@ classDiagram
         +get(options: List[HivemindOption] | None) List[str]
         +to_dict() Dict[str, Any]
     }
-    
+
     class HivemindState {
         +str | None hivemind_id
         +HivemindIssue | None _issue
@@ -82,7 +83,7 @@ classDiagram
         +List[Dict[str, Any]] opinion_cids
         +Dict[str, Dict[str, Dict[str, int]]] signatures
         +Dict[str, Any] participants
-        +List[List[str]] selected
+        +List[str] selected
         +bool final
         +List[HivemindOption] _options
         +List[List[HivemindOpinion]] _opinions
@@ -92,7 +93,7 @@ classDiagram
         +get_options() List[HivemindOption]
         +set_hivemind_issue(issue_cid: str) None
         +add_option(timestamp: int, option_hash: str, address: str | None, signature: str | None) None
-        +add_opinion(timestamp: int, opinion_hash: str, signature: str, address: str) None
+        +add_opinion(timestamp: int, opinion_hash: str, address: str, signature: str) None
         +results() List[Dict[str, Dict[str, float]]]
         +calculate_results(question_index: int) Dict[str, Dict[str, float]]
         +get_weight(opinionator: str) float
@@ -100,7 +101,6 @@ classDiagram
         +get_opinion(cid: str) HivemindOpinion
         +get_score(option_hash: str, question_index: int) float
         +get_sorted_options(question_index: int) List[HivemindOption]
-        +valid() bool
         +info() str
         +options_info() str
         +opinions_info(question_index: int) str
@@ -122,7 +122,7 @@ classDiagram
         +valid_bech32_address(address: str, testnet: bool) bool
         +bech32_decode(bech: str) Tuple[str | None, List[int] | None]
     }
-    
+
     class utils {
         <<module>>
         +get_bitcoin_address(private_key: CBitcoinSecret) str
@@ -130,7 +130,7 @@ classDiagram
         +sign_message(message: str, private_key: CBitcoinSecret) str
         +verify_message(message: str, address: str, signature: str) bool
     }
-    
+
     IPFSDict <|-- HivemindIssue
     IPFSDict <|-- HivemindOption
     IPFSDict <|-- HivemindOpinion
