@@ -24,10 +24,10 @@ flowchart TD
     %% Cache Implementation
     subgraph CacheImplementation[Cache Implementation in HivemindState]
         CacheVar[_results Instance Variable]
-        ResultsMethod[results() Method]
-        GetScoreMethod[get_score() Method]
-        GetSortedMethod[get_sorted_options() Method]
-        ConsensusMethod[consensus() Method]
+        ResultsMethod[results Method]
+        GetScoreMethod[get_score Method]
+        GetSortedMethod[get_sorted_options Method]
+        ConsensusMethod[consensus Method]
         
         CacheVar --> ResultsMethod
         ResultsMethod --> |Cache Hit| ReturnCache[Return Cached Results]
@@ -39,9 +39,9 @@ flowchart TD
     
     %% Invalidation Implementation
     subgraph InvalidationPoints[Invalidation Points in Code]
-        AddOptionMethod[add_option() Method]
-        AddOpinionMethod[add_opinion() Method]
-        SetOnSelectionMethod[set_on_selection() Method]
+        AddOptionMethod[add_option Method]
+        AddOpinionMethod[add_opinion Method]
+        SetOnSelectionMethod[set_on_selection Method]
         
         AddOptionMethod --> InvalidateCode[self._results = None]
         AddOpinionMethod --> InvalidateCode
