@@ -17,8 +17,8 @@ No GPU needed, the cheapest CPU pod is more than enough.
 1. Sign up for RunPod: [Get Started with RunPod](https://get.runpod.io/hw46xr4h3la6)
 2. Click the "Explore" button on the left sidebar
 3. Search for "Hivemind"
+![Explore templates](https://github.com/ValyrianTech/hivemind-python/raw/main/hivemind/static/runpod_explore.png)
 4. Deploy the pod
-
 
 Click the Connect button and copy-paste the ip and port connected to port 8000 into your browser.
 ![RunPod](https://github.com/ValyrianTech/hivemind-python/raw/main/hivemind/static/runpod_connect1.png)
