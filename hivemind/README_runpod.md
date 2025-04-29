@@ -1,13 +1,10 @@
-# Hivemind Protocol Web App
+# Hivemind Protocol Web App on Runpod
 
 A web app implementation of the Hivemind Protocol, providing a user-friendly interface for creating and participating in decentralized decision-making processes.
 The Hivemind Protocol is a decentralized decision-making protocol implementing Condorcet-style Ranked Choice Voting with IPFS-based data storage and Bitcoin-signed message verification.
 
 ## One-click deploy
 Everything is ready to go, including the IPFS node, no need to configure anything.
-
-## Lightweight
-No GPU needed, the cheapest CPU pod is more than enough.
 
 ## Documentation
 - [Hivemind Protocol Documentation on GitHub](https://github.com/ValyrianTech/hivemind-python)
@@ -20,6 +17,11 @@ No GPU needed, the cheapest CPU pod is more than enough.
 ![Explore templates](https://github.com/ValyrianTech/hivemind-python/raw/main/hivemind/static/runpod_explore.png)
 4. Deploy the pod
 
+## Lightweight
+No GPU needed, the cheapest CPU pod is more than enough.
+![Deploy CPU pod](https://github.com/ValyrianTech/hivemind-python/raw/main/hivemind/static/runpod_cpu.png)
+
+## Connect
 Click the Connect button and copy-paste the ip and port connected to port 8000 into your browser.
 ![RunPod](https://github.com/ValyrianTech/hivemind-python/raw/main/hivemind/static/runpod_connect1.png)
 ![RunPod](https://github.com/ValyrianTech/hivemind-python/raw/main/hivemind/static/runpod_connect2.png)
