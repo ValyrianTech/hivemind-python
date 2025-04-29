@@ -27,6 +27,12 @@ docker run -p 5001:5001 -p 8000:8000 -p 8080:8080 valyriantech/hivemind:latest
 
 The web application will be accessible at http://localhost:8000
 
+
+### Runpod.io template
+
+A [Runpod.io](https://get.runpod.io/hw46xr4h3la6) template is available for quick and easy deployment.
+See [the Runpod README](README_runpod.md) for more information.
+
 ### Manual Setup
 
 To run the web application without Docker:
