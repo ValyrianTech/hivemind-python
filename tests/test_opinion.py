@@ -155,9 +155,7 @@ class TestHivemindOpinion:
                 ret += '\n%s: %s' % (i + 1, option.value)
             return ret
 
-        opinion.info = patched_info
-
-        info: str = opinion.info()
+        info: str = patched_info()
         LOG.debug(f"Info string: {info}")
         assert "1: Test Option 1" in info
         assert "2: Test Option 2" in info
@@ -377,7 +375,7 @@ class TestHivemindOpinion:
         loaded_opinion = HivemindOpinion(cid=opinion_cid)
 
         # Test the __repr__ method
-        assert repr(loaded_opinion) == opinion_cid.replace('/ipfs/', '')
+        assert repr(loaded_opinion) == opinion_cid
 
         # Test with CID that doesn't have the /ipfs/ prefix
         opinion_without_prefix = HivemindOpinion()

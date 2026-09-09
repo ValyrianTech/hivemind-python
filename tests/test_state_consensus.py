@@ -441,11 +441,11 @@ class TestHivemindStateExcludeSelectionMode:
 
         # First selection should be red
         selection = state.select_consensus()
-        assert selection[0].replace('/ipfs/', '') == options[0]  # Red is selected
+        assert selection[0] == options[0]  # Red is selected
         
         # Verify the selection was added to state.selected
         assert len(state.selected) == 1  # One option selected
-        assert state.selected[0] == options[0].replace('/ipfs/', '')  # Red is in selected list
+        assert state.selected[0] == options[0]  # Red is in selected list
 
     def test_results_info_excluded_options(self, state: HivemindState, color_choice_issue: HivemindIssue, test_keypair) -> None:
         """Test results_info method when some options are excluded."""
@@ -961,7 +961,7 @@ class TestHivemindStateNullSelectionMode:
         selection = state.select_consensus()
 
         # Verify the selection was made but no side effects occurred
-        assert selection[0].replace('/ipfs/', '') == option_hash  # The correct option was selected
+        assert selection[0] == option_hash  # The correct option was selected
         assert not state.final  # Should not be finalized
         assert len(state.opinion_cids) == 1  # Opinions should not be reset
 
@@ -1007,7 +1007,7 @@ class TestHivemindStateNullSelectionMode:
         selection = state.select_consensus()
 
         # Verify the selection was made but no side effects occurred
-        assert selection[0].replace('/ipfs/', '') == option_hash  # The correct option was selected
+        assert selection[0] == option_hash  # The correct option was selected
         assert not state.final  # Should not be finalized
         assert len(state.opinion_cids) == 1  # Opinions should not be reset
 
@@ -1122,7 +1122,7 @@ class TestHivemindStateConsensusTie:
         results = state.calculate_results()
         sorted_options = state.get_sorted_options()
         assert len(sorted_options) >= 2
-        assert results[sorted_options[0].cid().replace('/ipfs/', '')]['score'] == results[sorted_options[1].cid().replace('/ipfs/', '')]['score']
+        assert results[sorted_options[0].cid()]['score'] == results[sorted_options[1].cid()]['score']
 
 
 @pytest.mark.consensus

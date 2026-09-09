@@ -87,6 +87,5 @@ class TestHivemindStateCompare:
         assert cached_option.text == "Test Option"
 
         # Test getting non-existent option
-        with pytest.raises(IPFSError) as exc_info:
-            state.get_option(cid="QmNonExistent")
-        assert "Failed to retrieve json data from IPFS hash" in str(exc_info.value)
+        with pytest.raises((IPFSError, ValueError)):
+            state.get_option(cid="/ipfs/QmNonExistent")

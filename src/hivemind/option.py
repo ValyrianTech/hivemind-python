@@ -347,10 +347,10 @@ class HivemindOption(IPFSDict):
     def __repr__(self) -> str:
         """Return a string representation of the option.
 
-        :return: The IPFS CID of the option without the '/ipfs/' prefix
+        :return: The IPFS CID of the option
         :rtype: str
         """
-        return self._cid.replace('/ipfs/', '')
+        return self._cid
 
     def get_answer_type(self) -> str:
         """Get the answer type of the option.

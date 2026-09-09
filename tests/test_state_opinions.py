@@ -313,13 +313,7 @@ class TestHivemindStateOpinions:
         # Test getting the opinion that's already in state
         retrieved_opinion = new_state.get_opinion(opinion_hash)
         assert retrieved_opinion is not None
-        assert retrieved_opinion.cid().replace('/ipfs/', '') == opinion_hash.replace('/ipfs/', '')
-
-        # Test getting an opinion with /ipfs/ prefix
-        prefixed_hash = f"/ipfs/{opinion_hash}"
-        retrieved_opinion = new_state.get_opinion(prefixed_hash)
-        assert retrieved_opinion is not None
-        assert retrieved_opinion.cid().replace('/ipfs/', '') == opinion_hash.replace('/ipfs/', '')
+        assert retrieved_opinion.cid() == opinion_hash
 
         # Test getting a new opinion not in state
         new_opinion = HivemindOpinion()
@@ -330,4 +324,4 @@ class TestHivemindStateOpinions:
 
         retrieved_new_opinion = new_state.get_opinion(new_opinion_hash)
         assert retrieved_new_opinion is not None
-        assert retrieved_new_opinion.cid().replace('/ipfs/', '') == new_opinion_hash.replace('/ipfs/', '')
+        assert retrieved_new_opinion.cid() == new_opinion_hash

@@ -95,10 +95,10 @@ class HivemindOpinion(IPFSDict):
     def __repr__(self) -> str:
         """Return a string representation of the opinion.
 
-        :return: The IPFS CID of the opinion without the '/ipfs/' prefix
+        :return: The IPFS CID of the opinion
         :rtype: str
         """
-        return self._cid.replace('/ipfs/', '')
+        return self._cid
 
     def save(self) -> str:
         """Save the opinion to IPFS.

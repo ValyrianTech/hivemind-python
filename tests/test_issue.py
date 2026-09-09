@@ -407,7 +407,7 @@ class TestHivemindIssue:
         identification_data = IPFSDict(cid=identification_cid)
 
         # Verify the data contains the correct hivemind_id and name
-        assert identification_data['hivemind_id'] == issue_cid.replace('/ipfs/', '')
+        assert identification_data['hivemind_id'] == issue_cid
         assert identification_data['name'] == participant_name
 
     def test_set_constraints_none(self, issue: HivemindIssue) -> None:

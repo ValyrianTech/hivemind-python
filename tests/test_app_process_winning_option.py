@@ -56,7 +56,7 @@ class TestProcessWinningOption:
         sorted_options = [mock_option]
 
         # Create mock question results
-        question_results = {"test_ipfs_cid": {"score": 0.5}}
+        question_results = {"/ipfs/test_ipfs_cid": {"score": 0.5}}
 
         # Call the function
         result = app.process_winning_option(sorted_options, question_results)

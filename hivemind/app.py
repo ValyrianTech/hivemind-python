@@ -535,7 +535,7 @@ def process_winning_option(sorted_options, question_results):
     """
     if sorted_options:
         winning_option = sorted_options[0]
-        cid = winning_option.cid().replace('/ipfs/', '')
+        cid = winning_option.cid()
         score = question_results.get(cid, {}).get('score', 0)
         if score is None:
             score = 0
@@ -1081,7 +1081,7 @@ async def sign_opinion(request: Request):
             formatted_results = []
             if sorted_options:
                 winner = sorted_options[0]
-                score = results.get(winner.cid().replace('/ipfs/', ''), {}).get('score', 0) or 0
+                score = results.get(winner.cid(), {}).get('score', 0) or 0
                 formatted_results.append({
                     'text': winner.text if hasattr(winner, 'text') else str(winner.value) if hasattr(winner, 'value') else '',
                     'value': winner.value if hasattr(winner, 'value') else '',

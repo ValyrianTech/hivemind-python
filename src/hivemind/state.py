@@ -262,14 +262,10 @@ class HivemindState(IPFSDictChain):
             raise Exception(f"Error validating opinion: {str(e)}")
 
         # Check if all options in the ranking exist in the state
-        # Strip '/ipfs/' prefix from option hashes if present for comparison
-        normalized_ranking_options = [option_hash.replace('/ipfs/', '') for option_hash in ranking_options]
-        normalized_state_options = [option_hash.replace('/ipfs/', '') for option_hash in self.option_cids]
-
-        invalid_options = [option_hash for option_hash in normalized_ranking_options if option_hash not in normalized_state_options]
+        invalid_options = [option_hash for option_hash in ranking_options if option_hash not in self.option_cids]
         if invalid_options:
             LOG.error(f"Invalid options found: {invalid_options}")
-            LOG.error(f"Available options: {normalized_state_options}")
+            LOG.error(f"Available options: {self.option_cids}")
             raise Exception(f"Opinion is invalid: contains options that do not exist in the hivemind state: {invalid_options}")
 
         if not invalid_options:
@@ -444,7 +440,7 @@ class HivemindState(IPFSDictChain):
         :rtype: float
         """
         results = self.results()[question_index]
-        return results[option_hash.replace('/ipfs/', '')]['score']
+        return results[option_hash]['score']
 
     def get_sorted_options(self, question_index: int = 0) -> List[HivemindOption]:
         """Get the sorted list of options.
@@ -473,7 +469,7 @@ class HivemindState(IPFSDictChain):
         elif len(sorted_options) == 1:
             return sorted_options[0].value
         # Make sure the consensus is not tied between the first two options
-        elif len(sorted_options) >= 2 and results[sorted_options[0].cid().replace('/ipfs/', '')]['score'] > results[sorted_options[1].cid().replace('/ipfs/', '')]['score']:
+        elif len(sorted_options) >= 2 and results[sorted_options[0].cid()]['score'] > results[sorted_options[1].cid()]['score']:
             return sorted_options[0].value
         else:
             return None
@@ -615,7 +611,7 @@ class HivemindState(IPFSDictChain):
             LOG.debug("Hivemind issue has no author specified")
 
         # Get the option hash with highest consensus for each question
-        selection = [self.get_sorted_options(question_index=question_index)[0].cid().replace('/ipfs/', '') for question_index in range(len(self._issue.questions))]
+        selection = [self.get_sorted_options(question_index=question_index)[0].cid() for question_index in range(len(self._issue.questions))]
 
         if self._issue.on_selection is None:
             return selection
@@ -626,8 +622,6 @@ class HivemindState(IPFSDictChain):
             # Only add the winner of the first question to self.selected
             if len(selection) > 0:
                 winner = selection[0]
-                # Make sure we normalize the CID by removing the '/ipfs/' prefix if present
-                winner = winner.replace('/ipfs/', '')
                 if winner not in self.selected:
                     self.selected.append(winner)
         elif self._issue.on_selection == 'Reset':
@@ -745,7 +739,7 @@ class HivemindState(IPFSDictChain):
         """
         # Check if the option is already in the state
         for option in self._options:
-            if cid.replace('/ipfs/', '') in option.cid():
+            if cid in option.cid():
                 return option
 
         return HivemindOption(cid=cid)
@@ -761,7 +755,7 @@ class HivemindState(IPFSDictChain):
         # Check if the opinion is already in the state
         for question_index in range(len(self._opinions)):
             for opinion in self._opinions[question_index]:
-                if cid.replace('/ipfs/', '') in opinion.cid():
+                if cid in opinion.cid():
                     return opinion
 
         return HivemindOpinion(cid=cid)
