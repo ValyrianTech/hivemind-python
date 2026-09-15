@@ -1022,6 +1022,51 @@ class TestEndpoints:
     @patch("app.HivemindOption")
     @patch("app.HivemindState")
     @patch("app.HivemindIssue")
+    def test_fetch_state_scores_use_prefixed_cids(self, mock_hivemind_issue_class, mock_hivemind_state_class, mock_hivemind_option_class, mock_hivemind_opinion_class):
+        """Test that fetch_state looks up scores using the option's full (prefixed) CID."""
+        mock_state = MagicMock()
+        mock_state.hivemind_id = "test_id"
+        mock_state.option_cids = ["/ipfs/option1"]
+        mock_state.opinion_cids = [{}]
+        mock_state.final = False
+        mock_state.previous_cid = None
+        mock_state.participants = {}
+        mock_state.cid.return_value = "/ipfs/state_cid"
+
+        option1 = MagicMock()
+        option1.cid.return_value = "/ipfs/option1"
+        option1.value = "value1"
+        option1.text = "Option 1"
+
+        mock_state.get_option.return_value = option1
+        mock_state.get_sorted_options.return_value = [option1]
+        mock_state.results.return_value = [{"/ipfs/option1": {"score": 1.0}}]
+        mock_state.contributions.return_value = {}
+
+        mock_issue = MagicMock()
+        mock_issue.name = "Test Issue"
+        mock_issue.description = "Test Description"
+        mock_issue.questions = ["Question 1?"]
+        mock_issue.answer_type = "ranked"
+        mock_issue.tags = ["test"]
+        mock_issue.constraints = None
+        mock_issue.restrictions = None
+        mock_issue.author = None
+
+        mock_hivemind_state_class.return_value = mock_state
+        mock_hivemind_issue_class.return_value = mock_issue
+        mock_state.hivemind_issue.return_value = mock_issue
+
+        response = self.client.post("/fetch_state", json={"cid": "test_cid"})
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["results"][0][0]["score"] == 100.0
+
+    @patch("app.HivemindOpinion")
+    @patch("app.HivemindOption")
+    @patch("app.HivemindState")
+    @patch("app.HivemindIssue")
     def test_fetch_state_calculate_results_exception(self, mock_hivemind_issue_class, mock_hivemind_state_class, mock_hivemind_option_class, mock_hivemind_opinion_class):
         """Test the fetch_state endpoint when calculate_results raises an exception."""
         # Setup mock state instance

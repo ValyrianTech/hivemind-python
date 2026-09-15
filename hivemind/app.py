@@ -461,11 +461,8 @@ async def fetch_state(request: IPFSHashRequest):
                 # Format full results for the frontend
                 formatted_results = []
                 for option in sorted_options:
-                    # Remove '/ipfs/' prefix if present when looking up the score
-                    cid = option.cid()
-                    if cid.startswith('/ipfs/'):
-                        cid = cid[6:]  # Remove '/ipfs/' prefix
-                    score = question_results.get(cid, {}).get('score', 0)
+                    # question_results is keyed by the option CID (including the /ipfs/ prefix)
+                    score = question_results.get(option.cid(), {}).get('score', 0)
                     formatted_results.append({
                         'cid': option.cid(),
                         'value': option.value if hasattr(option, 'value') else None,
