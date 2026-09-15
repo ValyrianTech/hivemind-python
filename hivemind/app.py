@@ -290,7 +290,7 @@ async def states_page(request: Request):
         # Get file modification times and sort by most recent
         state_times = []
         for hivemind_id in mapping:
-            state_file = STATES_DIR / f"{hivemind_id}.json"
+            state_file = _state_file_path(hivemind_id)
             try:
                 mtime = state_file.stat().st_mtime
                 state_times.append((hivemind_id, mtime))
