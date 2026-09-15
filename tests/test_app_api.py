@@ -137,6 +137,23 @@ class TestAPIEndpoints:
         assert data["description"] == "Test description"
 
     @patch("app.load_state_mapping")
+    def test_get_latest_state_endpoint_bare_cid(self, mock_load_state_mapping):
+        """Test that a bare CID resolves to the /ipfs/-prefixed mapping key."""
+        mock_load_state_mapping.return_value = {
+            "/ipfs/QmTestCid": {
+                "state_hash": "test_hash",
+                "name": "Test Hivemind",
+            }
+        }
+
+        response = self.client.get("/api/latest_state/QmTestCid")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["hivemind_id"] == "/ipfs/QmTestCid"
+        assert data["state_hash"] == "test_hash"
+
+    @patch("app.load_state_mapping")
     def test_get_latest_state_endpoint_not_found(self, mock_load_state_mapping):
         """Test the /api/latest_state/{hivemind_id} endpoint with a non-existent hivemind ID."""
         # Setup mock state mapping

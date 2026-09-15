@@ -904,10 +904,12 @@ async def add_opinion_page(request: Request, cid: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/latest_state/{hivemind_id}")
+@app.get("/api/latest_state/{hivemind_id:path}")
 async def get_latest_state(hivemind_id: str):
     """Get the latest state hash for a given hivemind ID."""
     mapping = load_state_mapping()
+    if hivemind_id not in mapping and f"/ipfs/{hivemind_id}" in mapping:
+        hivemind_id = f"/ipfs/{hivemind_id}"
     if hivemind_id not in mapping:
         raise HTTPException(status_code=404, detail="Hivemind ID not found")
     return {"hivemind_id": hivemind_id, **mapping[hivemind_id]}
