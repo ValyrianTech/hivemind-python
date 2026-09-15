@@ -25,7 +25,8 @@ from app import (
     log_state_stats,
     load_state_mapping,
     save_state_mapping,
-    get_latest_state
+    get_latest_state,
+    _state_file_path
 )
 
 # Import HivemindState from src.hivemind.state
@@ -231,9 +232,16 @@ class TestStateManagement:
         result = load_state_mapping()
 
         # Verify results
-        assert "test_id" in result
-        assert result["test_id"]["state_hash"] == "test_hash"
+        assert "/ipfs/test_id" in result
+        assert result["/ipfs/test_id"]["state_hash"] == "test_hash"
         mock_states_dir.glob.assert_called_once_with("*.json")
+
+    def test_state_file_path_strips_ipfs_prefix(self) -> None:
+        """Test that _state_file_path strips the /ipfs/ prefix so the CID is a valid filename."""
+        # A prefixed CID must not be treated as an absolute path
+        assert _state_file_path("/ipfs/QmTestCid") == app.STATES_DIR / "QmTestCid.json"
+        # A bare CID should also resolve to the same file
+        assert _state_file_path("QmTestCid") == app.STATES_DIR / "QmTestCid.json"
 
     @patch("app.STATES_DIR")
     def test_load_state_mapping_exception(self, mock_states_dir) -> None:

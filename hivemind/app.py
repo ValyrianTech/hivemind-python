@@ -133,6 +133,21 @@ STATES_DIR = Path(__file__).parent / "data"
 STATES_DIR.mkdir(exist_ok=True, parents=True)
 
 
+def _state_file_path(hivemind_id: str) -> Path:
+    """Return the JSON file path used to persist a hivemind's state.
+
+    The '/ipfs/' prefix is stripped so the CID can be used as a filename.
+    Without this, the leading '/' would make pathlib treat the CID as an
+    absolute path and discard STATES_DIR.
+
+    :param hivemind_id: The hivemind ID (CID), optionally with an '/ipfs/' prefix
+    :type hivemind_id: str
+    :return: The path to the state JSON file
+    :rtype: Path
+    """
+    return STATES_DIR / f"{hivemind_id.replace('/ipfs/', '')}.json"
+
+
 def load_state_mapping() -> Dict[str, Dict[str, Any]]:
     """Load all hivemind states from individual JSON files.
     
@@ -142,7 +157,7 @@ def load_state_mapping() -> Dict[str, Dict[str, Any]]:
     try:
         mapping = {}
         for state_file in STATES_DIR.glob("*.json"):
-            hivemind_id = state_file.stem
+            hivemind_id = f"/ipfs/{state_file.stem}"
             try:
                 with open(state_file, "r") as f:
                     mapping[hivemind_id] = json.load(f)
@@ -162,7 +177,7 @@ def save_state_mapping(mapping: Dict[str, Dict[str, Any]]) -> None:
     """
     try:
         for hivemind_id, state_data in mapping.items():
-            state_file = STATES_DIR / f"{hivemind_id}.json"
+            state_file = _state_file_path(hivemind_id)
             try:
                 with open(state_file, "w") as f:
                     json.dump(state_data, f, indent=2)
@@ -759,7 +774,7 @@ async def create_option(option: OptionCreate):
 
         # Create the new option
         new_option = HivemindOption()
-        new_option.set_issue(hivemind_issue_cid=option.hivemind_id)
+        await asyncio.to_thread(lambda: new_option.set_issue(hivemind_issue_cid=option.hivemind_id))
 
         # Set text and value based on option type
         new_option.text = option.text
@@ -902,7 +917,7 @@ async def get_latest_state(hivemind_id: str):
 async def update_state(state_update: StateHashUpdate):
     """Update the state hash for a given hivemind ID."""
     mapping = load_state_mapping()
-    state_file = STATES_DIR / f"{state_update.hivemind_id}.json"
+    state_file = _state_file_path(state_update.hivemind_id)
     state_data = {
         "state_hash": state_update.state_hash,
         "name": state_update.name,
